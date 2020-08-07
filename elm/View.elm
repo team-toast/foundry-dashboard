@@ -47,6 +47,10 @@ root model =
             ([ Element.width Element.fill
              , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
              , Element.Events.onClick ClickHappened
+             , Element.Font.family
+                    [ Element.Font.typeface "DM Sans"
+                    , Element.Font.sansSerif
+                    ]
              ]
                 ++ List.map Element.inFront (modals model)
             )
@@ -119,11 +123,12 @@ logoBlock : EH.DisplayProfile -> Element Msg
 logoBlock dProfile =
     Element.row
         [ Element.height Element.fill
-        , Element.padding 20
-        , Element.spacing 10
+        , Element.padding 10
+        , Element.spacing 20
         ]
         [ Images.toElement
-            [ Element.centerY ]
+            [ Element.centerY
+            , Element.width <| Element.px 60]
             Images.fryIcon
         , Element.column
             [ Element.spacing 5 ]
@@ -136,8 +141,8 @@ logoBlock dProfile =
               <|
                 Element.text "Foundry Dashboard"
             , Element.newTabLink
-                [ Element.centerX
-                , Element.Background.color Theme.lightBlue
+                [ Element.alignLeft
+                , Element.Background.color Theme.blue
                 , Element.paddingXY 10 3
                 , Element.Border.rounded 4
                 , Element.Font.color EH.white

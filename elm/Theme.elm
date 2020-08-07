@@ -13,8 +13,6 @@ type alias Theme msg =
     , appBackground : Color
     , blockBackground : Color
     , txTrackerBackground : Color
-    , postBodyBackground : Color
-    , draftModalBackground : Color
     , mainTextColor : Color
     , linkTextColor : Color
     , linkTextColorAgainstBackground : Color
@@ -45,8 +43,6 @@ basicTheme =
     , headerTextColor = EH.white
     , appBackground = darkerBlue
     , blockBackground = lightBlue
-    , postBodyBackground = lightBlue
-    , draftModalBackground = darkBlue
     , txTrackerBackground = lightBlue
     , mainTextColor = EH.white
     , linkTextColor = blue
