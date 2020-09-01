@@ -27,6 +27,7 @@ import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Random
 import Routing exposing (Route)
+import Sentiment.State as Sentiment
 import Task
 import Time
 import TokenValue exposing (TokenValue)
@@ -197,7 +198,6 @@ update msg prevModel =
         --     in
         --     if maybeCurrentAddress /= Just address then
         --         ( prevModel, Cmd.none )
-
         --     else
         --         case fetchResult of
         --             Ok balance ->
@@ -210,13 +210,11 @@ update msg prevModel =
         --                   }
         --                 , Cmd.none
         --                 )
-
         --             Err httpErr ->
         --                 ( prevModel
         --                     |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
         --                 , Cmd.none
         --                 )
-
         DismissNotice id ->
             ( { prevModel
                 | userNotices =
@@ -240,6 +238,28 @@ update msg prevModel =
                     , Cmd.map HomeMsg updateResult.cmd
                     )
                         |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
+
+        SentimentMsg sentimentMsg ->
+            case prevModel.submodel of
+                Sentiment sentimentModel ->
+                    let
+                        updateResult =
+                            sentimentModel
+                                |> Sentiment.update sentimentMsg
+                    in
+                    ( { prevModel
+                        | submodel =
+                            Sentiment updateResult.newModel
+                      }
+                    , Cmd.map SentimentMsg updateResult.cmd
+                    )
+                        |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
 
         MsgUp msgUp ->
             prevModel |> handleMsgUp msgUp
@@ -352,9 +372,18 @@ gotoRoute route prevModel =
               }
             , Cmd.map HomeMsg homeCmd
             )
-        
+
         Routing.Sentiment ->
-            Debug.todo "sentiment model"
+            let
+                ( sentimentModel, sentimentCmd ) =
+                    Sentiment.init
+            in
+            ( { prevModel
+                | route = route
+                , submodel = Sentiment sentimentModel
+              }
+            , Cmd.map SentimentMsg sentimentCmd
+            )
 
         Routing.NotFound err ->
             ( { prevModel
@@ -389,6 +418,11 @@ submodelSubscriptions submodel =
             Sub.map
                 HomeMsg
                 (Home.subscriptions homeModel)
+
+        Sentiment sentimentModel ->
+            Sub.map
+                SentimentMsg
+                (Sentiment.subscriptions sentimentModel)
 
 
 subscriptions : Model -> Sub Msg

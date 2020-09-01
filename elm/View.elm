@@ -10,7 +10,6 @@ import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
 import Element.Events
-import Images
 import Element.Font
 import Element.Input
 import Element.Lazy
@@ -22,14 +21,16 @@ import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
-import Home.View
+import Home.View as Home
 import Html.Attributes
+import Images
 import Json.Decode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Phace
 import Routing exposing (Route)
+import Sentiment.View as Sentiment
 import Theme exposing (defaultTheme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -48,9 +49,9 @@ root model =
              , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
              , Element.Events.onClick ClickHappened
              , Element.Font.family
-                    [ Element.Font.typeface "DM Sans"
-                    , Element.Font.sansSerif
-                    ]
+                [ Element.Font.typeface "DM Sans"
+                , Element.Font.sansSerif
+                ]
              ]
                 ++ List.map Element.inFront (modals model)
             )
@@ -86,9 +87,16 @@ body model =
         , case model.submodel of
             Home homeModel ->
                 Element.map HomeMsg <|
-                    Home.View.view
+                    Home.view
                         model.dProfile
                         homeModel
+                        (Wallet.userInfo model.wallet)
+
+            Sentiment sentimentModel ->
+                Element.map SentimentMsg <|
+                    Sentiment.view
+                        model.dProfile
+                        sentimentModel
                         (Wallet.userInfo model.wallet)
         ]
 
@@ -128,7 +136,8 @@ logoBlock dProfile =
         ]
         [ Images.toElement
             [ Element.centerY
-            , Element.width <| Element.px 60]
+            , Element.width <| Element.px 60
+            ]
             Images.fryIcon
         , Element.column
             [ Element.spacing 5 ]

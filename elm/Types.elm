@@ -16,6 +16,7 @@ import Home.Types as Home
 import Http
 import List.Extra
 import Routing exposing (Route)
+import Sentiment.Types as Sentiment
 import Time
 import TokenValue exposing (TokenValue)
 import Url exposing (Url)
@@ -49,6 +50,7 @@ type alias Model =
 
 type Submodel
     = Home Home.Model
+    | Sentiment Sentiment.Model
 
 
 type Msg
@@ -63,5 +65,6 @@ type Msg
     | DismissNotice Int
     | ClickHappened
     | HomeMsg Home.Msg
-    -- | BalanceFetched Address (Result Http.Error TokenValue)
+    | SentimentMsg Sentiment.Msg
+      -- | BalanceFetched Address (Result Http.Error TokenValue)
     | MsgUp MsgUp
