@@ -1,14 +1,19 @@
 module Sentiment.Types exposing (..)
 
 import Common.Msg exposing (..)
+import Http
 
 
 type alias Model =
-    { }
+    { polls : Maybe (List Poll)
+    }
 
 
 type Msg
     = MsgUp MsgUp
+    | AllDataFetched (Result Http.Error (List Response))
+    | TestVote
+    | PollsFetched (Result Http.Error (List Poll))
 
 
 type alias UpdateResult =
@@ -24,3 +29,21 @@ justModelUpdate model =
     , cmd = Cmd.none
     , msgUps = []
     }
+
+type alias Poll =
+    { id : Int
+    , title : String
+    , question : String
+    , options : List String
+    }
+
+
+type alias Response =
+    String
+
+
+
+-- type alias Poll =
+--     { id : Int
+--     , prompt : String
+--     }

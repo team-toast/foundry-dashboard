@@ -14,8 +14,8 @@ import Element.Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
-import Sentiment.Types exposing (..)
 import Routing exposing (Route)
+import Sentiment.Types exposing (..)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -23,4 +23,8 @@ import Wallet exposing (Wallet)
 
 view : EH.DisplayProfile -> Model -> Maybe UserInfo -> Element Msg
 view dProfile model maybeUserInfo =
-    Element.text "sentiment :3"
+    Theme.blueButton
+        dProfile
+        []
+        [ "clicky clicky" ]
+        TestVote
