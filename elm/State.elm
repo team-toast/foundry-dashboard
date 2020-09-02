@@ -28,6 +28,7 @@ import MaybeDebugLog exposing (maybeDebugLog)
 import Random
 import Routing exposing (Route)
 import Sentiment.State as Sentiment
+import Stats.State as Stats
 import Task
 import Time
 import TokenValue exposing (TokenValue)
@@ -261,6 +262,25 @@ update msg prevModel =
                 _ ->
                     ( prevModel, Cmd.none )
 
+        StatsMsg statsMsg ->
+            case prevModel.submodel of
+                Stats statsModel ->
+                    let
+                        updateResult =
+                            statsModel
+                                |> Stats.update statsMsg
+                    in
+                    ( { prevModel
+                        | submodel =
+                            Stats updateResult.newModel
+                      }
+                    , Cmd.map StatsMsg updateResult.cmd
+                    )
+                        |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
+
         MsgUp msgUp ->
             prevModel |> handleMsgUp msgUp
 
@@ -385,6 +405,18 @@ gotoRoute route prevModel =
             , Cmd.map SentimentMsg sentimentCmd
             )
 
+        Routing.Stats ->
+            let
+                ( statsModel, statsCmd ) =
+                    Stats.init
+            in
+            ( { prevModel
+                | route = route
+                , submodel = Stats statsModel
+              }
+            , Cmd.map StatsMsg statsCmd
+            )
+
         Routing.NotFound err ->
             ( { prevModel
                 | route = route
@@ -423,6 +455,11 @@ submodelSubscriptions submodel =
             Sub.map
                 SentimentMsg
                 (Sentiment.subscriptions sentimentModel)
+
+        Stats statsModel ->
+            Sub.map
+                StatsMsg
+                (Stats.subscriptions statsModel)
 
 
 subscriptions : Model -> Sub Msg

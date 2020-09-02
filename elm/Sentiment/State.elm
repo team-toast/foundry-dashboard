@@ -8,7 +8,7 @@ import Sentiment.Types exposing (..)
 init : ( Model, Cmd Msg )
 init =
     ( { polls = Nothing }
-    , fetchAllDataCmd
+    , Cmd.none
     )
 
 
@@ -67,20 +67,20 @@ fetchAllPollsCmd =
 --         }
 
 
-fetchAllDataCmd : Cmd Msg
-fetchAllDataCmd =
-    Http.request
-        { method = "GET"
-        , headers =
-            [ Http.header "FromPollId" "0"
-            , Http.header "Count" "2"
-            ]
-        , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPollVotes"
-        , body = Http.emptyBody
-        , expect = Http.expectJson AllDataFetched allDataDecoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
+-- fetchAllDataCmd : Cmd Msg
+-- fetchAllDataCmd =
+--     Http.request
+--         { method = "GET"
+--         , headers =
+--             [ Http.header "FromPollId" "0"
+--             , Http.header "Count" "2"
+--             ]
+--         , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPollVotes"
+--         , body = Http.emptyBody
+--         , expect = Http.expectJson AllDataFetched allDataDecoder
+--         , timeout = Nothing
+--         , tracker = Nothing
+--         }
 
 
 pollDecoder : Decoder Poll
@@ -96,11 +96,11 @@ pollDecoder =
 -- (Json.Decode.field "Id" Json.Decode.int)
 
 
-allDataDecoder : Decoder (List Response)
-allDataDecoder =
-    Json.Decode.list responseDecoder
+-- allDataDecoder : Decoder (List Response)
+-- allDataDecoder =
+--     Json.Decode.list responseDecoder
 
 
-responseDecoder : Decoder Response
-responseDecoder =
-    Debug.todo "decode response"
+-- responseDecoder : Decoder Response
+-- responseDecoder =
+--     Debug.todo "decode response"
