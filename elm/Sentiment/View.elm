@@ -40,7 +40,7 @@ view dProfile model maybeUserInfo =
                     [ Element.width Element.fill
                     , Element.spacing 50
                     ]
-                    [ titleText dProfile "Polls"
+                    [ titleText dProfile "Foundry Polls"
                     , viewPolls dProfile polls
                     ]
 
@@ -48,8 +48,7 @@ view dProfile model maybeUserInfo =
 titleText : DisplayProfile -> String -> Element Msg
 titleText dProfile title =
     Element.el
-        [ Element.centerX
-        , Element.Font.bold
+        [ Element.Font.bold
         , Element.Font.size <| responsiveVal dProfile 50 36
         ]
     <|
