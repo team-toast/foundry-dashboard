@@ -11,7 +11,7 @@ type alias Model =
 
 type Msg
     = MsgUp MsgUp
-    | AllDataFetched (Result Http.Error (List Response))
+    -- | AllDataFetched (Result Http.Error (List Response))
     | TestVote
     | PollsFetched (Result Http.Error (List Poll))
 
@@ -30,20 +30,17 @@ justModelUpdate model =
     , msgUps = []
     }
 
+
 type alias Poll =
     { id : Int
     , title : String
     , question : String
-    , options : List String
+    , options : List PollOption
     }
 
 
-type alias Response =
-    String
-
-
-
--- type alias Poll =
---     { id : Int
---     , prompt : String
---     }
+type alias PollOption =
+    { id : Int
+    , pollId : Int
+    , name : String
+    }

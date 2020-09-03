@@ -206,3 +206,17 @@ debugMsg s =
         [ [ Element.text <| "debug: " ++ s ] ]
     , align = BottomRight
     }
+
+
+httpFetchError : String -> Http.Error -> UserNotice
+httpFetchError action httpError =
+    let
+        _ =
+            maybeDebugLog "Problem with http fetch" httpError
+    in
+    { uniqueLabel = "httpfetch" ++ action
+    , noticeType = Error
+    , mainParagraphs =
+        [ [ Element.text <| "Problem with an http fetch for action '" ++ action ++ "'. More info in the console." ] ]
+    , align = BottomRight
+    }
