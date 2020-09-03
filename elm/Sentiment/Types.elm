@@ -35,7 +35,7 @@ type alias Poll =
     { id : Int
     , title : String
     , question : String
-    , options : Maybe (List PollOption)
+    , options : List PollOption
     }
 
 

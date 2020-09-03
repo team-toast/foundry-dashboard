@@ -59,9 +59,32 @@ titleText dProfile title =
 viewPolls : DisplayProfile -> List Poll -> Element Msg
 viewPolls dProfile polls =
     Element.column
-        [ Element.spacing 10 ]
+        [ Element.spacing 20 ]
         (List.map (viewPoll dProfile) polls)
+
 
 viewPoll : DisplayProfile -> Poll -> Element Msg
 viewPoll dProfile poll =
-    Element.text <| "Hi I'm a poll! My question is: " ++ poll.question
+    Element.column
+        [ Element.spacing 10 ]
+        [ Element.paragraph
+            [ Element.Font.size <| responsiveVal dProfile 22 18 ]
+            [ Element.text poll.question ]
+        , Element.el
+            [ Element.padding 10 ]
+            (viewOptions dProfile poll.options)
+        ]
+
+
+viewOptions : DisplayProfile -> List PollOption -> Element Msg
+viewOptions dProfile options =
+    Element.column
+        [ Element.spacing 10 ]
+        (List.map (viewOption dProfile) options)
+
+
+viewOption : DisplayProfile -> PollOption -> Element Msg
+viewOption dProfile pollOption =
+    Element.paragraph
+        [ Element.Font.size <| responsiveVal dProfile 18 14 ]
+        [ Element.text pollOption.name ]

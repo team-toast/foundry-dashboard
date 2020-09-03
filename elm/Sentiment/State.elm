@@ -70,10 +70,43 @@ fetchAllPollsCmd =
         , expect =
             Http.expectJson
                 PollsFetched
-                (Json.Decode.list pollDecoder)
+                pollListDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+pollListDecoder : Decoder (List Poll)
+pollListDecoder =
+    Json.Decode.list pollDecoder
+        |> Json.Decode.map (List.sortBy .id)
+
+
+pollDecoder : Decoder Poll
+pollDecoder =
+    Json.Decode.map4 Poll
+        (Json.Decode.field "Id" Json.Decode.int)
+        (Json.Decode.field "Title" Json.Decode.string)
+        (Json.Decode.field "Question" Json.Decode.string)
+        (Json.Decode.oneOf
+            [ pollOptionListDecoder
+            , Json.Decode.succeed []
+            ]
+        )
+
+
+pollOptionListDecoder : Decoder (List PollOption)
+pollOptionListDecoder =
+    Json.Decode.field "Options" (Json.Decode.list pollOptionDecoder)
+        |> Json.Decode.map (List.sortBy .id)
+
+
+pollOptionDecoder : Decoder PollOption
+pollOptionDecoder =
+    Json.Decode.map3 PollOption
+        (Json.Decode.field "Id" Json.Decode.int)
+        (Json.Decode.field "PollId" Json.Decode.int)
+        (Json.Decode.field "Name" Json.Decode.string)
 
 
 
@@ -98,26 +131,6 @@ fetchAllPollsCmd =
 --         , timeout = Nothing
 --         , tracker = Nothing
 --         }
-
-
-pollDecoder : Decoder Poll
-pollDecoder =
-    Json.Decode.map4 Poll
-        (Json.Decode.field "Id" Json.Decode.int)
-        (Json.Decode.field "Title" Json.Decode.string)
-        (Json.Decode.field "Question" Json.Decode.string)
-        (Json.Decode.maybe <| Json.Decode.field "Options" <| Json.Decode.list pollOptionDecoder)
-
-
-pollOptionDecoder : Decoder PollOption
-pollOptionDecoder =
-    Json.Decode.map3 PollOption
-        (Json.Decode.field "Id" Json.Decode.int)
-        (Json.Decode.field "PollId" Json.Decode.int)
-        (Json.Decode.field "Name" Json.Decode.string)
-
-
-
 -- (Json.Decode.field "Id" Json.Decode.int)
 -- allDataDecoder : Decoder (List Response)
 -- allDataDecoder =
