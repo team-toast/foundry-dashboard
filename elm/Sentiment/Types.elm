@@ -11,7 +11,7 @@ type alias Model =
 
 type Msg
     = MsgUp MsgUp
-    -- | AllDataFetched (Result Http.Error (List Response))
+      -- | AllDataFetched (Result Http.Error (List Response))
     | TestVote
     | PollsFetched (Result Http.Error (List Poll))
 
@@ -35,7 +35,7 @@ type alias Poll =
     { id : Int
     , title : String
     , question : String
-    , options : List PollOption
+    , options : Maybe (List PollOption)
     }
 
 

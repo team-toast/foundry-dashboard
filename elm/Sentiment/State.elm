@@ -106,7 +106,7 @@ pollDecoder =
         (Json.Decode.field "Id" Json.Decode.int)
         (Json.Decode.field "Title" Json.Decode.string)
         (Json.Decode.field "Question" Json.Decode.string)
-        (Json.Decode.field "Options" <| Json.Decode.list pollOptionDecoder)
+        (Json.Decode.maybe <| Json.Decode.field "Options" <| Json.Decode.list pollOptionDecoder)
 
 
 pollOptionDecoder : Decoder PollOption
