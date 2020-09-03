@@ -1,15 +1,24 @@
-module Sentiment.State exposing (..)
+port module Sentiment.State exposing (..)
 
 import Common.Msg exposing (..)
+import Common.Types exposing (..)
+import Config
+import Eth
+import Eth.Types exposing (Address)
+import Eth.Utils
 import Http
 import Json.Decode exposing (Decoder)
+import Json.Encode
 import Sentiment.Types exposing (..)
+import Task
 import UserNotice as UN
+import Wallet exposing (Wallet)
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { polls = Nothing }
+    ( { polls = Nothing
+      }
     , fetchAllPollsCmd
     )
 
@@ -37,12 +46,18 @@ update msg prevModel =
                             | polls = Just polls
                         }
 
-        OptionClicked pollId optionId ->
+        OptionClicked userInfo ( questionString, answerString ) ->
             UpdateResult
                 prevModel
-                -- sendTestVoteCmd
-                Cmd.none
+                (signResponseCmd questionString answerString userInfo)
                 []
+
+        Web3SignResultValue jsonVal ->
+            let
+                _ =
+                    Debug.log "signResult" jsonVal
+            in
+            justModelUpdate prevModel
 
 
 
@@ -55,17 +70,12 @@ update msg prevModel =
 --         prevModel
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
-
-
 fetchAllPollsCmd : Cmd Msg
 fetchAllPollsCmd =
     Http.request
         { method = "GET"
         , headers = []
-        , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=10"
+        , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0"
         , body = Http.emptyBody
         , expect =
             Http.expectJson
@@ -109,32 +119,31 @@ pollOptionDecoder =
         (Json.Decode.field "Name" Json.Decode.string)
 
 
+signResponseCmd : String -> String -> UserInfo -> Cmd Msg
+signResponseCmd questionString responseString userInfo =
+    web3Sign <|
+        Json.Encode.object
+            [ ( "data", Json.Encode.string <| encodeResponse questionString responseString )
+            , ( "account", Json.Encode.string (userInfo.address |> Eth.Utils.addressToChecksumString) )
+            ]
 
--- sendTestVoteCmd : Cmd Msg
--- sendTestVoteCmd =
---     Http.post
---         { url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/PlaceVote"
---         , body = Http.jsonBody
---         , expect = Http.expectWhatever VoteSent
---         }
--- fetchAllDataCmd : Cmd Msg
--- fetchAllDataCmd =
---     Http.request
---         { method = "GET"
---         , headers =
---             [ Http.header "FromPollId" "0"
---             , Http.header "Count" "2"
---             ]
---         , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPollVotes"
---         , body = Http.emptyBody
---         , expect = Http.expectJson AllDataFetched allDataDecoder
---         , timeout = Nothing
---         , tracker = Nothing
---         }
--- (Json.Decode.field "Id" Json.Decode.int)
--- allDataDecoder : Decoder (List Response)
--- allDataDecoder =
---     Json.Decode.list responseDecoder
--- responseDecoder : Decoder Response
--- responseDecoder =
---     Debug.todo "decode response"
+
+encodeResponse : String -> String -> String
+encodeResponse question answer =
+    Json.Encode.object
+        [ ( "context", Json.Encode.string "FRY Holder Sentiment Voting" )
+        , ( "question", Json.Encode.string question )
+        , ( "answer", Json.Encode.string answer )
+        ]
+        |> Json.Encode.encode 0
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    web3SignResult Web3SignResultValue
+
+
+port web3Sign : Json.Decode.Value -> Cmd msg
+
+
+port web3SignResult : (Json.Decode.Value -> msg) -> Sub msg

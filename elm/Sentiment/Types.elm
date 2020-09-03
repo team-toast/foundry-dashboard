@@ -1,7 +1,9 @@
 module Sentiment.Types exposing (..)
 
 import Common.Msg exposing (..)
+import Common.Types exposing (..)
 import Http
+import Json.Decode
 
 
 type alias Model =
@@ -12,7 +14,8 @@ type alias Model =
 type Msg
     = MsgUp MsgUp
       -- | AllDataFetched (Result Http.Error (List Response))
-    | OptionClicked Int Int
+    | OptionClicked UserInfo ( String, String )
+    | Web3SignResultValue Json.Decode.Value
     | PollsFetched (Result Http.Error (List Poll))
 
 

@@ -21,6 +21,6 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-view : EH.DisplayProfile -> Model -> Maybe UserInfo -> Element Msg
-view dProfile model maybeUserInfo =
+view : EH.DisplayProfile -> Maybe UserInfo-> Model  -> Element Msg
+view dProfile maybeUserInfo model  =
     Element.text "home :3"

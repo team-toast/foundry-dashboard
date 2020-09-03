@@ -60,6 +60,14 @@ function web3PortStuff(app, web3) {
             connectAndPrepareRemainingWeb3Ports(app, web3);
         }
     });
+
+    app.ports.web3Sign.subscribe(function(data) {
+        console.log ("got", data);
+        web3.personal.sign(data.data, data.account, function(err, res) {
+            console.log(app.ports);
+            app.ports.web3SignResult.send(res)
+        });
+    });
 }
 
 function prepareWeb3PortsPreConnect(app, web3) {

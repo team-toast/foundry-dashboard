@@ -1,5 +1,6 @@
 module Sentiment.View exposing (view)
 
+import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
 import Config
@@ -21,8 +22,8 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-view : DisplayProfile -> Model -> Maybe UserInfo -> Element Msg
-view dProfile model maybeUserInfo =
+view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
+view dProfile maybeUserInfo model =
     Element.el
         [ responsiveVal dProfile
             (Element.paddingXY 100 50)
@@ -41,7 +42,7 @@ view dProfile model maybeUserInfo =
                     , Element.spacing 50
                     ]
                     [ titleText dProfile "Foundry Polls"
-                    , viewPolls dProfile polls
+                    , viewPolls dProfile maybeUserInfo polls
                     ]
 
 
@@ -55,18 +56,18 @@ titleText dProfile title =
         Element.text title
 
 
-viewPolls : DisplayProfile -> List Poll -> Element Msg
-viewPolls dProfile polls =
+viewPolls : DisplayProfile -> Maybe UserInfo -> List Poll -> Element Msg
+viewPolls dProfile maybeUserInfo polls =
     Element.column
         [ Element.spacing 20 ]
         (List.map
-            (viewPoll dProfile)
+            (viewPoll dProfile maybeUserInfo)
             (List.reverse polls)
         )
 
 
-viewPoll : DisplayProfile -> Poll -> Element Msg
-viewPoll dProfile poll =
+viewPoll : DisplayProfile -> Maybe UserInfo -> Poll -> Element Msg
+viewPoll dProfile maybeUserInfo poll =
     Element.column
         [ Element.spacing 10 ]
         [ Element.paragraph
@@ -74,21 +75,31 @@ viewPoll dProfile poll =
             [ Element.text poll.question ]
         , Element.el
             [ Element.padding 10 ]
-            (viewOptions dProfile poll.id poll.options)
+            (viewOptions dProfile maybeUserInfo poll.question poll.options)
         ]
 
 
-viewOptions : DisplayProfile -> Int -> List PollOption -> Element Msg
-viewOptions dProfile pollId options =
+viewOptions : DisplayProfile -> Maybe UserInfo -> String -> List PollOption -> Element Msg
+viewOptions dProfile maybeUserInfo questionString options =
     Element.column
         [ Element.spacing 10 ]
-        (List.map (viewOption dProfile pollId) options)
+        (List.map (viewOption dProfile maybeUserInfo questionString) options)
 
 
-viewOption : DisplayProfile -> Int -> PollOption ->  Element Msg
-viewOption dProfile pollId pollOption  =
+viewOption : DisplayProfile -> Maybe UserInfo -> String -> PollOption -> Element Msg
+viewOption dProfile maybeUserInfo questionString pollOption =
+    let
+        onClickMsg =
+            case maybeUserInfo of
+                Just userInfo ->
+                    OptionClicked userInfo ( questionString, pollOption.name )
+
+                Nothing ->
+                    MsgUp ConnectToWeb3
+    in
     Element.paragraph
-        [ Element.Font.size <| responsiveVal dProfile 18 14 
-        , Element.Events.onClick <| OptionClicked pollId pollOption.id
+        [ Element.Font.size <| responsiveVal dProfile 18 14
+        , Element.Events.onClick onClickMsg
+        , Element.pointer
         ]
         [ Element.text pollOption.name ]

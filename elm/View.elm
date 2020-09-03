@@ -90,15 +90,15 @@ body model =
                 Element.map HomeMsg <|
                     Home.view
                         model.dProfile
-                        homeModel
                         (Wallet.userInfo model.wallet)
+                        homeModel
 
             Sentiment sentimentModel ->
                 Element.map SentimentMsg <|
                     Sentiment.view
                         model.dProfile
-                        sentimentModel
                         (Wallet.userInfo model.wallet)
+                        sentimentModel
         ]
 
 

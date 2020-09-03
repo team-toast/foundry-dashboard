@@ -414,6 +414,16 @@ addUserNotices notices model =
     }
 
 
+-- runMsgDown : MsgDown -> Submodel -> Submodel
+-- runMsgDown msg submodel =
+--     case submodel of
+--         Home homeModel ->
+--             Home
+--                 (homeModel |> Home.runMsgDown msg )
+--         Sentiment sentimentModel ->
+--             Sentiment
+--                 (homeModel |> Sentiment.runMsgDown msg )
+
 submodelSubscriptions : Submodel -> Sub Msg
 submodelSubscriptions submodel =
     case submodel of
