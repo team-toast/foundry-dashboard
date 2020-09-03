@@ -68,3 +68,4 @@ type Msg
     | SentimentMsg Sentiment.Msg
       -- | BalanceFetched Address (Result Http.Error TokenValue)
     | MsgUp MsgUp
+    | NoOp

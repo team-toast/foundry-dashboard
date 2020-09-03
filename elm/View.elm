@@ -84,6 +84,7 @@ body model =
             model.dProfile
             model.submodel
             (Wallet.userInfo model.wallet)
+            model.showAddressId
         , case model.submodel of
             Home homeModel ->
                 Element.map HomeMsg <|
@@ -101,8 +102,8 @@ body model =
         ]
 
 
-header : EH.DisplayProfile -> Submodel -> Maybe UserInfo -> Element Msg
-header dProfile mode walletUXPhaceInfo =
+header : EH.DisplayProfile -> Submodel -> Maybe UserInfo -> Maybe PhaceIconId -> Element Msg
+header dProfile mode maybeUserInfo showAddressId =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
@@ -123,7 +124,7 @@ header dProfile mode walletUXPhaceInfo =
             , Element.alignRight
             ]
           <|
-            EH.forgedByFoundry dProfile
+            connectButtonOrPhace dProfile maybeUserInfo showAddressId
         ]
 
 
@@ -163,6 +164,21 @@ logoBlock dProfile =
                 }
             ]
         ]
+
+
+connectButtonOrPhace : DisplayProfile -> Maybe UserInfo -> Maybe PhaceIconId -> Element Msg
+connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
+    case maybeUserInfo of
+        Nothing ->
+            web3ConnectButton dProfile [] MsgUp
+
+        Just userInfo ->
+            phaceElement
+                False
+                userInfo.address
+                (showAddressInfo == Just UserPhace)
+                (MsgUp <| ShowOrHideAddress UserPhace)
+                Types.NoOp
 
 
 userNoticeEls : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
@@ -244,7 +260,7 @@ userNotice dProfile ( id, notice ) =
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.15
         , EH.subtleShadow
-        , EH.onClickNoPropagation <| MsgUp NoOp
+        , EH.onClickNoPropagation Types.NoOp
         ]
         (notice.mainParagraphs
             |> List.map (List.map (Element.map never))

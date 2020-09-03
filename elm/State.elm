@@ -271,6 +271,9 @@ update msg prevModel =
             , Cmd.none
             )
 
+        Types.NoOp ->
+            ( prevModel, Cmd.none )
+
 
 handleMsgUp : MsgUp -> Model -> ( Model, Cmd Msg )
 handleMsgUp msgUp prevModel =
@@ -317,7 +320,7 @@ handleMsgUp msgUp prevModel =
             , Cmd.none
             )
 
-        NoOp ->
+        Common.Msg.NoOp ->
             ( prevModel, Cmd.none )
 
 
