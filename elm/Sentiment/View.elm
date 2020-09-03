@@ -59,7 +59,10 @@ viewPolls : DisplayProfile -> List Poll -> Element Msg
 viewPolls dProfile polls =
     Element.column
         [ Element.spacing 20 ]
-        (List.map (viewPoll dProfile) polls)
+        (List.map
+            (viewPoll dProfile)
+            (List.reverse polls)
+        )
 
 
 viewPoll : DisplayProfile -> Poll -> Element Msg
@@ -71,19 +74,21 @@ viewPoll dProfile poll =
             [ Element.text poll.question ]
         , Element.el
             [ Element.padding 10 ]
-            (viewOptions dProfile poll.options)
+            (viewOptions dProfile poll.id poll.options)
         ]
 
 
-viewOptions : DisplayProfile -> List PollOption -> Element Msg
-viewOptions dProfile options =
+viewOptions : DisplayProfile -> Int -> List PollOption -> Element Msg
+viewOptions dProfile pollId options =
     Element.column
         [ Element.spacing 10 ]
-        (List.map (viewOption dProfile) options)
+        (List.map (viewOption dProfile pollId) options)
 
 
-viewOption : DisplayProfile -> PollOption -> Element Msg
-viewOption dProfile pollOption =
+viewOption : DisplayProfile -> Int -> PollOption ->  Element Msg
+viewOption dProfile pollId pollOption  =
     Element.paragraph
-        [ Element.Font.size <| responsiveVal dProfile 18 14 ]
+        [ Element.Font.size <| responsiveVal dProfile 18 14 
+        , Element.Events.onClick <| OptionClicked pollId pollOption.id
+        ]
         [ Element.text pollOption.name ]

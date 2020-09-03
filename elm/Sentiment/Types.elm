@@ -12,7 +12,7 @@ type alias Model =
 type Msg
     = MsgUp MsgUp
       -- | AllDataFetched (Result Http.Error (List Response))
-    | TestVote
+    | OptionClicked Int Int
     | PollsFetched (Result Http.Error (List Poll))
 
 

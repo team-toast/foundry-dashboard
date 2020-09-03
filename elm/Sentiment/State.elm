@@ -37,7 +37,7 @@ update msg prevModel =
                             | polls = Just polls
                         }
 
-        TestVote ->
+        OptionClicked pollId optionId ->
             UpdateResult
                 prevModel
                 -- sendTestVoteCmd
