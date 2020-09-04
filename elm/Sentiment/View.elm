@@ -61,33 +61,37 @@ viewPolls dProfile maybeUserInfo polls validatedResponses =
     Element.column
         [ Element.spacing 20 ]
         (List.map
-            (viewPoll dProfile maybeUserInfo)
+            (viewPoll dProfile maybeUserInfo validatedResponses)
             (List.reverse polls)
         )
 
 
-viewPoll : DisplayProfile -> Maybe UserInfo -> Poll -> Element Msg
-viewPoll dProfile maybeUserInfo poll =
+viewPoll : DisplayProfile -> Maybe UserInfo -> ValidatedResponseTracker -> Poll -> Element Msg
+viewPoll dProfile maybeUserInfo validatedResponses poll =
     Element.column
-        [ Element.spacing 10 ]
+        [ Element.spacing 10]
         [ Element.paragraph
             [ Element.Font.size <| responsiveVal dProfile 22 18 ]
             [ Element.text poll.question ]
         , Element.el
-            [ Element.padding 10 ]
-            (viewOptions dProfile maybeUserInfo poll)
+            [ Element.padding 10
+            , Element.width Element.fill
+            ]
+            (viewOptions dProfile maybeUserInfo poll validatedResponses)
         ]
 
 
-viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Element Msg
-viewOptions dProfile maybeUserInfo poll =
+viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> ValidatedResponseTracker -> Element Msg
+viewOptions dProfile maybeUserInfo poll validatedResponses =
     Element.column
-        [ Element.spacing 10 ]
-        (List.map (viewOption dProfile maybeUserInfo poll) poll.options)
+        [ Element.spacing 10
+        , Element.width Element.fill
+        ]
+        (List.map (viewOption dProfile maybeUserInfo poll validatedResponses) poll.options)
 
 
-viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> PollOption -> Element Msg
-viewOption dProfile maybeUserInfo poll pollOption =
+viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> ValidatedResponseTracker -> PollOption -> Element Msg
+viewOption dProfile maybeUserInfo poll validatedResponses pollOption =
     let
         onClickMsg =
             case maybeUserInfo of
@@ -96,10 +100,27 @@ viewOption dProfile maybeUserInfo poll pollOption =
 
                 Nothing ->
                     MsgUp ConnectToWeb3
+
+        tally =
+            validatedResponses
+                |> Dict.get poll.id
+                |> Maybe.withDefault Dict.empty
+                |> Dict.toList
+                |> List.filter
+                    (\( _, validatedResponse ) ->
+                        validatedResponse.pollOptionId == pollOption.id
+                    )
+                |> List.length
     in
-    Element.paragraph
-        [ Element.Font.size <| responsiveVal dProfile 18 14
-        , Element.Events.onClick onClickMsg
-        , Element.pointer
+    Element.row
+        [ Element.width Element.fill ]
+        [ Element.paragraph
+            [ Element.Font.size <| responsiveVal dProfile 18 14
+            , Element.Events.onClick onClickMsg
+            , Element.pointer
+            ]
+            [ Element.text pollOption.name ]
+        , Element.el
+            [ Element.alignRight ]
+            (Element.text <| String.fromInt tally)
         ]
-        [ Element.text pollOption.name ]
