@@ -8,11 +8,13 @@ import Eth.Utils
 import Http
 import Json.Decode
 import Time
+import TokenValue exposing (TokenValue)
 
 
 type alias Model =
     { polls : Maybe (List Poll)
     , validatedResponses : ValidatedResponseTracker
+    , fryBalances : Dict String (Maybe TokenValue)
     }
 
 
@@ -49,22 +51,6 @@ getValidatedResponse pollId address validatedResponseTracker =
     validatedResponseTracker
         |> Dict.get pollId
         |> Maybe.andThen (Dict.get (Eth.Utils.addressToChecksumString address))
-
-
-
--- insertValidatedResponse : Int -> Address -> ValidatedResponse -> ValidatedResponseTracker -> ValidatedResponseTracker
--- insertValidatedResponse pollId address validatedResponse validatedResponseTracker =
---     validatedResponseTracker
---         |> Dict.update pollId
---             (\maybeDict ->
---                 Just
---                     (maybeDict
---                         |> Maybe.withDefault Dict.empty
---                         |> Dict.insert
---                             (Eth.Utils.addressToChecksumString address)
---                             validatedResponse
---                     )
---             )
 
 
 insertValidatedResponse : LoggedSignedResponse -> ValidatedResponseTracker -> ValidatedResponseTracker

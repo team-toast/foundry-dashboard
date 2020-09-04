@@ -15,7 +15,9 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra
 import Sentiment.Types exposing (..)
+import Set exposing (Set)
 import Task
+import TokenValue exposing (TokenValue)
 import Url.Builder
 import UserNotice as UN
 import Wallet exposing (Wallet)
@@ -25,6 +27,7 @@ init : ( Model, Cmd Msg )
 init =
     ( { polls = Nothing
       , validatedResponses = Dict.empty
+      , fryBalances = Dict.empty
       }
     , fetchAllPollsCmd
     )
@@ -99,24 +102,43 @@ update msg prevModel =
             case responsesFetchedResult of
                 Ok decodedLoggedSignedResponses ->
                     let
-                        ( newValidatedResponses, newAddresses ) =
+                        ( newValidatedResponses, respondingAddresses ) =
                             validateAndAddFetchedResponses decodedLoggedSignedResponses prevModel.validatedResponses
 
-                        maybeFetchBalanceCmd =
-                            case newAddresses of
+                        newBalancesDict =
+                            case respondingAddresses of
                                 [] ->
-                                    Nothing
+                                    prevModel.fryBalances
 
                                 addresses ->
-                                    Nothing
+                                    let
+                                        newDictPortion =
+                                            addresses
+                                                |> List.map
+                                                    (\address ->
+                                                        ( address
+                                                            |> Eth.Utils.addressToString
+                                                            |> String.toLower
+                                                        , Nothing
+                                                        )
+                                                    )
+                                                |> Dict.fromList
+                                    in
+                                    Dict.union
+                                        prevModel.fryBalances
+                                        newDictPortion
+
+                        fetchBalancesCmd =
+                            Cmd.none
 
                         -- todo
                     in
                     UpdateResult
                         { prevModel
-                            | validatedResponses = Debug.log "newValidatedRespones" newValidatedResponses
+                            | validatedResponses = newValidatedResponses
+                            , fryBalances = Debug.log "newBalancesDict" newBalancesDict
                         }
-                        (maybeFetchBalanceCmd |> Maybe.withDefault Cmd.none)
+                        fetchBalancesCmd
                         []
 
                 Err decodeErr ->
@@ -127,10 +149,10 @@ validateAndAddFetchedResponses : List LoggedSignedResponse -> ValidatedResponseT
 validateAndAddFetchedResponses newlyFetched prevValidatedResponses =
     let
         helper : LoggedSignedResponse -> ( ValidatedResponseTracker, List Address ) -> ( ValidatedResponseTracker, List Address )
-        helper loggedSignedResponse ( accValidatedResponses, accNewAddresses ) =
+        helper loggedSignedResponse ( accValidatedResponses, accAddresses ) =
             case validateSignature loggedSignedResponse.signedResponse of
                 False ->
-                    ( accValidatedResponses, accNewAddresses )
+                    ( accValidatedResponses, accAddresses )
 
                 True ->
                     let
@@ -157,15 +179,15 @@ validateAndAddFetchedResponses newlyFetched prevValidatedResponses =
                                     else
                                         accValidatedResponses
 
-                        -- todo
                         newAccAddresses =
-                            []
-
-                        -- todo
+                            List.append
+                                accAddresses
+                                [ loggedSignedResponse.signedResponse.address ]
                     in
                     ( newAccValidatedResponses, newAccAddresses )
     in
     List.foldl helper ( prevValidatedResponses, [] ) newlyFetched
+        |> Tuple.mapSecond (List.Extra.uniqueBy Eth.Utils.addressToString)
 
 
 validateSignature : SignedResponse -> Bool
