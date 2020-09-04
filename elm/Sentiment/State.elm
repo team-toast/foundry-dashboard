@@ -6,11 +6,14 @@ import Config
 import Eth
 import Eth.Types exposing (Address)
 import Eth.Utils
+import Helpers.Eth as EthHelpers
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
+import List.Extra
 import Sentiment.Types exposing (..)
 import Task
+import Url.Builder
 import UserNotice as UN
 import Wallet exposing (Wallet)
 
@@ -46,28 +49,54 @@ update msg prevModel =
                             | polls = Just polls
                         }
 
-        OptionClicked userInfo ( questionString, answerString ) ->
+        OptionClicked userInfo poll pollOptionId ->
             UpdateResult
                 prevModel
-                (signResponseCmd questionString answerString userInfo)
+                (signResponseCmd userInfo poll pollOptionId)
                 []
 
         Web3SignResultValue jsonVal ->
             let
+                decodedSignResult =
+                    Json.Decode.decodeValue signedResponseFromJSDecoder jsonVal
+            in
+            case decodedSignResult of
+                Ok signResult ->
+                    UpdateResult
+                        prevModel
+                        (sendSignedResponseCmd signResult)
+                        []
+
+                Err errStr ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        [ AddUserNotice <| UN.signingError <| Json.Decode.errorToString errStr ]
+
+        ResponseSent pollId sendResult ->
+            case sendResult of
+                Ok _ ->
+                    let
+                        _ =
+                            Debug.log "sent. refreshing..." ""
+                    in
+                    UpdateResult
+                        prevModel
+                        (refreshPollVotesCmd pollId)
+                        []
+
+                Err httpErr ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        [ AddUserNotice <| UN.httpSendError "send response" httpErr ]
+
+        SignedResponsesFetched responsesFetchedResult ->
+            let
                 _ =
-                    Debug.log "signResult" jsonVal
+                    Debug.log "responsesFetchedResult" responsesFetchedResult
             in
             justModelUpdate prevModel
-
-
-
--- AllDataFetched responses ->
---     let
---         _ =
---             Debug.log "responses" responses
---     in
---     justModelUpdate
---         prevModel
 
 
 fetchAllPollsCmd : Cmd Msg
@@ -119,12 +148,24 @@ pollOptionDecoder =
         (Json.Decode.field "Name" Json.Decode.string)
 
 
-signResponseCmd : String -> String -> UserInfo -> Cmd Msg
-signResponseCmd questionString responseString userInfo =
+signResponseCmd : UserInfo -> Poll -> Int -> Cmd Msg
+signResponseCmd userInfo poll pollOptionId =
     web3Sign <|
         Json.Encode.object
-            [ ( "data", Json.Encode.string <| encodeResponse questionString responseString )
-            , ( "account", Json.Encode.string (userInfo.address |> Eth.Utils.addressToChecksumString) )
+            [ ( "data"
+              , Json.Encode.string <|
+                    encodeResponse
+                        poll.question
+                        (poll.options
+                            |> List.filter (.id >> (==) pollOptionId)
+                            |> List.head
+                            |> Maybe.map .name
+                            |> Maybe.withDefault ("[invalid option " ++ String.fromInt pollOptionId ++ "]")
+                        )
+              )
+            , ( "address", Json.Encode.string (userInfo.address |> Eth.Utils.addressToChecksumString) )
+            , ( "pollId", Json.Encode.int poll.id )
+            , ( "pollOptionId", Json.Encode.int pollOptionId )
             ]
 
 
@@ -136,6 +177,81 @@ encodeResponse question answer =
         , ( "answer", Json.Encode.string answer )
         ]
         |> Json.Encode.encode 0
+
+
+signedResponseFromJSDecoder : Json.Decode.Decoder SignedResponse
+signedResponseFromJSDecoder =
+    Json.Decode.map4 SignedResponse
+        (Json.Decode.field "address" EthHelpers.addressDecoder)
+        (Json.Decode.field "pollId" Json.Decode.int)
+        (Json.Decode.field "pollOptionId" Json.Decode.int)
+        (Json.Decode.field "sig" Json.Decode.string)
+
+
+sendSignedResponseCmd : SignedResponse -> Cmd Msg
+sendSignedResponseCmd signedResponse =
+    let
+        url =
+            Url.Builder.custom
+                (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
+                [ "QuantumObserver", "rest", "VotingResults", "PlaceVote" ]
+                []
+                Nothing
+    in
+    Http.post
+        { url = url
+        , body =
+            Http.jsonBody <|
+                encodeSignedResponseForServer signedResponse
+        , expect = Http.expectWhatever (ResponseSent signedResponse.pollId)
+        }
+
+
+refreshPollVotesCmd : Int -> Cmd Msg
+refreshPollVotesCmd pollId =
+    let
+        url =
+            Url.Builder.custom
+                (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
+                [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
+                [ Url.Builder.int "FromPollId" pollId
+                , Url.Builder.int "Count" 1
+                ]
+                Nothing
+    in
+    Http.get
+        { url = url
+        , expect =
+            Http.expectJson
+                SignedResponsesFetched
+                (Json.Decode.list signedResponseFromServerDecoder)
+        }
+
+
+signedResponseFromServerDecoder : Json.Decode.Decoder SignedResponse
+signedResponseFromServerDecoder =
+    Json.Decode.field "Vote"
+        (Json.Decode.map4 SignedResponse
+            (Json.Decode.field "Address" <| EthHelpers.addressDecoder)
+            (Json.Decode.field "PollId" <| Json.Decode.int)
+            (Json.Decode.field "OptionId" <| Json.Decode.int)
+            (Json.Decode.field "Signature" <| Json.Decode.string)
+        )
+
+
+encodeSignedResponseForServer : SignedResponse -> Json.Encode.Value
+encodeSignedResponseForServer signedResponse =
+    Json.Encode.object
+        [ ( "VoteInput"
+          , Json.Encode.object
+                [ ( "Address", Json.Encode.string (signedResponse.userAddress |> Eth.Utils.addressToChecksumString) )
+                , ( "PollId", Json.Encode.int signedResponse.pollId )
+                , ( "OptionId", Json.Encode.int signedResponse.pollOptionId )
+                , ( "Signature", Json.Encode.string signedResponse.sig )
+                , ( "OptionData", Json.Encode.string "" )
+                ]
+          )
+        ]
 
 
 subscriptions : Model -> Sub Msg

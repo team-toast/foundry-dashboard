@@ -75,24 +75,24 @@ viewPoll dProfile maybeUserInfo poll =
             [ Element.text poll.question ]
         , Element.el
             [ Element.padding 10 ]
-            (viewOptions dProfile maybeUserInfo poll.question poll.options)
+            (viewOptions dProfile maybeUserInfo poll)
         ]
 
 
-viewOptions : DisplayProfile -> Maybe UserInfo -> String -> List PollOption -> Element Msg
-viewOptions dProfile maybeUserInfo questionString options =
+viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Element Msg
+viewOptions dProfile maybeUserInfo poll =
     Element.column
         [ Element.spacing 10 ]
-        (List.map (viewOption dProfile maybeUserInfo questionString) options)
+        (List.map (viewOption dProfile maybeUserInfo poll) poll.options)
 
 
-viewOption : DisplayProfile -> Maybe UserInfo -> String -> PollOption -> Element Msg
-viewOption dProfile maybeUserInfo questionString pollOption =
+viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> PollOption -> Element Msg
+viewOption dProfile maybeUserInfo poll pollOption =
     let
         onClickMsg =
             case maybeUserInfo of
                 Just userInfo ->
-                    OptionClicked userInfo ( questionString, pollOption.name )
+                    OptionClicked userInfo poll pollOption.id
 
                 Nothing ->
                     MsgUp ConnectToWeb3

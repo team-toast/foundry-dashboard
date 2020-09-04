@@ -2,6 +2,7 @@ module Sentiment.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import Eth.Types exposing (Address)
 import Http
 import Json.Decode
 
@@ -13,10 +14,11 @@ type alias Model =
 
 type Msg
     = MsgUp MsgUp
-      -- | AllDataFetched (Result Http.Error (List Response))
-    | OptionClicked UserInfo ( String, String )
-    | Web3SignResultValue Json.Decode.Value
     | PollsFetched (Result Http.Error (List Poll))
+    | OptionClicked UserInfo Poll Int
+    | Web3SignResultValue Json.Decode.Value
+    | ResponseSent Int (Result Http.Error ())
+    | SignedResponsesFetched (Result Http.Error (List SignedResponse))
 
 
 type alias UpdateResult =
@@ -47,3 +49,22 @@ type alias PollOption =
     , pollId : Int
     , name : String
     }
+
+
+type alias SignedResponse =
+    { userAddress : Address
+    , pollId : Int
+    , pollOptionId : Int
+    , sig : String
+    }
+
+
+
+-- type alias RespondingInfo =
+--     { pollId : Int
+--     , pollOptionId : Int
+--     , state : RespondingState
+--     }
+-- type RespondingState
+--     = Signing
+--     | Sending

@@ -220,3 +220,26 @@ httpFetchError action httpError =
         [ [ Element.text <| "Problem with an http fetch for action '" ++ action ++ "'. More info in the console." ] ]
     , align = BottomRight
     }
+
+httpSendError : String -> Http.Error -> UserNotice
+httpSendError action httpError =
+    let
+        _ =
+            maybeDebugLog "Problem with http send" httpError
+    in
+    { uniqueLabel = "httpsend" ++ action
+    , noticeType = Error
+    , mainParagraphs =
+        [ [ Element.text <| "Problem with an http send for action '" ++ action ++ "'. More info in the console." ] ]
+    , align = BottomRight
+    }
+
+
+signingError : String -> UserNotice
+signingError errStr =
+    { uniqueLabel = "signingError"
+    , noticeType = Error
+    , mainParagraphs =
+        [ [ Element.text <| "Error signing message: " ++ errStr ] ]
+    , align = BottomRight
+    }

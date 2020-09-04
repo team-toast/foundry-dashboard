@@ -63,9 +63,14 @@ function web3PortStuff(app, web3) {
 
     app.ports.web3Sign.subscribe(function(data) {
         console.log ("got", data);
-        web3.personal.sign(data.data, data.account, function(err, res) {
-            console.log(app.ports);
-            app.ports.web3SignResult.send(res)
+        web3.personal.sign(data.data, data.address, function(err, res) {
+            var response = {
+                address: data.address,
+                pollId: data.pollId,
+                pollOptionId: data.pollOptionId,
+                sig: res
+            };
+            app.ports.web3SignResult.send(response)
         });
     });
 }
