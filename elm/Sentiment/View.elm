@@ -42,7 +42,7 @@ view dProfile maybeUserInfo model =
                     , Element.spacing 50
                     ]
                     [ titleText dProfile "Foundry Polls"
-                    , viewPolls dProfile maybeUserInfo polls
+                    , viewPolls dProfile maybeUserInfo polls model.validatedResponses
                     ]
 
 
@@ -56,8 +56,8 @@ titleText dProfile title =
         Element.text title
 
 
-viewPolls : DisplayProfile -> Maybe UserInfo -> List Poll -> Element Msg
-viewPolls dProfile maybeUserInfo polls =
+viewPolls : DisplayProfile -> Maybe UserInfo -> List Poll -> ValidatedResponseTracker -> Element Msg
+viewPolls dProfile maybeUserInfo polls validatedResponses =
     Element.column
         [ Element.spacing 20 ]
         (List.map

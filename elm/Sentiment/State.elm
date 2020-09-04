@@ -3,14 +3,17 @@ port module Sentiment.State exposing (..)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Config
+import Dict exposing (Dict)
 import Eth
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Eth as EthHelpers
+import Helpers.Time as TimeHelpers
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
 import List.Extra
+import Maybe.Extra
 import Sentiment.Types exposing (..)
 import Task
 import Url.Builder
@@ -21,6 +24,7 @@ import Wallet exposing (Wallet)
 init : ( Model, Cmd Msg )
 init =
     ( { polls = Nothing
+      , validatedResponses = Dict.empty
       }
     , fetchAllPollsCmd
     )
@@ -92,11 +96,85 @@ update msg prevModel =
                         [ AddUserNotice <| UN.httpSendError "send response" httpErr ]
 
         SignedResponsesFetched responsesFetchedResult ->
-            let
-                _ =
-                    Debug.log "responsesFetchedResult" responsesFetchedResult
-            in
-            justModelUpdate prevModel
+            case responsesFetchedResult of
+                Ok decodedLoggedSignedResponses ->
+                    let
+                        ( newValidatedResponses, newAddresses ) =
+                            validateAndAddFetchedResponses decodedLoggedSignedResponses prevModel.validatedResponses
+
+                        maybeFetchBalanceCmd =
+                            case newAddresses of
+                                [] ->
+                                    Nothing
+
+                                addresses ->
+                                    Nothing
+
+                        -- todo
+                    in
+                    UpdateResult
+                        { prevModel
+                            | validatedResponses = Debug.log "newValidatedRespones" newValidatedResponses
+                        }
+                        (maybeFetchBalanceCmd |> Maybe.withDefault Cmd.none)
+                        []
+
+                Err decodeErr ->
+                    Debug.todo "decodeErr"
+
+
+validateAndAddFetchedResponses : List LoggedSignedResponse -> ValidatedResponseTracker -> ( ValidatedResponseTracker, List Address )
+validateAndAddFetchedResponses newlyFetched prevValidatedResponses =
+    let
+        helper : LoggedSignedResponse -> ( ValidatedResponseTracker, List Address ) -> ( ValidatedResponseTracker, List Address )
+        helper loggedSignedResponse ( accValidatedResponses, accNewAddresses ) =
+            case validateSignature loggedSignedResponse.signedResponse of
+                False ->
+                    ( accValidatedResponses, accNewAddresses )
+
+                True ->
+                    let
+                        newAccValidatedResponses =
+                            let
+                                maybeAlreadyExistingResponse =
+                                    accValidatedResponses
+                                        |> getValidatedResponse
+                                            loggedSignedResponse.signedResponse.pollId
+                                            loggedSignedResponse.signedResponse.address
+                            in
+                            case maybeAlreadyExistingResponse of
+                                Nothing ->
+                                    accValidatedResponses
+                                        |> insertValidatedResponse
+                                            loggedSignedResponse
+
+                                Just alreadyExistingResponse ->
+                                    if alreadyExistingResponse.id < loggedSignedResponse.id then
+                                        accValidatedResponses
+                                            |> insertValidatedResponse
+                                                loggedSignedResponse
+
+                                    else
+                                        accValidatedResponses
+
+                        -- todo
+                        newAccAddresses =
+                            []
+
+                        -- todo
+                    in
+                    ( newAccValidatedResponses, newAccAddresses )
+    in
+    List.foldl helper ( prevValidatedResponses, [] ) newlyFetched
+
+
+validateSignature : SignedResponse -> Bool
+validateSignature =
+    always True
+
+
+
+-- todo
 
 
 fetchAllPollsCmd : Cmd Msg
@@ -224,33 +302,39 @@ refreshPollVotesCmd pollId =
         , expect =
             Http.expectJson
                 SignedResponsesFetched
-                (Json.Decode.list signedResponseFromServerDecoder)
+                loggedSignedResponseListFromServerDecoder
         }
 
 
-signedResponseFromServerDecoder : Json.Decode.Decoder SignedResponse
-signedResponseFromServerDecoder =
+loggedSignedResponseListFromServerDecoder : Json.Decode.Decoder (List LoggedSignedResponse)
+loggedSignedResponseListFromServerDecoder =
+    Json.Decode.list Json.Decode.value
+        |> Json.Decode.map (List.map (Json.Decode.decodeValue loggedSignedResponseFromServerDecoder))
+        |> Json.Decode.map (List.filterMap Result.toMaybe)
+
+
+loggedSignedResponseFromServerDecoder : Json.Decode.Decoder LoggedSignedResponse
+loggedSignedResponseFromServerDecoder =
     Json.Decode.field "Vote"
-        (Json.Decode.map4 SignedResponse
-            (Json.Decode.field "Address" <| EthHelpers.addressDecoder)
-            (Json.Decode.field "PollId" <| Json.Decode.int)
-            (Json.Decode.field "OptionId" <| Json.Decode.int)
-            (Json.Decode.field "Signature" <| Json.Decode.string)
+        (Json.Decode.map2 LoggedSignedResponse
+            (Json.Decode.field "Id" Json.Decode.int)
+            (Json.Decode.map4 SignedResponse
+                (Json.Decode.field "Address" <| EthHelpers.addressDecoder)
+                (Json.Decode.field "PollId" <| Json.Decode.int)
+                (Json.Decode.field "OptionId" <| Json.Decode.int)
+                (Json.Decode.field "Signature" <| Json.Decode.string)
+            )
         )
 
 
 encodeSignedResponseForServer : SignedResponse -> Json.Encode.Value
 encodeSignedResponseForServer signedResponse =
     Json.Encode.object
-        [ ( "VoteInput"
-          , Json.Encode.object
-                [ ( "Address", Json.Encode.string (signedResponse.userAddress |> Eth.Utils.addressToChecksumString) )
-                , ( "PollId", Json.Encode.int signedResponse.pollId )
-                , ( "OptionId", Json.Encode.int signedResponse.pollOptionId )
-                , ( "Signature", Json.Encode.string signedResponse.sig )
-                , ( "OptionData", Json.Encode.string "" )
-                ]
-          )
+        [ ( "Address", Json.Encode.string (signedResponse.address |> Eth.Utils.addressToChecksumString) )
+        , ( "PollId", Json.Encode.int signedResponse.pollId )
+        , ( "OptionId", Json.Encode.int signedResponse.pollOptionId )
+        , ( "Signature", Json.Encode.string signedResponse.sig )
+        , ( "OptionData", Json.Encode.string "" )
         ]
 
 
