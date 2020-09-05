@@ -143,6 +143,12 @@ div t i =
         |> TokenValue
 
 
+getRatioWithWarning : TokenValue -> TokenValue -> Float
+getRatioWithWarning t1 t2 =
+    toFloatWithWarning t1
+        / toFloatWithWarning t2
+
+
 divFloatWithWarning : TokenValue -> Float -> TokenValue
 divFloatWithWarning t f =
     toFloatWithWarning t
