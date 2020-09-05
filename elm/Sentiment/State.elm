@@ -1,5 +1,6 @@
 port module Sentiment.State exposing (..)
 
+import AddressDict exposing (AddressDict)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Config
@@ -28,7 +29,7 @@ init : ( Model, Cmd Msg )
 init =
     ( { polls = Nothing
       , validatedResponses = Dict.empty
-      , fryBalances = Dict.empty
+      , fryBalances = AddressDict.empty
       }
     , fetchAllPollsCmd
     )
@@ -114,26 +115,22 @@ update msg prevModel =
                                                 |> List.map
                                                     (\address ->
                                                         ( address
-                                                            |> Eth.Utils.addressToString
-                                                            |> String.toLower
                                                         , Nothing
                                                         )
                                                     )
-                                                |> Dict.fromList
+                                                |> AddressDict.fromList
                                     in
-                                    Dict.union
+                                    AddressDict.union
                                         prevModel.fryBalances
                                         newDictPortion
 
                         cmd =
                             newBalancesDict
-                                |> Dict.filter
+                                |> AddressDict.filter
                                     (\addressString maybeBalance ->
                                         maybeBalance == Nothing
                                     )
-                                |> Dict.keys
-                                |> List.map (Eth.Utils.toAddress >> Result.toMaybe)
-                                |> Maybe.Extra.values
+                                |> AddressDict.keys
                                 |> fetchFryBalancesCmd
                     in
                     UpdateResult
@@ -156,9 +153,9 @@ update msg prevModel =
                     justModelUpdate
                         { prevModel
                             | fryBalances =
-                                Dict.union
+                                AddressDict.union
                                     (newFryBalances
-                                        |> Dict.map (always Just)
+                                        |> AddressDict.map (always Just)
                                     )
                                     prevModel.fryBalances
                         }

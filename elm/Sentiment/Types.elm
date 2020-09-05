@@ -1,5 +1,6 @@
 module Sentiment.Types exposing (..)
 
+import AddressDict exposing (AddressDict)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Dict exposing (Dict)
@@ -14,7 +15,7 @@ import TokenValue exposing (TokenValue)
 type alias Model =
     { polls : Maybe (List Poll)
     , validatedResponses : ValidatedResponseTracker
-    , fryBalances : Dict String (Maybe TokenValue)
+    , fryBalances : AddressDict (Maybe TokenValue)
     }
 
 
@@ -25,7 +26,7 @@ type Msg
     | Web3SignResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (List LoggedSignedResponse))
-    | FryBalancesFetched (Result Http.Error (Dict String TokenValue))
+    | FryBalancesFetched (Result Http.Error (AddressDict TokenValue))
 
 
 type alias UpdateResult =
@@ -44,14 +45,14 @@ justModelUpdate model =
 
 
 type alias ValidatedResponseTracker =
-    Dict Int (Dict String ValidatedResponse)
+    Dict Int (AddressDict ValidatedResponse)
 
 
 getValidatedResponse : Int -> Address -> ValidatedResponseTracker -> Maybe ValidatedResponse
 getValidatedResponse pollId address validatedResponseTracker =
     validatedResponseTracker
         |> Dict.get pollId
-        |> Maybe.andThen (Dict.get (Eth.Utils.addressToChecksumString address))
+        |> Maybe.andThen (AddressDict.get address)
 
 
 insertValidatedResponse : LoggedSignedResponse -> ValidatedResponseTracker -> ValidatedResponseTracker
@@ -67,9 +68,9 @@ insertValidatedResponse loggedSignedResponse validatedResponseTracker =
             (\maybeDict ->
                 Just
                     (maybeDict
-                        |> Maybe.withDefault Dict.empty
-                        |> Dict.insert
-                            (Eth.Utils.addressToChecksumString loggedSignedResponse.signedResponse.address)
+                        |> Maybe.withDefault AddressDict.empty
+                        |> AddressDict.insert
+                            loggedSignedResponse.signedResponse.address
                             validatedResponse
                     )
             )

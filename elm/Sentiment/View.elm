@@ -1,5 +1,6 @@
 module Sentiment.View exposing (view)
 
+import AddressDict exposing (AddressDict)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
@@ -12,6 +13,7 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import Eth.Types exposing (Address)
 import Eth.Utils
 import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
@@ -58,7 +60,7 @@ titleText dProfile title =
         Element.text title
 
 
-viewPolls : DisplayProfile -> Maybe UserInfo -> List Poll -> ValidatedResponseTracker -> Dict String (Maybe TokenValue) -> Element Msg
+viewPolls : DisplayProfile -> Maybe UserInfo -> List Poll -> ValidatedResponseTracker -> AddressDict (Maybe TokenValue) -> Element Msg
 viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances =
     Element.column
         [ Element.spacing 20 ]
@@ -68,20 +70,20 @@ viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances =
         )
 
 
-viewPoll : DisplayProfile -> Maybe UserInfo -> ValidatedResponseTracker -> Dict String (Maybe TokenValue) -> Poll -> Element Msg
+viewPoll : DisplayProfile -> Maybe UserInfo -> ValidatedResponseTracker -> AddressDict (Maybe TokenValue) -> Poll -> Element Msg
 viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
     let
         validatedResponsesForPoll =
             validatedResponses
                 |> Dict.get poll.id
-                |> Maybe.withDefault Dict.empty
+                |> Maybe.withDefault AddressDict.empty
 
-        foldFunc : ( String, ValidatedResponse ) -> ( Dict Int TokenValue, TokenValue ) -> ( Dict Int TokenValue, TokenValue )
-        foldFunc ( addressString, validatedResponse ) ( accTallies, accTotal ) =
+        foldFunc : ( Address, ValidatedResponse ) -> ( Dict Int TokenValue, TokenValue ) -> ( Dict Int TokenValue, TokenValue )
+        foldFunc ( address, validatedResponse ) ( accTallies, accTotal ) =
             let
                 fryAmount =
                     fryBalances
-                        |> Dict.get (addressString |> String.toLower)
+                        |> AddressDict.get address
                         |> Maybe.Extra.join
                         |> Maybe.withDefault TokenValue.zero
             in
@@ -102,7 +104,7 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
 
         ( talliedFryForOptions, totalFryVoted ) =
             validatedResponsesForPoll
-                |> Dict.toList
+                |> AddressDict.toList
                 |> List.foldl
                     foldFunc
                     ( initTallyDict
