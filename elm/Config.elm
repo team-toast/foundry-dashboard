@@ -37,3 +37,13 @@ daiContractAddress =
 
     else
         Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+
+
+erc20BalanceFetchBatchContractAddress : Address
+erc20BalanceFetchBatchContractAddress =
+    Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
+
+
+fryContractAddress : Address
+fryContractAddress =
+    Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"

@@ -25,6 +25,7 @@ type Msg
     | Web3SignResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (List LoggedSignedResponse))
+    | FryBalancesFetched (Result Http.Error (Dict String TokenValue))
 
 
 type alias UpdateResult =

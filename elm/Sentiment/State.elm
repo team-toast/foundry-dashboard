@@ -3,6 +3,7 @@ port module Sentiment.State exposing (..)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Config
+import Contracts.FryBalanceFetch
 import Dict exposing (Dict)
 import Eth
 import Eth.Types exposing (Address)
@@ -83,10 +84,6 @@ update msg prevModel =
         ResponseSent pollId sendResult ->
             case sendResult of
                 Ok _ ->
-                    let
-                        _ =
-                            Debug.log "sent. refreshing..." ""
-                    in
                     UpdateResult
                         prevModel
                         (refreshPollVotesCmd pollId)
@@ -128,21 +125,49 @@ update msg prevModel =
                                         prevModel.fryBalances
                                         newDictPortion
 
-                        fetchBalancesCmd =
-                            Cmd.none
-
-                        -- todo
+                        cmd =
+                            newBalancesDict
+                                |> Dict.filter
+                                    (\addressString maybeBalance ->
+                                        maybeBalance == Nothing
+                                    )
+                                |> Dict.keys
+                                |> List.map (Eth.Utils.toAddress >> Result.toMaybe)
+                                |> Maybe.Extra.values
+                                |> fetchFryBalancesCmd
                     in
                     UpdateResult
                         { prevModel
                             | validatedResponses = newValidatedResponses
-                            , fryBalances = Debug.log "newBalancesDict" newBalancesDict
+                            , fryBalances = newBalancesDict
                         }
-                        fetchBalancesCmd
+                        cmd
                         []
 
                 Err decodeErr ->
-                    Debug.todo "decodeErr"
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        [ AddUserNotice <| UN.unexpectedError "error decoding responses from server" decodeErr ]
+
+        FryBalancesFetched fetchResult ->
+            case fetchResult of
+                Ok newFryBalances ->
+                    justModelUpdate
+                        { prevModel
+                            | fryBalances =
+                                Dict.union
+                                    (newFryBalances
+                                        |> Dict.map (always Just)
+                                    )
+                                    prevModel.fryBalances
+                        }
+
+                Err httpErr ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        [ AddUserNotice <| UN.web3FetchError "fetch polls" httpErr ]
 
 
 validateAndAddFetchedResponses : List LoggedSignedResponse -> ValidatedResponseTracker -> ( ValidatedResponseTracker, List Address )
@@ -286,6 +311,13 @@ signedResponseFromJSDecoder =
         (Json.Decode.field "pollId" Json.Decode.int)
         (Json.Decode.field "pollOptionId" Json.Decode.int)
         (Json.Decode.field "sig" Json.Decode.string)
+
+
+fetchFryBalancesCmd : List Address -> Cmd Msg
+fetchFryBalancesCmd addresses =
+    Contracts.FryBalanceFetch.fetch
+        addresses
+        FryBalancesFetched
 
 
 sendSignedResponseCmd : SignedResponse -> Cmd Msg
