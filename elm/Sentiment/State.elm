@@ -19,6 +19,7 @@ import Maybe.Extra
 import Sentiment.Types exposing (..)
 import Set exposing (Set)
 import Task
+import Time
 import TokenValue exposing (TokenValue)
 import Url.Builder
 import UserNotice as UN
@@ -31,7 +32,10 @@ init =
       , validatedResponses = Dict.empty
       , fryBalances = AddressDict.empty
       }
-    , fetchAllPollsCmd
+    , Cmd.batch
+        [ fetchAllPollsCmd
+        , refreshPollVotesCmd Nothing
+        ]
     )
 
 
@@ -43,6 +47,12 @@ update msg prevModel =
                 prevModel
                 Cmd.none
                 [ msgUp ]
+
+        RefreshAll ->
+            UpdateResult
+                prevModel
+                (refreshPollVotesCmd Nothing)
+                []
 
         PollsFetched pollsFetchedResult ->
             case pollsFetchedResult of
@@ -87,7 +97,7 @@ update msg prevModel =
                 Ok _ ->
                     UpdateResult
                         prevModel
-                        (refreshPollVotesCmd pollId)
+                        (refreshPollVotesCmd <| Just pollId)
                         []
 
                 Err httpErr ->
@@ -336,16 +346,24 @@ sendSignedResponseCmd signedResponse =
         }
 
 
-refreshPollVotesCmd : Int -> Cmd Msg
-refreshPollVotesCmd pollId =
+refreshPollVotesCmd : Maybe Int -> Cmd Msg
+refreshPollVotesCmd maybePollId =
     let
         url =
             Url.Builder.custom
                 (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
                 [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
-                [ Url.Builder.int "FromPollId" pollId
-                , Url.Builder.int "Count" 1
-                ]
+                (case maybePollId of
+                    Just pollId ->
+                        [ Url.Builder.int "FromPollId" pollId
+                        , Url.Builder.int "Count" 1
+                        ]
+
+                    Nothing ->
+                        [ Url.Builder.int "FromPollId" 0
+                        , Url.Builder.int "Count" 0
+                        ]
+                )
                 Nothing
     in
     Http.get
@@ -391,7 +409,10 @@ encodeSignedResponseForServer signedResponse =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    web3SignResult Web3SignResultValue
+    Sub.batch
+        [ Time.every 10000 <| always RefreshAll
+        , web3SignResult Web3SignResultValue
+        ]
 
 
 port web3Sign : Json.Decode.Value -> Cmd msg

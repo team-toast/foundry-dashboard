@@ -21,6 +21,7 @@ type alias Model =
 
 type Msg
     = MsgUp MsgUp
+    | RefreshAll
     | PollsFetched (Result Http.Error (List Poll))
     | OptionClicked UserInfo Poll Int
     | Web3SignResultValue Json.Decode.Value
