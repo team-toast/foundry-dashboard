@@ -38,14 +38,19 @@ daiContractAddress =
     else
         Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
+
+
 teamToastMultiSigAddress: Address
 teamToastMultiSigAddress = Eth.Utils.unsafeToAddress "0xE5dDe1cc679184fc420E6f92e0Bd8C81E41D25e1"
+
 
 treasuryForwarderAddress: Address
 treasuryForwarderAddress = Eth.Utils.unsafeToAddress "0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553"
 
+
 fryTokenAddress : Address
 fryTokenAddress = Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
+
 
 bucketSaleAddress : Address
 bucketSaleAddress = Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"

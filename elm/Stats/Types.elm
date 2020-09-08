@@ -5,7 +5,11 @@ import Http
 
 
 type alias Model =
-    {}
+    { addressMultiSig : Address
+    , addressTreasury : Address
+    , addressFryToken : Address
+    , addressBucketSale : Address
+    }
 
 
 type Msg
