@@ -23,4 +23,7 @@ import Wallet exposing (Wallet)
 
 view : EH.DisplayProfile -> Model -> Maybe UserInfo -> Element Msg
 view dProfile model maybeUserInfo =
-    Element.el [ Element.Font.color EH.white ] <| Element.text "hi from Stats submodel!"
+    Element.el 
+    [ Element.Font.color EH.white ] 
+    <| Element.text (Eth.Utils.addressToString(model.addressFryToken))
+    

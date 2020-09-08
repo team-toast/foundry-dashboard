@@ -3,11 +3,18 @@ module Stats.State exposing (..)
 import Http
 import Json.Decode exposing (Decoder)
 import Stats.Types exposing (..)
+import Eth.Types exposing (Address)
+import Config
+
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { }
+    ( { addressMultiSig = Config.teamToastMultiSigAddress
+      , addressTreasury = Config.treasuryForwarderAddress
+      , addressFryToken = Config.fryTokenAddress
+      , addressBucketSale = Config.bucketSaleAddress
+      }
     , Cmd.none
     )
 

@@ -2,7 +2,7 @@ module Stats.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Http
-
+import Eth.Types exposing (Address)
 
 type alias Model =
     { addressMultiSig : Address
