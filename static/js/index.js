@@ -6036,8 +6036,28 @@ var $author$project$Home$State$init = _Utils_Tuple2(
 var $author$project$Sentiment$State$init = _Utils_Tuple2(
 	{polls: $elm$core$Maybe$Nothing},
 	$elm$core$Platform$Cmd$none);
+var $cmditch$elm_ethereum$Internal$Types$Address = function (a) {
+	return {$: 'Address', a: a};
+};
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $cmditch$elm_ethereum$Eth$Utils$remove0x = function (str) {
+	return (A2($elm$core$String$startsWith, '0x', str) || A2($elm$core$String$startsWith, '0X', str)) ? A2($elm$core$String$dropLeft, 2, str) : str;
+};
+var $elm$core$String$toLower = _String_toLower;
+var $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress = A2(
+	$elm$core$Basics$composeR,
+	$cmditch$elm_ethereum$Eth$Utils$remove0x,
+	A2($elm$core$Basics$composeR, $elm$core$String$toLower, $cmditch$elm_ethereum$Internal$Types$Address));
+var $author$project$Config$bucketSaleAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x30076fF7436aE82207b9c03AbdF7CB056310A95A');
+var $author$project$Config$fryTokenAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69');
+var $author$project$Config$teamToastMultiSigAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xE5dDe1cc679184fc420E6f92e0Bd8C81E41D25e1');
+var $author$project$Config$treasuryForwarderAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553');
 var $author$project$Stats$State$init = _Utils_Tuple2(
-	{},
+	{addressBucketSale: $author$project$Config$bucketSaleAddress, addressFryToken: $author$project$Config$fryTokenAddress, addressMultiSig: $author$project$Config$teamToastMultiSigAddress, addressTreasury: $author$project$Config$treasuryForwarderAddress},
 	$elm$core$Platform$Cmd$none);
 var $elm$core$Platform$Cmd$map = _Platform_map;
 var $author$project$UserNotice$BottomRight = {$: 'BottomRight'};
@@ -6139,11 +6159,6 @@ var $elm$core$Task$attempt = F2(
 							A2($elm$core$Basics$composeL, $elm$core$Task$succeed, resultToMessage),
 							$elm$core$Result$Ok),
 						task))));
-	});
-var $elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
 	});
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
@@ -6370,9 +6385,6 @@ var $rtfeldman$elm_hex$Hex$fromString = function (str) {
 		};
 		return A2($elm$core$Result$mapError, formatError, result);
 	}
-};
-var $cmditch$elm_ethereum$Eth$Utils$remove0x = function (str) {
-	return (A2($elm$core$String$startsWith, '0x', str) || A2($elm$core$String$startsWith, '0X', str)) ? A2($elm$core$String$dropLeft, 2, str) : str;
 };
 var $elm$json$Json$Decode$fail = _Json_fail;
 var $elm$json$Json$Decode$string = _Json_decodeString;
@@ -13570,6 +13582,13 @@ var $author$project$Sentiment$View$view = F3(
 				['clicky clicky']),
 			$author$project$Sentiment$Types$TestVote);
 	});
+var $cmditch$elm_ethereum$Eth$Utils$add0x = function (str) {
+	return (A2($elm$core$String$startsWith, '0x', str) || A2($elm$core$String$startsWith, '0X', str)) ? str : ('0x' + str);
+};
+var $cmditch$elm_ethereum$Eth$Utils$addressToString = function (_v0) {
+	var address = _v0.a;
+	return $cmditch$elm_ethereum$Eth$Utils$add0x(address);
+};
 var $author$project$Stats$View$view = F3(
 	function (dProfile, model, maybeUserInfo) {
 		return A2(
@@ -13578,7 +13597,8 @@ var $author$project$Stats$View$view = F3(
 				[
 					$mdgriffith$elm_ui$Element$Font$color($author$project$Helpers$Element$white)
 				]),
-			$mdgriffith$elm_ui$Element$text('hi from Stats submodel!'));
+			$mdgriffith$elm_ui$Element$text(
+				$cmditch$elm_ethereum$Eth$Utils$addressToString(model.addressFryToken)));
 	});
 var $author$project$View$body = function (model) {
 	return A2(
@@ -13638,7 +13658,6 @@ var $mdgriffith$elm_ui$Internal$Model$FontFamily = F2(
 		return {$: 'FontFamily', a: a, b: b};
 	});
 var $mdgriffith$elm_ui$Internal$Flag$fontFamily = $mdgriffith$elm_ui$Internal$Flag$flag(5);
-var $elm$core$String$toLower = _String_toLower;
 var $elm$core$String$words = _String_words;
 var $mdgriffith$elm_ui$Internal$Model$renderFontClassName = F2(
 	function (font, current) {
@@ -14257,9 +14276,6 @@ var $cmditch$elm_ethereum$Eth$Sentry$Wallet$WalletSentry = F2(
 	function (account, networkId) {
 		return {account: account, networkId: networkId};
 	});
-var $cmditch$elm_ethereum$Internal$Types$Address = function (a) {
-	return {$: 'Address', a: a};
-};
 var $elm$regex$Regex$Match = F4(
 	function (match, index, number, submatches) {
 		return {index: index, match: match, number: number, submatches: submatches};
@@ -16594,13 +16610,6 @@ var $cmditch$elm_ethereum$Eth$Decode$log = A3(
 									'address',
 									$cmditch$elm_ethereum$Eth$Decode$address,
 									$elm$json$Json$Decode$succeed($cmditch$elm_ethereum$Eth$Types$Log))))))))));
-var $cmditch$elm_ethereum$Eth$Utils$add0x = function (str) {
-	return (A2($elm$core$String$startsWith, '0x', str) || A2($elm$core$String$startsWith, '0X', str)) ? str : ('0x' + str);
-};
-var $cmditch$elm_ethereum$Eth$Utils$addressToString = function (_v0) {
-	var address = _v0.a;
-	return $cmditch$elm_ethereum$Eth$Utils$add0x(address);
-};
 var $cmditch$elm_ethereum$Eth$Encode$address = A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Utils$addressToString, $elm$json$Json$Encode$string);
 var $cmditch$elm_ethereum$Eth$Encode$blockId = function (blockId_) {
 	switch (blockId_.$) {
