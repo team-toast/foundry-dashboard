@@ -112,9 +112,13 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
                     )
     in
     Element.column
-        [ Element.spacing 10 ]
+        [ Element.spacing 10
+        , Element.padding 10
+        , Element.Background.color <| Element.rgba 1 1 1 0.1
+        , Element.Border.rounded 10
+        ]
         [ Element.paragraph
-            [ Element.Font.size <| responsiveVal dProfile 22 18 ]
+            [ Element.Font.size <| responsiveVal dProfile 26 22 ]
             [ Element.text poll.question ]
         , Element.el
             [ Element.padding 10
@@ -128,7 +132,7 @@ viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Dict Int TokenValue ->
 viewOptions dProfile maybeUserInfo poll talliedFryForOptions totalFryVoted =
     Element.column
         [ Element.spacing 10
-        , Element.width Element.fill
+        , Element.width <| Element.px 500
         ]
         (poll.options
             |> List.map
@@ -159,7 +163,11 @@ viewOption dProfile maybeUserInfo poll supportFloat pollOption =
                     MsgUp ConnectToWeb3
     in
     Element.row
-        [ Element.width Element.fill ]
+        [ Element.width Element.fill
+        , Element.Background.color <| Element.rgba 1 1 1 0.2
+        , Element.Border.rounded 4
+        , Element.padding 4
+        ]
         [ Element.paragraph
             [ Element.Font.size <| responsiveVal dProfile 18 14
             , Element.Events.onClick onClickMsg
