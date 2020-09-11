@@ -50,7 +50,11 @@ update msg prevModel =
         RefreshAll ->
             UpdateResult
                 prevModel
-                (refreshPollVotesCmd Nothing)
+                (Cmd.batch
+                    [ refreshPollVotesCmd Nothing
+                    , fetchFryBalancesCmd (prevModel.fryBalances |> AddressDict.keys)
+                    ]
+                )
                 []
 
         PollsFetched pollsFetchedResult ->
@@ -471,7 +475,7 @@ encodeSignedResponseForServer signedResponse =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 10000 <| always RefreshAll
+        [ Time.every 4000 <| always RefreshAll
         , web3SignResult Web3SignResultValue
 
         -- , web3ValidateSigResult Web3ValidateSigResultValue
