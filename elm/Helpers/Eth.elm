@@ -7,6 +7,7 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, HttpProvider, Tx, TxHash, WebsocketProvider)
 import Eth.Utils
 import Json.Decode
+import Json.Encode
 import Result.Extra
 
 
@@ -64,3 +65,8 @@ addressDecoder =
         |> Json.Decode.map Eth.Utils.toAddress
         |> Json.Decode.andThen
             (Result.Extra.unpack Json.Decode.fail Json.Decode.succeed)
+
+
+encodeAddress : Address -> Json.Encode.Value
+encodeAddress address =
+    Json.Encode.string (address |> Eth.Utils.addressToString)

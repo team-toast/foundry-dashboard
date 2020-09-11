@@ -34,7 +34,6 @@ init =
       }
     , Cmd.batch
         [ fetchAllPollsCmd
-        , refreshPollVotesCmd Nothing
         ]
     )
 
@@ -63,10 +62,12 @@ update msg prevModel =
                         [ AddUserNotice <| UN.httpFetchError "fetch polls" httpErr ]
 
                 Ok polls ->
-                    justModelUpdate
+                    UpdateResult
                         { prevModel
                             | polls = Just polls
                         }
+                        (refreshPollVotesCmd Nothing)
+                        []
 
         OptionClicked userInfo poll pollOptionId ->
             UpdateResult
@@ -92,6 +93,20 @@ update msg prevModel =
                         Cmd.none
                         [ AddUserNotice <| UN.signingError <| Json.Decode.errorToString errStr ]
 
+        -- Web3ValidateSigResultValue jsonVal ->
+        --     let
+        --         decodedSignResult =
+        --             Json.Decode.decodeValue validateSigResultDecoder jsonVal
+        --     in
+        --     case decodedSignResult of
+        --         Ok validateResult ->
+        --             wut
+        --         Err errStr ->
+        --             UpdateResult
+        --                 prevModel
+        --                 Cmd.none
+        --                 [ AddUserNotice <| UN.unexpectedError "error decoding signature validation from web3js" errStr
+        --                 ]
         ResponseSent pollId sendResult ->
             case sendResult of
                 Ok _ ->
@@ -109,47 +124,55 @@ update msg prevModel =
         SignedResponsesFetched responsesFetchedResult ->
             case responsesFetchedResult of
                 Ok decodedLoggedSignedResponses ->
-                    let
-                        ( newValidatedResponses, respondingAddresses ) =
-                            validateAndAddFetchedResponses decodedLoggedSignedResponses prevModel.validatedResponses
+                    case prevModel.polls of
+                        Nothing ->
+                            UpdateResult
+                                prevModel
+                                Cmd.none
+                                [ AddUserNotice <| UN.unexpectedError "Responses were fetched, but the polls haven't loaded yet!" Nothing ]
 
-                        newBalancesDict =
-                            case respondingAddresses of
-                                [] ->
-                                    prevModel.fryBalances
+                        Just polls ->
+                            let
+                                ( newValidatedResponses, respondingAddresses ) =
+                                    validateAndAddFetchedResponses polls decodedLoggedSignedResponses prevModel.validatedResponses
 
-                                addresses ->
-                                    let
-                                        newDictPortion =
-                                            addresses
-                                                |> List.map
-                                                    (\address ->
-                                                        ( address
-                                                        , Nothing
-                                                        )
-                                                    )
-                                                |> AddressDict.fromList
-                                    in
-                                    AddressDict.union
-                                        prevModel.fryBalances
-                                        newDictPortion
+                                newBalancesDict =
+                                    case respondingAddresses of
+                                        [] ->
+                                            prevModel.fryBalances
 
-                        cmd =
-                            newBalancesDict
-                                |> AddressDict.filter
-                                    (\addressString maybeBalance ->
-                                        maybeBalance == Nothing
-                                    )
-                                |> AddressDict.keys
-                                |> fetchFryBalancesCmd
-                    in
-                    UpdateResult
-                        { prevModel
-                            | validatedResponses = newValidatedResponses
-                            , fryBalances = newBalancesDict
-                        }
-                        cmd
-                        []
+                                        addresses ->
+                                            let
+                                                newDictPortion =
+                                                    addresses
+                                                        |> List.map
+                                                            (\address ->
+                                                                ( address
+                                                                , Nothing
+                                                                )
+                                                            )
+                                                        |> AddressDict.fromList
+                                            in
+                                            AddressDict.union
+                                                prevModel.fryBalances
+                                                newDictPortion
+
+                                cmd =
+                                    newBalancesDict
+                                        |> AddressDict.filter
+                                            (\addressString maybeBalance ->
+                                                maybeBalance == Nothing
+                                            )
+                                        |> AddressDict.keys
+                                        |> fetchFryBalancesCmd
+                            in
+                            UpdateResult
+                                { prevModel
+                                    | validatedResponses = newValidatedResponses
+                                    , fryBalances = newBalancesDict
+                                }
+                                cmd
+                                []
 
                 Err decodeErr ->
                     UpdateResult
@@ -177,16 +200,20 @@ update msg prevModel =
                         [ AddUserNotice <| UN.web3FetchError "fetch polls" httpErr ]
 
 
-validateAndAddFetchedResponses : List LoggedSignedResponse -> ValidatedResponseTracker -> ( ValidatedResponseTracker, List Address )
-validateAndAddFetchedResponses newlyFetched prevValidatedResponses =
+validateAndAddFetchedResponses : List Poll -> List LoggedSignedResponse -> ValidatedResponseTracker -> ( ValidatedResponseTracker, List Address )
+validateAndAddFetchedResponses polls newlyFetched prevValidatedResponses =
     let
         helper : LoggedSignedResponse -> ( ValidatedResponseTracker, List Address ) -> ( ValidatedResponseTracker, List Address )
         helper loggedSignedResponse ( accValidatedResponses, accAddresses ) =
-            case validateSignature loggedSignedResponse.signedResponse of
-                False ->
+            case validateSignature polls loggedSignedResponse.signedResponse of
+                Nothing ->
+                    -- This means the poll Id was not found. Ignore for now.
                     ( accValidatedResponses, accAddresses )
 
-                True ->
+                Just False ->
+                    ( accValidatedResponses, accAddresses )
+
+                Just True ->
                     let
                         newAccValidatedResponses =
                             let
@@ -222,13 +249,28 @@ validateAndAddFetchedResponses newlyFetched prevValidatedResponses =
         |> Tuple.mapSecond (List.Extra.uniqueBy Eth.Utils.addressToString)
 
 
-validateSignature : SignedResponse -> Bool
-validateSignature =
-    always True
-
-
-
--- todo
+validateSignature : List Poll -> SignedResponse -> Maybe Bool
+validateSignature polls signedResponse =
+    let
+        maybePoll =
+            polls
+                |> List.filter (.id >> (==) signedResponse.pollId)
+                |> List.head
+    in
+    maybePoll
+        |> Maybe.map
+            (\poll ->
+                let
+                    sigData =
+                        encodeSignableResponse
+                            poll
+                            signedResponse.pollOptionId
+                in
+                True
+             --todo
+             -- recover address
+             -- check against address
+            )
 
 
 fetchAllPollsCmd : Cmd Msg
@@ -286,14 +328,7 @@ signResponseCmd userInfo poll pollOptionId =
         Json.Encode.object
             [ ( "data"
               , Json.Encode.string <|
-                    encodeResponse
-                        poll.question
-                        (poll.options
-                            |> List.filter (.id >> (==) pollOptionId)
-                            |> List.head
-                            |> Maybe.map .name
-                            |> Maybe.withDefault ("[invalid option " ++ String.fromInt pollOptionId ++ "]")
-                        )
+                    encodeSignableResponse poll pollOptionId
               )
             , ( "address", Json.Encode.string (userInfo.address |> Eth.Utils.addressToChecksumString) )
             , ( "pollId", Json.Encode.int poll.id )
@@ -301,14 +336,36 @@ signResponseCmd userInfo poll pollOptionId =
             ]
 
 
-encodeResponse : String -> String -> String
-encodeResponse question answer =
+encodeSignableResponse : Poll -> Int -> String
+encodeSignableResponse poll pollOptionId =
+    let
+        questionStr =
+            poll.question
+
+        answerStr =
+            poll.options
+                |> List.filter (.id >> (==) pollOptionId)
+                |> List.head
+                |> Maybe.map .name
+                |> Maybe.withDefault ("[invalid option " ++ String.fromInt pollOptionId ++ "]")
+    in
     Json.Encode.object
         [ ( "context", Json.Encode.string "FRY Holder Sentiment Voting" )
-        , ( "question", Json.Encode.string question )
-        , ( "answer", Json.Encode.string answer )
+        , ( "question", Json.Encode.string questionStr )
+        , ( "answer", Json.Encode.string answerStr )
         ]
         |> Json.Encode.encode 0
+
+
+
+-- encodeSignedResponse : SignedResponse -> Json.Encode.Value
+-- encodeSignedResponse signedResponse =
+--     Json.Encode.object
+--         [ ("address", EthHelpers.encodeAddress signedResponse.address
+--         , ("pollId", Json.Encode. : Int
+--         , ("pollOptionId", Json.Encode. : Int
+--         , ("sig", Json.Encode. : String
+--         ]
 
 
 signedResponseFromJSDecoder : Json.Decode.Decoder SignedResponse
@@ -318,6 +375,10 @@ signedResponseFromJSDecoder =
         (Json.Decode.field "pollId" Json.Decode.int)
         (Json.Decode.field "pollOptionId" Json.Decode.int)
         (Json.Decode.field "sig" Json.Decode.string)
+
+
+
+-- validateSigResultDecoder : Json.Decode.Decoder SigValidationResult
 
 
 fetchFryBalancesCmd : List Address -> Cmd Msg
@@ -399,7 +460,7 @@ loggedSignedResponseFromServerDecoder =
 encodeSignedResponseForServer : SignedResponse -> Json.Encode.Value
 encodeSignedResponseForServer signedResponse =
     Json.Encode.object
-        [ ( "Address", Json.Encode.string (signedResponse.address |> Eth.Utils.addressToChecksumString) )
+        [ ( "Address", EthHelpers.encodeAddress signedResponse.address )
         , ( "PollId", Json.Encode.int signedResponse.pollId )
         , ( "OptionId", Json.Encode.int signedResponse.pollOptionId )
         , ( "Signature", Json.Encode.string signedResponse.sig )
@@ -412,6 +473,8 @@ subscriptions model =
     Sub.batch
         [ Time.every 10000 <| always RefreshAll
         , web3SignResult Web3SignResultValue
+
+        -- , web3ValidateSigResult Web3ValidateSigResultValue
         ]
 
 
@@ -419,3 +482,9 @@ port web3Sign : Json.Decode.Value -> Cmd msg
 
 
 port web3SignResult : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port web3ValidateSig : Json.Decode.Value -> Cmd msg
+
+
+port web3ValidateSigResult : (Json.Decode.Value -> msg) -> Sub msg

@@ -25,6 +25,7 @@ type Msg
     | PollsFetched (Result Http.Error (List Poll))
     | OptionClicked UserInfo Poll Int
     | Web3SignResultValue Json.Decode.Value
+    -- | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (List LoggedSignedResponse))
     | FryBalancesFetched (Result Http.Error (AddressDict TokenValue))
