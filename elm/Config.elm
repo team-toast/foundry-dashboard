@@ -38,7 +38,8 @@ daiContractAddress =
     else
         Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
-
+etherscanBaseUrl: String
+etherscanBaseUrl = "https://etherscan.io/address/"
 
 teamToastMultiSigAddress: Address
 teamToastMultiSigAddress = Eth.Utils.unsafeToAddress "0xE5dDe1cc679184fc420E6f92e0Bd8C81E41D25e1"
