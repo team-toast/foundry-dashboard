@@ -26,7 +26,8 @@ view : EH.DisplayProfile -> Model -> Maybe UserInfo -> Element Msg
 view dProfile model maybeUserInfo =
     Element.column
         [ padding 20 ]
-        [ Element.row []
+        [ Element.row
+            [ Element.width Element.fill ]
             [ Element.el
                 [ Element.Font.color EH.white, Element.Font.size 30 ]
               <|
@@ -41,7 +42,12 @@ view dProfile model maybeUserInfo =
 
 viewAddressAndLabel : String -> Address -> Element Msg
 viewAddressAndLabel label address =
-    Element.row [ padding 5, spacing 5, height (px 50) ]
+    Element.row
+        [ padding 5
+        , spacing 10
+        , height (px 50)
+        , Element.width Element.fill
+        ]
         [ Element.el
             [ Element.Font.color EH.white ]
           <|
@@ -49,9 +55,11 @@ viewAddressAndLabel label address =
                 label
                     ++ ": "
         , Element.el
-            [ Element.Font.color EH.white ]
+            [ Element.Font.color EH.white
+            , Element.alignRight
+            ]
           <|
-            Element.newTabLink [ Element.Font.color Theme.lightBlue]
+            Element.newTabLink [ Element.Font.color Theme.lightBlue ]
                 { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString address
                 , label = Element.text (Eth.Utils.addressToString address)
                 }
