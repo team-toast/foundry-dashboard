@@ -11,6 +11,7 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
@@ -30,56 +31,27 @@ view dProfile model maybeUserInfo =
               <|
                 Element.text " Foundry Addresses"
             ]
-        , Element.row [ padding 5, spacing 5, height (px 50) ]
-            [ Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.text "FRY token: "
-            , Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.newTabLink []
-                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.fryTokenAddress
-                    , label = Element.text (Eth.Utils.addressToString Config.fryTokenAddress)
-                    }
-            ]
-        , Element.row [ padding 5, spacing 5, height (px 50) ]
-            [ Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.text "Treasury: "
-            , Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.newTabLink []
-                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.treasuryForwarderAddress
-                    , label = Element.text (Eth.Utils.addressToString Config.treasuryForwarderAddress)
-                    }
-            ]
-        , Element.row [ padding 5, spacing 5, height (px 50) ]
-            [ Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.text "Bucket sale: "
-            , Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.newTabLink []
-                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.bucketSaleAddress
-                    , label = Element.text (Eth.Utils.addressToString Config.bucketSaleAddress)
-                    }
-            ]
-        , Element.row [ padding 5, spacing 5, height (px 50) ]
-            [ Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.text "Multisig: "
-            , Element.el
-                [ Element.Font.color EH.white ]
-              <|
-                Element.newTabLink []
-                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.teamToastMultiSigAddress
-                    , label = Element.text (Eth.Utils.addressToString Config.teamToastMultiSigAddress)
-                    }
-            ]
+        , viewAddressAndLabel "FRY token" Config.fryTokenAddress
+        , viewAddressAndLabel "Treasury" Config.treasuryForwarderAddress
+        , viewAddressAndLabel "Bucket sale" Config.bucketSaleAddress
+        , viewAddressAndLabel "Multisig" Config.teamToastMultiSigAddress
+        ]
+
+
+viewAddressAndLabel : String -> Address -> Element Msg
+viewAddressAndLabel label address =
+    Element.row [ padding 5, spacing 5, height (px 50) ]
+        [ Element.el
+            [ Element.Font.color EH.white ]
+          <|
+            Element.text <|
+                label
+                    ++ ": "
+        , Element.el
+            [ Element.Font.color EH.white ]
+          <|
+            Element.newTabLink []
+                { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString address
+                , label = Element.text (Eth.Utils.addressToString address)
+                }
         ]
