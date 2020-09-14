@@ -60,6 +60,19 @@ function web3PortStuff(app, web3) {
             connectAndPrepareRemainingWeb3Ports(app, web3);
         }
     });
+
+    app.ports.web3Sign.subscribe(function(data) {
+        console.log ("got", data);
+        web3.personal.sign(data.data, data.address, function(err, res) {
+            var response = {
+                address: data.address,
+                pollId: data.pollId,
+                pollOptionId: data.pollOptionId,
+                sig: res
+            };
+            app.ports.web3SignResult.send(response)
+        });
+    });
 }
 
 function prepareWeb3PortsPreConnect(app, web3) {
