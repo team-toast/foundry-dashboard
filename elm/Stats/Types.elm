@@ -5,11 +5,7 @@ import Http
 import Eth.Types exposing (Address)
 
 type alias Model =
-    { addressMultiSig : Address
-    , addressTreasury : Address
-    , addressFryToken : Address
-    , addressBucketSale : Address
-    }
+    {}
 
 
 type Msg

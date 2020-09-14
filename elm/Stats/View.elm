@@ -2,7 +2,7 @@ module Stats.View exposing (view)
 
 import Common.Types exposing (..)
 import Common.View exposing (..)
-import Config exposing (etherscanBaseUrl)
+import Config
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Element, height, padding, px, spacing, width)
@@ -39,9 +39,9 @@ view dProfile model maybeUserInfo =
                 [ Element.Font.color EH.white ]
               <|
                 Element.newTabLink []
-                { url = etherscanBaseUrl ++ Eth.Utils.addressToString model.addressFryToken
-                , label = Element.text (Eth.Utils.addressToString model.addressFryToken)
-                }
+                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.fryTokenAddress
+                    , label = Element.text (Eth.Utils.addressToString Config.fryTokenAddress)
+                    }
             ]
         , Element.row [ padding 5, spacing 5, height (px 50) ]
             [ Element.el
@@ -52,8 +52,8 @@ view dProfile model maybeUserInfo =
                 [ Element.Font.color EH.white ]
               <|
                 Element.newTabLink []
-                    { url = etherscanBaseUrl ++ Eth.Utils.addressToString model.addressTreasury
-                    , label = Element.text (Eth.Utils.addressToString model.addressTreasury)
+                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.treasuryForwarderAddress
+                    , label = Element.text (Eth.Utils.addressToString Config.treasuryForwarderAddress)
                     }
             ]
         , Element.row [ padding 5, spacing 5, height (px 50) ]
@@ -65,8 +65,8 @@ view dProfile model maybeUserInfo =
                 [ Element.Font.color EH.white ]
               <|
                 Element.newTabLink []
-                    { url = etherscanBaseUrl ++ Eth.Utils.addressToString model.addressBucketSale
-                    , label = Element.text (Eth.Utils.addressToString model.addressBucketSale)
+                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.bucketSaleAddress
+                    , label = Element.text (Eth.Utils.addressToString Config.bucketSaleAddress)
                     }
             ]
         , Element.row [ padding 5, spacing 5, height (px 50) ]
@@ -74,12 +74,12 @@ view dProfile model maybeUserInfo =
                 [ Element.Font.color EH.white ]
               <|
                 Element.text "Multisig: "
-                        , Element.el
+            , Element.el
                 [ Element.Font.color EH.white ]
               <|
                 Element.newTabLink []
-                    { url = etherscanBaseUrl ++ Eth.Utils.addressToString model.addressMultiSig
-                    , label = Element.text (Eth.Utils.addressToString model.addressMultiSig)
+                    { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString Config.teamToastMultiSigAddress
+                    , label = Element.text (Eth.Utils.addressToString Config.teamToastMultiSigAddress)
                     }
             ]
         ]
