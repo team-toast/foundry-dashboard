@@ -31,6 +31,7 @@ import MaybeDebugLog exposing (maybeDebugLog)
 import Phace
 import Routing exposing (Route)
 import Sentiment.View as Sentiment
+import Stats.View as Stats
 import Theme exposing (defaultTheme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -99,6 +100,13 @@ body model =
                         model.dProfile
                         (Wallet.userInfo model.wallet)
                         sentimentModel
+
+            Stats statsModel ->
+                Element.map StatsMsg <|
+                    Stats.view
+                        model.dProfile
+                        statsModel
+                        (Wallet.userInfo model.wallet)
         ]
 
 

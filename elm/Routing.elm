@@ -13,6 +13,7 @@ import Url.Parser.Query as Query
 type Route
     = Home
     | Sentiment
+    | Stats
     | NotFound String
 
 
@@ -21,6 +22,7 @@ routeParser =
     Parser.oneOf
         [ Parser.map Home Parser.top
         , Parser.map Sentiment (Parser.s "sentiment")
+        , Parser.map Stats (Parser.s "stats")
         ]
 
 
@@ -36,6 +38,11 @@ routeToString basePath route =
                 Sentiment ->
                     Builder.relative
                         [ "#", "sentiment" ]
+                        []
+                
+                Stats ->
+                    Builder.relative
+                        [ "#", "stats" ]
                         []
 
                 NotFound _ ->
