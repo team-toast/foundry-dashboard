@@ -24,7 +24,8 @@ import Wallet exposing (Wallet)
 
 view : EH.DisplayProfile -> Model -> Maybe UserInfo -> Element Msg
 view dProfile model maybeUserInfo =
-    Element.column []
+    Element.column
+        [ padding 20 ]
         [ Element.row []
             [ Element.el
                 [ Element.Font.color EH.white, Element.Font.size 30 ]
@@ -50,7 +51,7 @@ viewAddressAndLabel label address =
         , Element.el
             [ Element.Font.color EH.white ]
           <|
-            Element.newTabLink []
+            Element.newTabLink [ Element.Font.color Theme.lightBlue]
                 { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString address
                 , label = Element.text (Eth.Utils.addressToString address)
                 }
