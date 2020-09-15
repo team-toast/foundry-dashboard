@@ -6,6 +6,7 @@ import Common.Types exposing (..)
 import Config
 import Contracts.FryBalanceFetch
 import Dict exposing (Dict)
+import Dict.Extra
 import Eth
 import Eth.Types exposing (Address)
 import Eth.Utils
@@ -29,6 +30,7 @@ import Wallet exposing (Wallet)
 init : ( Model, Cmd Msg )
 init =
     ( { polls = Nothing
+      , maybeValidResponses = Dict.empty
       , validatedResponses = Dict.empty
       , fryBalances = AddressDict.empty
       }
@@ -97,20 +99,99 @@ update msg prevModel =
                         Cmd.none
                         [ AddUserNotice <| UN.signingError <| Json.Decode.errorToString errStr ]
 
-        -- Web3ValidateSigResultValue jsonVal ->
-        --     let
-        --         decodedSignResult =
-        --             Json.Decode.decodeValue validateSigResultDecoder jsonVal
-        --     in
-        --     case decodedSignResult of
-        --         Ok validateResult ->
-        --             wut
-        --         Err errStr ->
-        --             UpdateResult
-        --                 prevModel
-        --                 Cmd.none
-        --                 [ AddUserNotice <| UN.unexpectedError "error decoding signature validation from web3js" errStr
-        --                 ]
+        Web3ValidateSigResultValue jsonVal ->
+            let
+                decodedSignResult =
+                    Json.Decode.decodeValue validateSigResultDecoder jsonVal
+            in
+            case decodedSignResult of
+                Ok ( responseId, validateResult ) ->
+                    let
+                        ( newValidatedResponses, maybeRespondingAddress, maybeUserNotice ) =
+                            case validateResult of
+                                Valid ->
+                                    let
+                                        maybeSignedResponse =
+                                            prevModel.maybeValidResponses
+                                                |> Dict.get responseId
+                                                |> Maybe.map Tuple.second
+                                    in
+                                    case maybeSignedResponse of
+                                        Just signedResponse ->
+                                            ( prevModel.validatedResponses
+                                                |> insertValidatedResponse ( responseId, signedResponse )
+                                            , Just signedResponse.address
+                                            , Nothing
+                                            )
+
+                                        Nothing ->
+                                            ( prevModel.validatedResponses
+                                            , Nothing
+                                            , Just <| UN.unexpectedError "got a signature verify result from JS, but for response that I don't have!" responseId
+                                            )
+
+                                Invalid ->
+                                    ( prevModel.validatedResponses
+                                    , Nothing
+                                    , Nothing
+                                    )
+
+                        msgsUp =
+                            maybeUserNotice
+                                |> Maybe.map AddUserNotice
+                                |> List.singleton
+                                |> Maybe.Extra.values
+
+                        newBalancesDict =
+                            case maybeRespondingAddress of
+                                Nothing ->
+                                    prevModel.fryBalances
+
+                                Just address ->
+                                    let
+                                        newDictPortion =
+                                            [ ( address
+                                              , Nothing
+                                              )
+                                            ]
+                                                |> AddressDict.fromList
+                                    in
+                                    AddressDict.union
+                                        prevModel.fryBalances
+                                        newDictPortion
+
+                        cmd =
+                            newBalancesDict
+                                |> AddressDict.filter
+                                    (\addressString maybeBalance ->
+                                        maybeBalance == Nothing
+                                    )
+                                |> AddressDict.keys
+                                |> fetchFryBalancesCmd
+                    in
+                    UpdateResult
+                        { prevModel
+                            | validatedResponses = newValidatedResponses
+                            , maybeValidResponses =
+                                prevModel.maybeValidResponses
+                                    |> Dict.update responseId
+                                        (Maybe.map
+                                            (Tuple.mapFirst
+                                                (always True)
+                                            )
+                                        )
+                            , fryBalances = newBalancesDict
+                        }
+                        cmd
+                        msgsUp
+
+                Err errStr ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        [ AddUserNotice <| UN.unexpectedError "error decoding signature validation from web3js" errStr
+                        ]
+
         ResponseSent pollId sendResult ->
             case sendResult of
                 Ok _ ->
@@ -137,45 +218,35 @@ update msg prevModel =
 
                         Just polls ->
                             let
-                                ( newValidatedResponses, respondingAddresses ) =
-                                    validateAndAddFetchedResponses polls decodedLoggedSignedResponses prevModel.validatedResponses
+                                newMaybeValidResponses =
+                                    Dict.union
+                                        prevModel.maybeValidResponses
+                                        (decodedLoggedSignedResponses
+                                            |> Dict.map
+                                                (\_ signedResponse ->
+                                                    ( False, signedResponse )
+                                                )
+                                        )
 
-                                newBalancesDict =
-                                    case respondingAddresses of
-                                        [] ->
-                                            prevModel.fryBalances
+                                responsesToValidate =
+                                    newMaybeValidResponses
+                                        |> Dict.Extra.filterMap
+                                            (\_ ( isValidated, signedResponse ) ->
+                                                if not isValidated then
+                                                    Just signedResponse
 
-                                        addresses ->
-                                            let
-                                                newDictPortion =
-                                                    addresses
-                                                        |> List.map
-                                                            (\address ->
-                                                                ( address
-                                                                , Nothing
-                                                                )
-                                                            )
-                                                        |> AddressDict.fromList
-                                            in
-                                            AddressDict.union
-                                                prevModel.fryBalances
-                                                newDictPortion
-
-                                cmd =
-                                    newBalancesDict
-                                        |> AddressDict.filter
-                                            (\addressString maybeBalance ->
-                                                maybeBalance == Nothing
+                                                else
+                                                    Nothing
                                             )
-                                        |> AddressDict.keys
-                                        |> fetchFryBalancesCmd
+                                        |> Dict.toList
+                                        |> List.map (loggedSignedResponseToResponseToValidate polls)
+                                        |> Maybe.Extra.values
                             in
                             UpdateResult
                                 { prevModel
-                                    | validatedResponses = newValidatedResponses
-                                    , fryBalances = newBalancesDict
+                                    | maybeValidResponses = newMaybeValidResponses
                                 }
-                                cmd
+                                (validateSignedResponsesCmd responsesToValidate)
                                 []
 
                 Err decodeErr ->
@@ -202,79 +273,6 @@ update msg prevModel =
                         prevModel
                         Cmd.none
                         [ AddUserNotice <| UN.web3FetchError "fetch polls" httpErr ]
-
-
-validateAndAddFetchedResponses : List Poll -> List LoggedSignedResponse -> ValidatedResponseTracker -> ( ValidatedResponseTracker, List Address )
-validateAndAddFetchedResponses polls newlyFetched prevValidatedResponses =
-    let
-        helper : LoggedSignedResponse -> ( ValidatedResponseTracker, List Address ) -> ( ValidatedResponseTracker, List Address )
-        helper loggedSignedResponse ( accValidatedResponses, accAddresses ) =
-            case validateSignature polls loggedSignedResponse.signedResponse of
-                Nothing ->
-                    -- This means the poll Id was not found. Ignore for now.
-                    ( accValidatedResponses, accAddresses )
-
-                Just False ->
-                    ( accValidatedResponses, accAddresses )
-
-                Just True ->
-                    let
-                        newAccValidatedResponses =
-                            let
-                                maybeAlreadyExistingResponse =
-                                    accValidatedResponses
-                                        |> getValidatedResponse
-                                            loggedSignedResponse.signedResponse.pollId
-                                            loggedSignedResponse.signedResponse.address
-                            in
-                            case maybeAlreadyExistingResponse of
-                                Nothing ->
-                                    accValidatedResponses
-                                        |> insertValidatedResponse
-                                            loggedSignedResponse
-
-                                Just alreadyExistingResponse ->
-                                    if alreadyExistingResponse.id < loggedSignedResponse.id then
-                                        accValidatedResponses
-                                            |> insertValidatedResponse
-                                                loggedSignedResponse
-
-                                    else
-                                        accValidatedResponses
-
-                        newAccAddresses =
-                            List.append
-                                accAddresses
-                                [ loggedSignedResponse.signedResponse.address ]
-                    in
-                    ( newAccValidatedResponses, newAccAddresses )
-    in
-    List.foldl helper ( prevValidatedResponses, [] ) newlyFetched
-        |> Tuple.mapSecond (List.Extra.uniqueBy Eth.Utils.addressToString)
-
-
-validateSignature : List Poll -> SignedResponse -> Maybe Bool
-validateSignature polls signedResponse =
-    let
-        maybePoll =
-            polls
-                |> List.filter (.id >> (==) signedResponse.pollId)
-                |> List.head
-    in
-    maybePoll
-        |> Maybe.map
-            (\poll ->
-                let
-                    sigData =
-                        encodeSignableResponse
-                            poll
-                            signedResponse.pollOptionId
-                in
-                True
-             --todo
-             -- recover address
-             -- check against address
-            )
 
 
 fetchAllPollsCmd : Cmd Msg
@@ -340,36 +338,24 @@ signResponseCmd userInfo poll pollOptionId =
             ]
 
 
-encodeSignableResponse : Poll -> Int -> String
-encodeSignableResponse poll pollOptionId =
-    let
-        questionStr =
-            poll.question
-
-        answerStr =
-            poll.options
-                |> List.filter (.id >> (==) pollOptionId)
-                |> List.head
-                |> Maybe.map .name
-                |> Maybe.withDefault ("[invalid option " ++ String.fromInt pollOptionId ++ "]")
-    in
+encodeSignedResponse : SignedResponse -> Json.Encode.Value
+encodeSignedResponse signedResponse =
     Json.Encode.object
-        [ ( "context", Json.Encode.string "FRY Holder Sentiment Voting" )
-        , ( "question", Json.Encode.string questionStr )
-        , ( "answer", Json.Encode.string answerStr )
+        [ ( "address", EthHelpers.encodeAddress signedResponse.address )
+        , ( "pollId", Json.Encode.int signedResponse.pollId )
+        , ( "pollOptionId", Json.Encode.int signedResponse.pollOptionId )
+        , ( "sig", Json.Encode.string signedResponse.sig )
         ]
-        |> Json.Encode.encode 0
 
 
-
--- encodeSignedResponse : SignedResponse -> Json.Encode.Value
--- encodeSignedResponse signedResponse =
---     Json.Encode.object
---         [ ("address", EthHelpers.encodeAddress signedResponse.address
---         , ("pollId", Json.Encode. : Int
---         , ("pollOptionId", Json.Encode. : Int
---         , ("sig", Json.Encode. : String
---         ]
+encodeResponseToValidate : ResponseToValidate -> Json.Encode.Value
+encodeResponseToValidate responseToValidate =
+    Json.Encode.object
+        [ ( "id", Json.Encode.int responseToValidate.id )
+        , ( "data", Json.Encode.string responseToValidate.data )
+        , ( "sig", Json.Encode.string responseToValidate.sig )
+        , ( "address", EthHelpers.encodeAddress responseToValidate.address )
+        ]
 
 
 signedResponseFromJSDecoder : Json.Decode.Decoder SignedResponse
@@ -381,8 +367,20 @@ signedResponseFromJSDecoder =
         (Json.Decode.field "sig" Json.Decode.string)
 
 
+validateSigResultDecoder : Json.Decode.Decoder ( Int, SigValidationResult )
+validateSigResultDecoder =
+    Json.Decode.map2 Tuple.pair
+        (Json.Decode.field "id" Json.Decode.int)
+        (Json.Decode.field "success" Json.Decode.bool
+            |> Json.Decode.map
+                (\successBool ->
+                    if successBool then
+                        Valid
 
--- validateSigResultDecoder : Json.Decode.Decoder SigValidationResult
+                    else
+                        Invalid
+                )
+        )
 
 
 fetchFryBalancesCmd : List Address -> Cmd Msg
@@ -390,6 +388,14 @@ fetchFryBalancesCmd addresses =
     Contracts.FryBalanceFetch.fetch
         addresses
         FryBalancesFetched
+
+
+validateSignedResponsesCmd : List ResponseToValidate -> Cmd Msg
+validateSignedResponsesCmd loggedSignedResponses =
+    loggedSignedResponses
+        |> List.map encodeResponseToValidate
+        |> List.map web3ValidateSig
+        |> Cmd.batch
 
 
 sendSignedResponseCmd : SignedResponse -> Cmd Msg
@@ -436,21 +442,22 @@ refreshPollVotesCmd maybePollId =
         , expect =
             Http.expectJson
                 SignedResponsesFetched
-                loggedSignedResponseListFromServerDecoder
+                signedResponsesDictFromServerDecoder
         }
 
 
-loggedSignedResponseListFromServerDecoder : Json.Decode.Decoder (List LoggedSignedResponse)
-loggedSignedResponseListFromServerDecoder =
+signedResponsesDictFromServerDecoder : Json.Decode.Decoder (Dict Int SignedResponse)
+signedResponsesDictFromServerDecoder =
     Json.Decode.list Json.Decode.value
         |> Json.Decode.map (List.map (Json.Decode.decodeValue loggedSignedResponseFromServerDecoder))
         |> Json.Decode.map (List.filterMap Result.toMaybe)
+        |> Json.Decode.map Dict.fromList
 
 
-loggedSignedResponseFromServerDecoder : Json.Decode.Decoder LoggedSignedResponse
+loggedSignedResponseFromServerDecoder : Json.Decode.Decoder ( Int, SignedResponse )
 loggedSignedResponseFromServerDecoder =
     Json.Decode.field "Vote"
-        (Json.Decode.map2 LoggedSignedResponse
+        (Json.Decode.map2 Tuple.pair
             (Json.Decode.field "Id" Json.Decode.int)
             (Json.Decode.map4 SignedResponse
                 (Json.Decode.field "Address" <| EthHelpers.addressDecoder)
@@ -477,8 +484,7 @@ subscriptions model =
     Sub.batch
         [ Time.every 4000 <| always RefreshAll
         , web3SignResult Web3SignResultValue
-
-        -- , web3ValidateSigResult Web3ValidateSigResultValue
+        , web3ValidateSigResult Web3ValidateSigResultValue
         ]
 
 

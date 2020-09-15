@@ -66,7 +66,7 @@ viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances =
         [ Element.spacing 20 ]
         (List.map
             (viewPoll dProfile maybeUserInfo validatedResponses fryBalances)
-            (List.reverse polls)
+            (List.reverse polls |> List.drop 4)
         )
 
 
@@ -77,6 +77,7 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
             validatedResponses
                 |> Dict.get poll.id
                 |> Maybe.withDefault AddressDict.empty
+                
 
         foldFunc : ( Address, ValidatedResponse ) -> ( Dict Int TokenValue, TokenValue ) -> ( Dict Int TokenValue, TokenValue )
         foldFunc ( address, validatedResponse ) ( accTallies, accTotal ) =

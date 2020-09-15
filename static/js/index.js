@@ -1,5 +1,6 @@
 var elm_ethereum_ports = require('elm-ethereum-ports');
 var networkChangeNotifier = require('./networkChangeNotifier');
+var ethereumJsUtil = require('ethereumjs-utils');
 
 import { Elm } from '../../elm/App'
 
@@ -72,6 +73,37 @@ function web3PortStuff(app, web3) {
             };
             app.ports.web3SignResult.send(response)
         });
+    });
+
+    app.ports.web3ValidateSig.subscribe(function(data) {
+        const id = data.id;
+        const signedResponse = data.data;
+        const sig = data.sig;
+        const givenAddress = data.address;
+        // console.log("signedResponse and id", id, signedResponse);
+
+        const msgBuffer = ethereumJsUtil.toBuffer(signedResponse);
+        const msgHash = ethereumJsUtil.hashPersonalMessage(msgBuffer);
+        const signatureBuffer = ethereumJsUtil.toBuffer(sig);
+        const signatureParams = ethereumJsUtil.fromRpcSig(signatureBuffer);
+        const publicKey = ethereumJsUtil.ecrecover(
+            msgHash,
+            signatureParams.v,
+            signatureParams.r,
+            signatureParams.s
+        );
+        const addressBuffer = ethereumJsUtil.publicToAddress(publicKey);
+        const recoveredAddress = ethereumJsUtil.bufferToHex(addressBuffer);
+
+        const success = (recoveredAddress == givenAddress);
+        var successObject = {
+            id : id, 
+            success : success
+        };
+
+        console.log("successObject",successObject);
+
+        app.ports.web3ValidateSigResult.send(successObject);
     });
 }
 

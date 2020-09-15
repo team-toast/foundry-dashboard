@@ -24,6 +24,7 @@
     "babel-polyfill": "^6.26.0",
     "clipboard": "^2.0.6",
     "elm-ethereum-ports": "^1.0.1",
+    "ethereumjs-utils": "^5.2.5",
     "jquery": "^3.5.1",
     "parcel": "^1.12.4"
   },
