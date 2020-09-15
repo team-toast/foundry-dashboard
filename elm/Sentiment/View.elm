@@ -66,7 +66,7 @@ viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances =
         [ Element.spacing 20 ]
         (List.map
             (viewPoll dProfile maybeUserInfo validatedResponses fryBalances)
-            (List.reverse polls |> List.drop 4)
+            (List.reverse polls)
         )
 
 
