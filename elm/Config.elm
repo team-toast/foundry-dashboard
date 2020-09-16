@@ -55,3 +55,6 @@ fryTokenAddress = Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D
 
 bucketSaleAddress : Address
 bucketSaleAddress = Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
+
+uniswapPoolLink : String
+uniswapPoolLink = "https://uniswap.info/token/0x6c972b70c533e2e045f333ee28b9ffb8d717be69"
