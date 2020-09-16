@@ -87,6 +87,9 @@ body model =
             (Wallet.userInfo model.wallet)
             model.showAddressId
         , case model.submodel of
+            BlankInitialSubmodel ->
+                Element.none
+
             Home homeModel ->
                 Element.map HomeMsg <|
                     Home.view

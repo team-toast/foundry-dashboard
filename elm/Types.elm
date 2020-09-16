@@ -50,7 +50,8 @@ type alias Model =
 
 
 type Submodel
-    = Home Home.Model
+    = BlankInitialSubmodel
+    | Home Home.Model
     | Sentiment Sentiment.Model
     | Stats Stats.Model
 

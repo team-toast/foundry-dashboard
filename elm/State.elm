@@ -67,7 +67,7 @@ init flags url key =
         now =
             Time.millisToPosix flags.nowInMillis
 
-        ( homeModel, homeModelCmd ) =
+        homeUpdateResult =
             Home.init
     in
     { navKey = key
@@ -78,7 +78,7 @@ init flags url key =
     , dProfile = EH.screenWidthToDisplayProfile flags.width
     , txSentry = txSentry
     , eventSentry = eventSentry
-    , submodel = Home homeModel
+    , submodel = BlankInitialSubmodel
     , showAddressId = Nothing
     , userNotices = walletNotices
     }
@@ -88,7 +88,6 @@ init flags url key =
                 Cmd.batch
                     [ eventSentryCmd
                     , routeCmd
-                    , Cmd.map HomeMsg homeModelCmd
                     ]
             )
 
@@ -381,15 +380,16 @@ gotoRoute route prevModel =
     case route of
         Routing.Home ->
             let
-                ( homeModel, homeCmd ) =
+                updateResult =
                     Home.init
             in
             ( { prevModel
                 | route = route
-                , submodel = Home homeModel
+                , submodel = Home updateResult.newModel
               }
-            , Cmd.map HomeMsg homeCmd
+            , Cmd.map HomeMsg updateResult.cmd
             )
+                |> withMsgUps updateResult.msgUps
 
         Routing.Sentiment ->
             let
@@ -441,6 +441,7 @@ addUserNotices notices model =
     }
 
 
+
 -- runMsgDown : MsgDown -> Submodel -> Submodel
 -- runMsgDown msg submodel =
 --     case submodel of
@@ -451,9 +452,13 @@ addUserNotices notices model =
 --             Sentiment
 --                 (homeModel |> Sentiment.runMsgDown msg )
 
+
 submodelSubscriptions : Submodel -> Sub Msg
 submodelSubscriptions submodel =
     case submodel of
+        BlankInitialSubmodel ->
+            Sub.none
+
         Home homeModel ->
             Sub.map
                 HomeMsg

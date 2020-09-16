@@ -1,13 +1,16 @@
 module Home.State exposing (..)
 
+import Common.Msg exposing (..)
 import Home.Types exposing (..)
+import Routing
 
 
-init : ( Model, Cmd Msg )
+init : UpdateResult
 init =
-    ( {}
-    , Cmd.none
-    )
+    UpdateResult
+        {}
+        Cmd.none
+        [ GotoRoute Routing.Sentiment ]
 
 
 update : Msg -> Model -> UpdateResult
