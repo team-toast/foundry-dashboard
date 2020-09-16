@@ -149,12 +149,16 @@ viewOptions dProfile maybeUserInfo poll talliedFryForOptions totalFryVoted =
                 (\option ->
                     let
                         supportFloat =
-                            TokenValue.getRatioWithWarning
-                                (talliedFryForOptions
-                                    |> Dict.get option.id
-                                    |> Maybe.withDefault TokenValue.zero
-                                )
-                                totalFryVoted
+                            if totalFryVoted |> TokenValue.isZero then
+                                0
+
+                            else
+                                TokenValue.getRatioWithWarning
+                                    (talliedFryForOptions
+                                        |> Dict.get option.id
+                                        |> Maybe.withDefault TokenValue.zero
+                                    )
+                                    totalFryVoted
                     in
                     viewOption dProfile maybeUserInfo poll supportFloat option
                 )
