@@ -13,12 +13,14 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import ElementMarkdown
 import Eth.Types exposing (Address)
 import Eth.Utils
 import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Maybe.Extra
+import Result.Extra
 import Routing exposing (Route)
 import Sentiment.Types exposing (..)
 import Theme exposing (darkTheme, defaultTheme)
@@ -117,9 +119,17 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
         , Element.Background.color <| Element.rgba 1 1 1 0.1
         , Element.Border.rounded 10
         ]
-        [ Element.paragraph
+        [ Element.el
             [ Element.Font.size <| responsiveVal dProfile 26 22 ]
-            [ Element.text poll.question ]
+            (ElementMarkdown.renderString [] poll.question
+                |> Result.Extra.extract
+                    (\errStr ->
+                        Element.el
+                            [ Element.Font.color Theme.softRed ]
+                        <|
+                            Element.text ("markdown render error: " ++ errStr)
+                    )
+            )
         , Element.el
             [ Element.padding 10
             , Element.width Element.fill
