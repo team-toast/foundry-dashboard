@@ -19,6 +19,7 @@ import Eth.Utils
 import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
+import Images
 import Maybe.Extra
 import Result.Extra
 import Routing exposing (Route)
@@ -148,25 +149,27 @@ viewOptions dProfile maybeUserInfo poll talliedFryForOptions totalFryVoted =
             |> List.map
                 (\option ->
                     let
+                        talliedForOption =
+                            talliedFryForOptions
+                                |> Dict.get option.id
+                                |> Maybe.withDefault TokenValue.zero
+
                         supportFloat =
                             if totalFryVoted |> TokenValue.isZero then
                                 0
 
                             else
                                 TokenValue.getRatioWithWarning
-                                    (talliedFryForOptions
-                                        |> Dict.get option.id
-                                        |> Maybe.withDefault TokenValue.zero
-                                    )
+                                    talliedForOption
                                     totalFryVoted
                     in
-                    viewOption dProfile maybeUserInfo poll supportFloat option
+                    viewOption dProfile maybeUserInfo poll talliedForOption supportFloat option
                 )
         )
 
 
-viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> Float -> PollOption -> Element Msg
-viewOption dProfile maybeUserInfo poll supportFloat pollOption =
+viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> TokenValue -> Float -> PollOption -> Element Msg
+viewOption dProfile maybeUserInfo poll talliedFry supportFloat pollOption =
     let
         onClickMsg =
             case maybeUserInfo of
@@ -181,18 +184,39 @@ viewOption dProfile maybeUserInfo poll supportFloat pollOption =
         , Element.Background.color <| Element.rgba 1 1 1 0.2
         , Element.Border.rounded 4
         , Element.padding 4
+        , Element.height <| Element.px 45
+        , Element.Events.onClick onClickMsg
+            , Element.pointer
+        , Element.onRight <|
+            viewFryAmount talliedFry
         ]
         [ Element.paragraph
             [ Element.Font.size <| responsiveVal dProfile 18 14
-            , Element.Events.onClick onClickMsg
-            , Element.pointer
+            
             ]
             [ Element.text pollOption.name ]
         , Element.el
-            [ Element.alignRight ]
+            [ Element.alignRight
+            ]
             (Element.text <|
                 (FormatFloat.formatFloat 1 (supportFloat * 100)
                     ++ "%"
                 )
             )
+        ]
+
+
+viewFryAmount : TokenValue -> Element Msg
+viewFryAmount amount =
+    Element.row
+        [ Element.moveRight 20
+        , Element.spacing 8
+        , Element.centerY
+        ]
+        [ Images.toElement
+            [ Element.alignTop
+            ]
+            Images.fryIcon
+        , Element.text <|
+            TokenValue.toConciseString amount
         ]
