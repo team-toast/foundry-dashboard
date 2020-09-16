@@ -93,11 +93,6 @@ init flags url key =
             )
 
 
-initDemoPhaceSrc : String
-initDemoPhaceSrc =
-    "2222222222222222222222222228083888c8f222"
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg prevModel =
     case msg of
