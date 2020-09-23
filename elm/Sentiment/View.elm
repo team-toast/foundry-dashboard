@@ -20,6 +20,8 @@ import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Images
+import Json.Encode exposing (float)
+import List.Extra
 import Maybe.Extra
 import Result.Extra
 import Routing exposing (Route)
@@ -81,8 +83,8 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
                 |> Dict.get poll.id
                 |> Maybe.withDefault AddressDict.empty
 
-        foldFunc : ( Address, ValidatedResponse ) -> ( Dict Int TokenValue, TokenValue ) -> ( Dict Int TokenValue, TokenValue )
-        foldFunc ( address, validatedResponse ) ( accTallies, accTotal ) =
+        foldFunc : ( Address, ValidatedResponse ) -> Dict Int ( TokenValue, AddressDict TokenValue ) -> Dict Int ( TokenValue, AddressDict TokenValue )
+        foldFunc ( address, validatedResponse ) accTallyData =
             let
                 fryAmount =
                     fryBalances
@@ -90,29 +92,36 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
                         |> Maybe.Extra.join
                         |> Maybe.withDefault TokenValue.zero
             in
-            ( accTallies
+            accTallyData
                 |> Dict.update validatedResponse.pollOptionId
-                    (Maybe.map (TokenValue.add fryAmount))
-            , accTotal
-                |> TokenValue.add fryAmount
-            )
-
-        initTallyDict =
-            poll.options
-                |> List.map
-                    (\option ->
-                        ( option.id, TokenValue.zero )
+                    (Maybe.withDefault ( TokenValue.zero, AddressDict.empty )
+                        >> (\( accTotal, accTallies ) ->
+                                Just
+                                    ( TokenValue.add accTotal fryAmount
+                                    , accTallies
+                                        |> AddressDict.update address
+                                            (Maybe.withDefault TokenValue.zero
+                                                >> TokenValue.add fryAmount
+                                                >> Just
+                                            )
+                                    )
+                           )
                     )
-                |> Dict.fromList
 
-        ( talliedFryForOptions, totalFryVoted ) =
+        talliedFryForOptions =
             validatedResponsesForPoll
                 |> AddressDict.toList
                 |> List.foldl
                     foldFunc
-                    ( initTallyDict
-                    , TokenValue.zero
+                    Dict.empty
+
+        totalFryVoted =
+            talliedFryForOptions
+                |> Dict.foldl
+                    (\_ ( fryForOption, _ ) ->
+                        TokenValue.add fryForOption
                     )
+                    TokenValue.zero
     in
     Element.column
         [ Element.spacing 10
@@ -139,20 +148,20 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances poll =
         ]
 
 
-viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Dict Int TokenValue -> TokenValue -> Element Msg
-viewOptions dProfile maybeUserInfo poll talliedFryForOptions totalFryVoted =
+viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Dict Int ( TokenValue, AddressDict TokenValue ) -> TokenValue -> Element Msg
+viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted =
     Element.column
         [ Element.spacing 10
-        , Element.width <| Element.px 500
+        , Element.width <| Element.px 800
         ]
         (poll.options
             |> List.map
                 (\option ->
                     let
                         talliedForOption =
-                            talliedFryForOptions
+                            talliedVotes
                                 |> Dict.get option.id
-                                |> Maybe.withDefault TokenValue.zero
+                                |> Maybe.withDefault ( TokenValue.zero, AddressDict.empty )
 
                         supportFloat =
                             if totalFryVoted |> TokenValue.isZero then
@@ -160,16 +169,135 @@ viewOptions dProfile maybeUserInfo poll talliedFryForOptions totalFryVoted =
 
                             else
                                 TokenValue.getRatioWithWarning
-                                    talliedForOption
+                                    (Tuple.first talliedForOption)
                                     totalFryVoted
                     in
-                    viewOption dProfile maybeUserInfo poll talliedForOption supportFloat option
+                    viewOption dProfile
+                        maybeUserInfo
+                        poll
+                        option
+                        ( totalFryVoted, supportFloat )
+                        talliedForOption
                 )
         )
 
 
-viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> TokenValue -> Float -> PollOption -> Element Msg
-viewOption dProfile maybeUserInfo poll talliedFry supportFloat pollOption =
+viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> PollOption -> ( TokenValue, Float ) -> ( TokenValue, AddressDict TokenValue ) -> Element Msg
+viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) ( supportForOption, detailedSupportDict ) =
+    Element.row
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ Element.row
+            [ Element.width Element.fill
+            ]
+          <|
+            [ Element.paragraph
+                [ Element.Font.size <| responsiveVal dProfile 18 24
+                , Element.alignLeft
+                ]
+                [ Element.text pollOption.name ]
+            , Images.toElement
+                [ Element.alignRight
+                , Element.height <| Element.px 40
+                , Element.width <| Element.px 40
+                , Element.pointer
+                , Element.alpha 0.5
+                , Element.mouseOver
+                    [ Element.alpha 1 ]
+                ]
+                Images.fryIcon
+            ]
+        , Element.row
+            [ Element.width Element.fill
+            , Element.spacing 5
+            ]
+            [ Element.el [ Element.alignLeft ] <|
+                voteBarBreakdown dProfile maybeUserInfo totalVotes detailedSupportDict
+            , Element.el
+                [ Element.width <| Element.px 50 ]
+                (Element.text <|
+                    (FormatFloat.formatFloat 1 (supportFloat * 100)
+                        ++ "%"
+                    )
+                )
+            , viewFryAmount supportForOption
+            ]
+        ]
+
+
+maxBarWidth : Int
+maxBarWidth =
+    200
+
+
+type alias VoteBarBlock =
+    { x : Int
+    , width : Int
+    , color : Element.Color
+    }
+
+
+voteBarBreakdown : DisplayProfile -> Maybe UserInfo -> TokenValue -> AddressDict TokenValue -> Element Msg
+voteBarBreakdown dProfile maybeUserInfo totalVotes detailedSupportDict =
+    let
+        orderedVotes =
+            detailedSupportDict
+                |> AddressDict.toList
+                |> List.sortBy (Tuple.second >> TokenValue.toFloatWithWarning)
+                |> List.reverse
+
+        votesWithPixels : List ( Address, TokenValue, Int )
+        votesWithPixels =
+            orderedVotes
+                |> List.map
+                    (\( voter, tokens ) ->
+                        let
+                            ratio =
+                                TokenValue.getRatioWithWarning tokens totalVotes
+                        in
+                        ( voter
+                        , tokens
+                        , ratio
+                            * (maxBarWidth |> toFloat)
+                            |> floor
+                        )
+                    )
+
+        folderFunc : ( Address, TokenValue ) -> List ( VoteBarBlock, Address, TokenValue ) -> List ( VoteBarBlock, Address, TokenValue )
+        folderFunc ( voter, tokens ) accBlocks =
+            let
+                width =
+                    let
+                        ratio =
+                            TokenValue.getRatioWithWarning tokens totalVotes
+                    in
+                    ratio
+                        * (maxBarWidth |> toFloat)
+                        |> floor
+
+                x =
+                    List.Extra.last accBlocks
+                        |> Maybe.map TupleHelpers.tuple3First
+                        |> Maybe.map
+                            (\block -> block.x + block.width)
+                        |> Maybe.withDefault 0
+
+                color =
+                    Debug.todo ""
+            in
+            Debug.todo ""
+    in
+    Element.el
+        [ Element.width <| Element.px maxBarWidth
+        , Element.paddingXY 10 0
+        , Element.Background.color EH.white
+        ]
+        (Element.text "hi")
+
+
+oldViewOption : DisplayProfile -> Maybe UserInfo -> Poll -> TokenValue -> AddressDict TokenValue -> Float -> PollOption -> Element Msg
+oldViewOption dProfile maybeUserInfo poll totalVotedForOption votesForOption supportFloat pollOption =
     let
         onClickMsg =
             case maybeUserInfo of
@@ -186,13 +314,13 @@ viewOption dProfile maybeUserInfo poll talliedFry supportFloat pollOption =
         , Element.padding 4
         , Element.height <| Element.px 45
         , Element.Events.onClick onClickMsg
-            , Element.pointer
+        , Element.pointer
         , Element.onRight <|
-            viewFryAmount talliedFry
+            viewFryAmount <|
+                Debug.todo "talliedFry"
         ]
         [ Element.paragraph
             [ Element.Font.size <| responsiveVal dProfile 18 14
-            
             ]
             [ Element.text pollOption.name ]
         , Element.el

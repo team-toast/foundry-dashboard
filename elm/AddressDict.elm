@@ -1,4 +1,4 @@
-module AddressDict exposing (AddressDict, empty, filter, fromList, get, insert, keys, map, toList, union)
+module AddressDict exposing (AddressDict, empty, filter, fromList, get, insert, keys, map, toList, union, update)
 
 import Dict exposing (Dict)
 import Eth.Types exposing (Address)
@@ -71,6 +71,17 @@ insert address val addressDict_ =
                 |> Dict.insert
                     (addressToDeterministicString address)
                     val
+                |> AddressDict
+
+
+update : Address -> (Maybe a -> Maybe a) -> AddressDict a -> AddressDict a
+update address updateFunc addressDict_ =
+    case addressDict_ of
+        AddressDict addressDict ->
+            addressDict
+                |> Dict.update
+                    (addressToDeterministicString address)
+                    updateFunc
                 |> AddressDict
 
 
