@@ -333,44 +333,6 @@ voteBarBreakdown dProfile maybeUserInfo totalVotes totalVotesInSupport detailedS
         )
 
 
-oldViewOption : DisplayProfile -> Maybe UserInfo -> Poll -> TokenValue -> AddressDict TokenValue -> Float -> PollOption -> Element Msg
-oldViewOption dProfile maybeUserInfo poll totalVotedForOption votesForOption supportFloat pollOption =
-    let
-        onClickMsg =
-            case maybeUserInfo of
-                Just userInfo ->
-                    OptionClicked userInfo poll pollOption.id
-
-                Nothing ->
-                    MsgUp ConnectToWeb3
-    in
-    Element.row
-        [ Element.width Element.fill
-        , Element.Background.color <| Element.rgba 1 1 1 0.2
-        , Element.Border.rounded 4
-        , Element.padding 4
-        , Element.height <| Element.px 45
-        , Element.Events.onClick onClickMsg
-        , Element.pointer
-        , Element.onRight <|
-            viewFryAmount <|
-                Debug.todo "talliedFry"
-        ]
-        [ Element.paragraph
-            [ Element.Font.size <| responsiveVal dProfile 18 14
-            ]
-            [ Element.text pollOption.name ]
-        , Element.el
-            [ Element.alignRight
-            ]
-            (Element.text <|
-                (FormatFloat.formatFloat 1 (supportFloat * 100)
-                    ++ "%"
-                )
-            )
-        ]
-
-
 viewFryAmount : TokenValue -> Element Msg
 viewFryAmount amount =
     Element.row
