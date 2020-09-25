@@ -219,7 +219,6 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                                     userInfo
                                     poll
                                     pollOption.id
-                            , Element.alpha 0.5
                             , Element.mouseOver
                                 [ Element.alpha 1 ]
                             , Element.inFront <|
