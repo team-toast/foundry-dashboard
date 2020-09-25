@@ -63,7 +63,6 @@ function web3PortStuff(app, web3) {
     });
 
     app.ports.web3Sign.subscribe(function(data) {
-        console.log ("got", data);
         web3.personal.sign(data.data, data.address, function(err, res) {
             var response = {
                 address: data.address,
@@ -80,7 +79,6 @@ function web3PortStuff(app, web3) {
         const signedResponse = data.data;
         const sig = data.sig;
         const givenAddress = data.address;
-        // console.log("signedResponse and id", id, signedResponse);
 
         const msgBuffer = ethereumJsUtil.toBuffer(signedResponse);
         const msgHash = ethereumJsUtil.hashPersonalMessage(msgBuffer);
@@ -100,8 +98,6 @@ function web3PortStuff(app, web3) {
             id : id, 
             success : success
         };
-
-        console.log("successObject",successObject);
 
         app.ports.web3ValidateSigResult.send(successObject);
     });
