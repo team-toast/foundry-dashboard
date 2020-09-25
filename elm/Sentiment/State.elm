@@ -33,6 +33,7 @@ init =
       , maybeValidResponses = Dict.empty
       , validatedResponses = Dict.empty
       , fryBalances = AddressDict.empty
+      , mouseoverState = None
       }
     , Cmd.batch
         [ fetchAllPollsCmd
@@ -273,6 +274,12 @@ update msg prevModel =
                         prevModel
                         Cmd.none
                         [ AddUserNotice <| UN.web3FetchError "fetch polls" httpErr ]
+
+        SetMouseoverState newState ->
+            justModelUpdate
+                { prevModel
+                    | mouseoverState = newState
+                }
 
 
 fetchAllPollsCmd : Cmd Msg

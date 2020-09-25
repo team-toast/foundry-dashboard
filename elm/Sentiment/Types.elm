@@ -18,6 +18,7 @@ type alias Model =
     , maybeValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses : ValidatedResponseTracker
     , fryBalances : AddressDict (Maybe TokenValue)
+    , mouseoverState : MouseoverState
     }
 
 
@@ -31,6 +32,7 @@ type Msg
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (Dict Int SignedResponse))
     | FryBalancesFetched (Result Http.Error (AddressDict TokenValue))
+    | SetMouseoverState MouseoverState
 
 
 type alias UpdateResult =
@@ -45,6 +47,18 @@ justModelUpdate model =
     { newModel = model
     , cmd = Cmd.none
     , msgUps = []
+    }
+
+
+type MouseoverState
+    = None
+    | VoterBlock VoterBlockMouseoverInfo
+
+
+type alias VoterBlockMouseoverInfo =
+    { pollId : Int
+    , pollOptionId : Int
+    , blockId : Int
     }
 
 
