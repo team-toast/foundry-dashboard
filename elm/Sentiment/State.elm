@@ -76,10 +76,10 @@ update msg prevModel =
                         (refreshPollVotesCmd Nothing)
                         []
 
-        OptionClicked userInfo poll pollOptionId ->
+        OptionClicked userInfo poll maybePollOptionId ->
             UpdateResult
                 prevModel
-                (signResponseCmd userInfo poll pollOptionId)
+                (signResponseCmd userInfo poll maybePollOptionId)
                 []
 
         Web3SignResultValue jsonVal ->
@@ -331,18 +331,25 @@ pollOptionDecoder =
         (Json.Decode.field "Name" Json.Decode.string)
 
 
-signResponseCmd : UserInfo -> Poll -> Int -> Cmd Msg
-signResponseCmd userInfo poll pollOptionId =
+signResponseCmd : UserInfo -> Poll -> Maybe Int -> Cmd Msg
+signResponseCmd userInfo poll maybePollOptionId =
     web3Sign <|
         Json.Encode.object
             [ ( "data"
               , Json.Encode.string <|
-                    encodeSignableResponse poll pollOptionId
+                    encodeSignableResponse
+                        poll
+                        maybePollOptionId
               )
             , ( "address", Json.Encode.string (userInfo.address |> Eth.Utils.addressToChecksumString) )
             , ( "pollId", Json.Encode.int poll.id )
-            , ( "pollOptionId", Json.Encode.int pollOptionId )
+            , ( "pollOptionId", encodeIntOrNull maybePollOptionId )
             ]
+
+
+encodeIntOrNull : Maybe Int -> Json.Encode.Value
+encodeIntOrNull =
+    Maybe.map Json.Encode.int >> Maybe.withDefault Json.Encode.null
 
 
 encodeSignedResponse : SignedResponse -> Json.Encode.Value
@@ -350,7 +357,7 @@ encodeSignedResponse signedResponse =
     Json.Encode.object
         [ ( "address", EthHelpers.encodeAddress signedResponse.address )
         , ( "pollId", Json.Encode.int signedResponse.pollId )
-        , ( "pollOptionId", Json.Encode.int signedResponse.pollOptionId )
+        , ( "pollOptionId", encodeIntOrNull signedResponse.maybePollOptionId )
         , ( "sig", Json.Encode.string signedResponse.sig )
         ]
 
@@ -370,7 +377,7 @@ signedResponseFromJSDecoder =
     Json.Decode.map4 SignedResponse
         (Json.Decode.field "address" EthHelpers.addressDecoder)
         (Json.Decode.field "pollId" Json.Decode.int)
-        (Json.Decode.field "pollOptionId" Json.Decode.int)
+        (Json.Decode.field "pollOptionId" (Json.Decode.nullable Json.Decode.int))
         (Json.Decode.field "sig" Json.Decode.string)
 
 
@@ -469,7 +476,7 @@ loggedSignedResponseFromServerDecoder =
             (Json.Decode.map4 SignedResponse
                 (Json.Decode.field "Address" <| EthHelpers.addressDecoder)
                 (Json.Decode.field "PollId" <| Json.Decode.int)
-                (Json.Decode.field "OptionId" <| Json.Decode.int)
+                (Json.Decode.maybe <| Json.Decode.field "OptionId" Json.Decode.int)
                 (Json.Decode.field "Signature" <| Json.Decode.string)
             )
         )
@@ -480,7 +487,7 @@ encodeSignedResponseForServer signedResponse =
     Json.Encode.object
         [ ( "Address", EthHelpers.encodeAddress signedResponse.address )
         , ( "PollId", Json.Encode.int signedResponse.pollId )
-        , ( "OptionId", Json.Encode.int signedResponse.pollOptionId )
+        , ( "OptionId", encodeIntOrNull signedResponse.maybePollOptionId )
         , ( "Signature", Json.Encode.string signedResponse.sig )
         , ( "OptionData", Json.Encode.string "" )
         ]

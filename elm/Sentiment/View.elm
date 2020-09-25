@@ -87,28 +87,33 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState po
 
         foldFunc : ( Address, ValidatedResponse ) -> Dict Int ( TokenValue, AddressDict TokenValue ) -> Dict Int ( TokenValue, AddressDict TokenValue )
         foldFunc ( address, validatedResponse ) accTallyData =
-            let
-                fryAmount =
-                    fryBalances
-                        |> AddressDict.get address
-                        |> Maybe.Extra.join
-                        |> Maybe.withDefault TokenValue.zero
-            in
-            accTallyData
-                |> Dict.update validatedResponse.pollOptionId
-                    (Maybe.withDefault ( TokenValue.zero, AddressDict.empty )
-                        >> (\( accTotal, accTallies ) ->
-                                Just
-                                    ( TokenValue.add accTotal fryAmount
-                                    , accTallies
-                                        |> AddressDict.update address
-                                            (Maybe.withDefault TokenValue.zero
-                                                >> TokenValue.add fryAmount
-                                                >> Just
+            case validatedResponse.maybePollOptionId of
+                Nothing ->
+                    accTallyData
+
+                Just pollOptionId ->
+                    let
+                        fryAmount =
+                            fryBalances
+                                |> AddressDict.get address
+                                |> Maybe.Extra.join
+                                |> Maybe.withDefault TokenValue.zero
+                    in
+                    accTallyData
+                        |> Dict.update pollOptionId
+                            (Maybe.withDefault ( TokenValue.zero, AddressDict.empty )
+                                >> (\( accTotal, accTallies ) ->
+                                        Just
+                                            ( TokenValue.add accTotal fryAmount
+                                            , accTallies
+                                                |> AddressDict.update address
+                                                    (Maybe.withDefault TokenValue.zero
+                                                        >> TokenValue.add fryAmount
+                                                        >> Just
+                                                    )
                                             )
-                                    )
-                           )
-                    )
+                                   )
+                            )
 
         talliedFryForOptions =
             validatedResponsesForPoll
@@ -205,6 +210,12 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                             [ Element.alignRight
                             , Element.height <| Element.px 40
                             , Element.width <| Element.px 40
+                            , Element.pointer
+                            , Element.Events.onClick <|
+                                OptionClicked
+                                    userInfo
+                                    poll
+                                    Nothing
                             ]
                             Images.fryIcon
 
@@ -218,7 +229,7 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                                 OptionClicked
                                     userInfo
                                     poll
-                                    pollOption.id
+                                    (Just pollOption.id)
                             , Element.mouseOver
                                 [ Element.alpha 1 ]
                             , Element.inFront <|

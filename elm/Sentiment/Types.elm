@@ -26,7 +26,7 @@ type Msg
     = MsgUp MsgUp
     | RefreshAll
     | PollsFetched (Result Http.Error (List Poll))
-    | OptionClicked UserInfo Poll Int
+    | OptionClicked UserInfo Poll (Maybe Int)
     | Web3SignResultValue Json.Decode.Value
     | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
@@ -78,7 +78,7 @@ insertValidatedResponse ( responseId, signedResponse ) validatedResponseTracker 
     let
         validatedResponse =
             { id = responseId
-            , pollOptionId = signedResponse.pollOptionId
+            , maybePollOptionId = signedResponse.maybePollOptionId
             }
     in
     validatedResponseTracker
@@ -112,7 +112,7 @@ type alias PollOption =
 type alias SignedResponse =
     { address : Address
     , pollId : Int
-    , pollOptionId : Int
+    , maybePollOptionId : Maybe Int
     , sig : String
     }
 
@@ -125,18 +125,23 @@ type alias ResponseToValidate =
     }
 
 
-encodeSignableResponse : Poll -> Int -> String
-encodeSignableResponse poll pollOptionId =
+encodeSignableResponse : Poll -> Maybe Int -> String
+encodeSignableResponse poll maybePollOptionId =
     let
         questionStr =
             poll.question
 
         answerStr =
-            poll.options
-                |> List.filter (.id >> (==) pollOptionId)
-                |> List.head
-                |> Maybe.map .name
-                |> Maybe.withDefault ("[invalid option " ++ String.fromInt pollOptionId ++ "]")
+            case maybePollOptionId of
+                Just pollOptionId ->
+                    poll.options
+                        |> List.filter (.id >> (==) pollOptionId)
+                        |> List.head
+                        |> Maybe.map .name
+                        |> Maybe.withDefault ("[invalid option " ++ String.fromInt pollOptionId ++ "]")
+
+                Nothing ->
+                    "[none]"
     in
     Json.Encode.object
         [ ( "context", Json.Encode.string "FRY Holder Sentiment Voting" )
@@ -161,7 +166,7 @@ loggedSignedResponseToResponseToValidate polls ( responseId, signedResponse ) =
                 , data =
                     encodeSignableResponse
                         poll
-                        signedResponse.pollOptionId
+                        signedResponse.maybePollOptionId
                 , sig = signedResponse.sig
                 , address = signedResponse.address
                 }
@@ -174,7 +179,7 @@ type alias LoggedSignedResponse =
 
 type alias ValidatedResponse =
     { id : Int
-    , pollOptionId : Int
+    , maybePollOptionId : Maybe Int
     }
 
 
