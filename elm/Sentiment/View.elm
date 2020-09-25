@@ -185,29 +185,52 @@ viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted =
 
 viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> PollOption -> ( TokenValue, Float ) -> ( TokenValue, AddressDict TokenValue ) -> Element Msg
 viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) ( totalVotesInSupport, detailedSupportDict ) =
+    let
+        voteButtonElementOrNone =
+            case maybeUserInfo of
+                Nothing ->
+                    Element.none
+                Just userInfo ->
+                    Images.toElement
+                        [ Element.alignRight
+                        , Element.height <| Element.px 40
+                        , Element.width <| Element.px 40
+                        , Element.pointer
+                        , Element.Events.onClick <|
+                            OptionClicked
+                                userInfo
+                                poll
+                                pollOption.id
+                        , Element.alpha 0.5
+                        , Element.mouseOver
+                            [ Element.alpha 1 ]
+                        , Element.inFront <|
+                            Images.toElement
+                                [ Element.width Element.fill
+                                , Element.height Element.fill
+                                , Element.alpha 0
+                                , Element.mouseOver
+                                    [ Element.alpha 1 ]
+                                ]
+                                Images.pollChoiceMouseover
+                        ]
+                        Images.pollChoiceEmpty
+    in
     Element.row
         [ Element.width Element.fill
         , Element.spacing 10
         ]
         [ Element.row
             [ Element.width Element.fill
+            , Element.spacing 15
             ]
           <|
-            [ Element.paragraph
+            [ voteButtonElementOrNone
+            , Element.paragraph
                 [ Element.Font.size <| responsiveVal dProfile 18 24
                 , Element.alignLeft
                 ]
                 [ Element.text pollOption.name ]
-            , Images.toElement
-                [ Element.alignRight
-                , Element.height <| Element.px 40
-                , Element.width <| Element.px 40
-                , Element.pointer
-                , Element.alpha 0.5
-                , Element.mouseOver
-                    [ Element.alpha 1 ]
-                ]
-                Images.fryIcon
             ]
         , Element.row
             [ Element.width Element.fill

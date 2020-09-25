@@ -172,3 +172,17 @@ checkmark =
         { src = "img/check.svg"
         , description = "checked"
         }
+
+pollChoiceEmpty : Image
+pollChoiceEmpty =
+    JustImage
+        { src = "img/poll-choice-empty.svg"
+        , description = "vote for this option"
+        }
+
+pollChoiceMouseover : Image
+pollChoiceMouseover =
+    JustImage
+        { src = "img/poll-choice-mouseover.svg"
+        , description = "vote for this option"
+        }
