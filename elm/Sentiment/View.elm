@@ -194,30 +194,45 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                     Element.none
 
                 Just userInfo ->
-                    Images.toElement
-                        [ Element.alignRight
-                        , Element.height <| Element.px 40
-                        , Element.width <| Element.px 40
-                        , Element.pointer
-                        , Element.Events.onClick <|
-                            OptionClicked
-                                userInfo
-                                poll
-                                pollOption.id
-                        , Element.alpha 0.5
-                        , Element.mouseOver
-                            [ Element.alpha 1 ]
-                        , Element.inFront <|
-                            Images.toElement
-                                [ Element.width Element.fill
-                                , Element.height Element.fill
-                                , Element.alpha 0
-                                , Element.mouseOver
-                                    [ Element.alpha 1 ]
-                                ]
-                                Images.pollChoiceMouseover
-                        ]
-                        Images.pollChoiceEmpty
+                    let
+                        userSupportsOption =
+                            AddressDict.member
+                                userInfo.address
+                                detailedSupportDict
+                    in
+                    if userSupportsOption then
+                        Images.toElement
+                            [ Element.alignRight
+                            , Element.height <| Element.px 40
+                            , Element.width <| Element.px 40
+                            ]
+                            Images.fryIcon
+
+                    else
+                        Images.toElement
+                            [ Element.alignRight
+                            , Element.height <| Element.px 40
+                            , Element.width <| Element.px 40
+                            , Element.pointer
+                            , Element.Events.onClick <|
+                                OptionClicked
+                                    userInfo
+                                    poll
+                                    pollOption.id
+                            , Element.alpha 0.5
+                            , Element.mouseOver
+                                [ Element.alpha 1 ]
+                            , Element.inFront <|
+                                Images.toElement
+                                    [ Element.width Element.fill
+                                    , Element.height Element.fill
+                                    , Element.alpha 0
+                                    , Element.mouseOver
+                                        [ Element.alpha 1 ]
+                                    ]
+                                    Images.pollChoiceMouseover
+                            ]
+                            Images.pollChoiceEmpty
     in
     Element.row
         [ Element.width Element.fill

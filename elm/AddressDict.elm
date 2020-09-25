@@ -1,4 +1,4 @@
-module AddressDict exposing (AddressDict, empty, filter, fromList, get, insert, keys, map, toList, union, update)
+module AddressDict exposing (AddressDict, empty, filter, fromList, get, insert, keys, map, member, toList, union, update)
 
 import Dict exposing (Dict)
 import Eth.Types exposing (Address)
@@ -99,6 +99,15 @@ union dict1_ dict2_ =
     case ( dict1_, dict2_ ) of
         ( AddressDict dict1, AddressDict dict2 ) ->
             AddressDict <| Dict.union dict1 dict2
+
+
+member : Address -> AddressDict a -> Bool
+member address dict_ =
+    case dict_ of
+        AddressDict dict ->
+            Dict.member
+                (addressToDeterministicString address)
+                dict
 
 
 addressToDeterministicString : Address -> String
