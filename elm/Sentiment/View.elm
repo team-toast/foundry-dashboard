@@ -23,6 +23,7 @@ import Images
 import Json.Encode exposing (float)
 import List.Extra
 import Maybe.Extra
+import Phace
 import Result.Extra
 import Routing exposing (Route)
 import Sentiment.Types exposing (..)
@@ -152,7 +153,7 @@ viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Dict Int ( TokenValue,
 viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted =
     Element.column
         [ Element.spacing 10
-        , Element.width <| Element.px 800
+        , Element.width <| Element.px 1000
         ]
         (poll.options
             |> List.map
@@ -183,7 +184,7 @@ viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted =
 
 
 viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> PollOption -> ( TokenValue, Float ) -> ( TokenValue, AddressDict TokenValue ) -> Element Msg
-viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) ( supportForOption, detailedSupportDict ) =
+viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) ( totalVotesInSupport, detailedSupportDict ) =
     Element.row
         [ Element.width Element.fill
         , Element.spacing 10
@@ -212,8 +213,12 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
             [ Element.width Element.fill
             , Element.spacing 5
             ]
-            [ Element.el [ Element.alignLeft ] <|
-                voteBarBreakdown dProfile maybeUserInfo totalVotes detailedSupportDict
+            [ Element.el
+                [ Element.alignLeft
+                , Element.width <| Element.px <| maxBarWidth + 5
+                ]
+              <|
+                voteBarBreakdown dProfile maybeUserInfo totalVotes totalVotesInSupport detailedSupportDict
             , Element.el
                 [ Element.width <| Element.px 50 ]
                 (Element.text <|
@@ -221,7 +226,7 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                         ++ "%"
                     )
                 )
-            , viewFryAmount supportForOption
+            , viewFryAmount totalVotesInSupport
             ]
         ]
 
@@ -234,66 +239,98 @@ maxBarWidth =
 type alias VoteBarBlock =
     { x : Int
     , width : Int
-    , color : Element.Color
+    , colorRgb : ( Float, Float, Float )
+    , address : Address
+    , amount : TokenValue
     }
 
 
-voteBarBreakdown : DisplayProfile -> Maybe UserInfo -> TokenValue -> AddressDict TokenValue -> Element Msg
-voteBarBreakdown dProfile maybeUserInfo totalVotes detailedSupportDict =
+voteBarBreakdown : DisplayProfile -> Maybe UserInfo -> TokenValue -> TokenValue -> AddressDict TokenValue -> Element Msg
+voteBarBreakdown dProfile maybeUserInfo totalVotes totalVotesInSupport detailedSupportDict =
     let
+        votesToBarWidth tokens =
+            let
+                ratio =
+                    TokenValue.getRatioWithWarning tokens totalVotes
+            in
+            ratio
+                * (maxBarWidth |> toFloat)
+                |> floor
+
+        fullBarWidth =
+            votesToBarWidth totalVotesInSupport + 2
+
         orderedVotes =
             detailedSupportDict
                 |> AddressDict.toList
-                |> List.sortBy (Tuple.second >> TokenValue.toFloatWithWarning)
+                |> List.sortBy (Tuple.second >> TokenValue.toFloatWithWarning >> negate)
                 |> List.reverse
 
-        votesWithPixels : List ( Address, TokenValue, Int )
-        votesWithPixels =
-            orderedVotes
-                |> List.map
-                    (\( voter, tokens ) ->
-                        let
-                            ratio =
-                                TokenValue.getRatioWithWarning tokens totalVotes
-                        in
-                        ( voter
-                        , tokens
-                        , ratio
-                            * (maxBarWidth |> toFloat)
-                            |> floor
-                        )
-                    )
-
-        folderFunc : ( Address, TokenValue ) -> List ( VoteBarBlock, Address, TokenValue ) -> List ( VoteBarBlock, Address, TokenValue )
+        folderFunc : ( Address, TokenValue ) -> List VoteBarBlock -> List VoteBarBlock
         folderFunc ( voter, tokens ) accBlocks =
             let
                 width =
-                    let
-                        ratio =
-                            TokenValue.getRatioWithWarning tokens totalVotes
-                    in
-                    ratio
-                        * (maxBarWidth |> toFloat)
-                        |> floor
+                    votesToBarWidth tokens
 
                 x =
                     List.Extra.last accBlocks
-                        |> Maybe.map TupleHelpers.tuple3First
                         |> Maybe.map
                             (\block -> block.x + block.width)
                         |> Maybe.withDefault 0
 
-                color =
-                    Debug.todo ""
+                maybeColorAttribute =
+                    Phace.faceColorFromAddress voter
+                        |> Result.toMaybe
+
+                newBlock =
+                    { width = width
+                    , x = x
+                    , colorRgb =
+                        maybeColorAttribute
+                            |> Maybe.withDefault ( 0, 0, 0 )
+                    , address = voter
+                    , amount = tokens
+                    }
             in
-            Debug.todo ""
+            accBlocks
+                |> List.append
+                    [ newBlock ]
+
+        blocks =
+            orderedVotes
+                |> List.foldl
+                    folderFunc
+                    []
     in
-    Element.el
-        [ Element.width <| Element.px maxBarWidth
-        , Element.paddingXY 10 0
-        , Element.Background.color EH.white
+    Element.row
+        [ Element.height <| Element.px 30
+        , Element.width <| Element.px fullBarWidth
+        , Element.Background.color Theme.lightGray
+        , Element.Border.glow
+            (Element.rgba 1 1 1 0.2)
+            3
+        , Element.Border.width 1
+        , Element.Border.color Theme.lightBlue
         ]
-        (Element.text "hi")
+        (blocks
+            |> List.map
+                (\block ->
+                    if block.width > 0 then
+                        Element.el
+                            [ Element.height Element.fill
+                            , Element.width <| Element.px block.width
+                            , Element.Background.color <|
+                                Element.rgb
+                                    (TupleHelpers.tuple3First block.colorRgb)
+                                    (TupleHelpers.tuple3Second block.colorRgb)
+                                    (TupleHelpers.tuple3Third block.colorRgb)
+                            ]
+                            Element.none
+
+                    else
+                        Element.none
+                )
+        )
 
 
 oldViewOption : DisplayProfile -> Maybe UserInfo -> Poll -> TokenValue -> AddressDict TokenValue -> Float -> PollOption -> Element Msg
