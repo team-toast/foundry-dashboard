@@ -302,7 +302,10 @@ voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes tota
         votesToBarWidth tokens =
             let
                 ratio =
-                    TokenValue.getRatioWithWarning tokens totalVotes
+                    if TokenValue.isZero totalVotes then
+                        0
+                    else
+                        TokenValue.getRatioWithWarning tokens totalVotes
             in
             ratio
                 * (maxBarWidth |> toFloat)
