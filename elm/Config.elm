@@ -56,7 +56,7 @@ etherscanBaseUrl =
 
 teamToastMultiSigAddress : Address
 teamToastMultiSigAddress =
-    Eth.Utils.unsafeToAddress "0xE5dDe1cc679184fc420E6f92e0Bd8C81E41D25e1"
+    Eth.Utils.unsafeToAddress "0xA21510518cbF2627bb99966eA413ccf9F5b80f83"
 
 
 treasuryForwarderAddress : Address
