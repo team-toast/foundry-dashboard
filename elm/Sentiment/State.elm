@@ -24,7 +24,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Url.Builder
 import UserNotice as UN
-import Wallet exposing (Wallet)
+import Wallet exposing (Wallet, userInfo)
 
 
 init : ( Model, Cmd Msg )
@@ -77,10 +77,18 @@ update msg prevModel =
                         []
 
         OptionClicked userInfo poll maybePollOptionId ->
-            UpdateResult
-                prevModel
-                (signResponseCmd userInfo poll maybePollOptionId)
-                []
+            case userInfo of
+                Nothing ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+
+                Just val ->
+                    UpdateResult
+                        prevModel
+                        (signResponseCmd val poll maybePollOptionId)
+                        []
 
         Web3SignResultValue jsonVal ->
             let
