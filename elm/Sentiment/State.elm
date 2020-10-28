@@ -24,7 +24,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Url.Builder
 import UserNotice as UN
-import Wallet exposing (Wallet, userInfo)
+import Wallet exposing (Wallet)
 
 
 init : ( Model, Cmd Msg )
