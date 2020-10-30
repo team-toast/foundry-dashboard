@@ -26,7 +26,7 @@ type Msg
     = MsgUp MsgUp
     | RefreshAll
     | PollsFetched (Result Http.Error (List Poll))
-    | OptionClicked UserInfo Poll (Maybe Int)
+    | OptionClicked (Maybe UserInfo) Poll (Maybe Int)
     | Web3SignResultValue Json.Decode.Value
     | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
