@@ -77,10 +77,18 @@ update msg prevModel =
                         []
 
         OptionClicked userInfo poll maybePollOptionId ->
-            UpdateResult
-                prevModel
-                (signResponseCmd userInfo poll maybePollOptionId)
-                []
+            case userInfo of
+                Nothing ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+
+                Just val ->
+                    UpdateResult
+                        prevModel
+                        (signResponseCmd val poll maybePollOptionId)
+                        []
 
         Web3SignResultValue jsonVal ->
             let

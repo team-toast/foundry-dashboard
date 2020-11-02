@@ -193,6 +193,38 @@ viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted mouseoverStat
 viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> PollOption -> ( TokenValue, Float ) -> ( TokenValue, AddressDict TokenValue ) -> MouseoverState -> Element Msg
 viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) ( totalVotesInSupport, detailedSupportDict ) mouseoverState =
     let
+        wholeOptionClick =
+            case maybeUserInfo of
+                Nothing ->
+                    Element.Events.onClick <|
+                        OptionClicked
+                            Nothing
+                            poll
+                            Nothing
+
+                Just userInfo ->
+                    let
+                        userSupportsOption =
+                            AddressDict.member
+                                userInfo.address
+                                detailedSupportDict
+                    in
+                    if userSupportsOption then
+                        Element.Events.onClick <|
+                            OptionClicked
+                                (Just
+                                    userInfo
+                                )
+                                poll
+                                Nothing
+
+                    else
+                        Element.Events.onClick <|
+                            OptionClicked
+                                (Just userInfo)
+                                poll
+                                (Just pollOption.id)
+
         voteButtonElementOrNone =
             case maybeUserInfo of
                 Nothing ->
@@ -211,11 +243,12 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                             , Element.height <| Element.px 40
                             , Element.width <| Element.px 40
                             , Element.pointer
-                            , Element.Events.onClick <|
-                                OptionClicked
-                                    userInfo
-                                    poll
-                                    Nothing
+
+                            -- , Element.Events.onClick <|
+                            --     OptionClicked
+                            --         (Just userInfo)
+                            --         poll
+                            --         Nothing
                             ]
                             Images.fryIcon
 
@@ -225,11 +258,12 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                             , Element.height <| Element.px 40
                             , Element.width <| Element.px 40
                             , Element.pointer
-                            , Element.Events.onClick <|
-                                OptionClicked
-                                    userInfo
-                                    poll
-                                    (Just pollOption.id)
+
+                            -- , Element.Events.onClick <|
+                            --     OptionClicked
+                            --         (Just userInfo)
+                            --         poll
+                            --         (Just pollOption.id)
                             , Element.mouseOver
                                 [ Element.alpha 1 ]
                             , Element.inFront <|
@@ -251,6 +285,8 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
         [ Element.row
             [ Element.width Element.fill
             , Element.spacing 15
+            , Element.pointer
+            , wholeOptionClick
             ]
           <|
             [ voteButtonElementOrNone
@@ -304,6 +340,7 @@ voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes tota
                 ratio =
                     if TokenValue.isZero totalVotes then
                         0
+
                     else
                         TokenValue.getRatioWithWarning tokens totalVotes
             in
