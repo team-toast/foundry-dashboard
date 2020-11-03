@@ -14,6 +14,7 @@ type Route
     = Home
     | Sentiment
     | Stats
+    | Deepfry
     | NotFound String
 
 
@@ -23,6 +24,7 @@ routeParser =
         [ Parser.map Home Parser.top
         , Parser.map Sentiment (Parser.s "sentiment")
         , Parser.map Stats (Parser.s "stats")
+        , Parser.map Deepfry (Parser.s "deepfry")
         ]
 
 
@@ -43,6 +45,11 @@ routeToString basePath route =
                 Stats ->
                     Builder.relative
                         [ "#", "stats" ]
+                        []
+                
+                Deepfry ->
+                    Builder.relative
+                        [ "#", "deepfry"]
                         []
 
                 NotFound _ ->

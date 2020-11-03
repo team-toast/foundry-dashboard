@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Deepfry.Types as Deepfry
 import Array exposing (Array)
 import Browser
 import Browser.Navigation
@@ -51,6 +52,7 @@ type Submodel
     | Home Home.Model
     | Sentiment Sentiment.Model
     | Stats Stats.Model
+    | Deepfry Deepfry.Model
 
 
 type Msg
@@ -67,6 +69,7 @@ type Msg
     | HomeMsg Home.Msg
     | SentimentMsg Sentiment.Msg
     | StatsMsg Stats.Msg
+    | DeepfryMsg Deepfry.Msg
       -- | BalanceFetched Address (Result Http.Error TokenValue)
     | MsgUp MsgUp
     | NoOp

@@ -1,5 +1,6 @@
 port module State exposing (init, subscriptions, update)
 
+import Deepfry.State as Deepfry
 import Array exposing (Array)
 import Browser
 import Browser.Events
@@ -274,6 +275,24 @@ update msg prevModel =
 
                 _ ->
                     ( prevModel, Cmd.none )
+        DeepfryMsg deepfryMsg ->
+            case prevModel.submodel of
+                Deepfry deepfryModel ->
+                    let
+                        updateResult =
+                            deepfryModel
+                                |> Deepfry.update deepfryMsg
+                    in
+                    ( { prevModel
+                        | submodel =
+                            Deepfry updateResult.newModel
+                      }
+                    , Cmd.map DeepfryMsg updateResult.cmd
+                    )
+                        |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
 
         MsgUp msgUp ->
             prevModel |> handleMsgUp msgUp
@@ -414,6 +433,18 @@ gotoRoute route prevModel =
               }
             , Cmd.map StatsMsg statsCmd
             )
+        
+        Routing.Deepfry ->
+            let
+                ( deepfryModel, deepfryCmd ) =
+                    Deepfry.init
+            in
+            ( { prevModel
+                | route = route
+                , submodel = Deepfry deepfryModel
+              }
+            , Cmd.map DeepfryMsg deepfryCmd
+            )
 
         Routing.NotFound err ->
             ( { prevModel
@@ -473,6 +504,11 @@ submodelSubscriptions submodel =
             Sub.map
                 StatsMsg
                 (Stats.subscriptions statsModel)
+        
+        Deepfry deepfryModel ->
+            Sub.map
+                DeepfryMsg
+                (Deepfry.subscriptions deepfryModel)
 
 
 subscriptions : Model -> Sub Msg
