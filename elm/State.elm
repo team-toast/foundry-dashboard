@@ -1,6 +1,6 @@
 port module State exposing (init, subscriptions, update)
 
-import Deepfry.State as Deepfry
+import Farm.State as Farm
 import Array exposing (Array)
 import Browser
 import Browser.Events
@@ -275,19 +275,19 @@ update msg prevModel =
 
                 _ ->
                     ( prevModel, Cmd.none )
-        DeepfryMsg deepfryMsg ->
+        FarmMsg farmMsg ->
             case prevModel.submodel of
-                Deepfry deepfryModel ->
+                Farm farmModel ->
                     let
                         updateResult =
-                            deepfryModel
-                                |> Deepfry.update deepfryMsg
+                            farmModel
+                                |> Farm.update farmMsg
                     in
                     ( { prevModel
                         | submodel =
-                            Deepfry updateResult.newModel
+                            Farm updateResult.newModel
                       }
-                    , Cmd.map DeepfryMsg updateResult.cmd
+                    , Cmd.map FarmMsg updateResult.cmd
                     )
                         |> withMsgUps updateResult.msgUps
 
@@ -434,16 +434,16 @@ gotoRoute route prevModel =
             , Cmd.map StatsMsg statsCmd
             )
         
-        Routing.Deepfry ->
+        Routing.Farm ->
             let
-                ( deepfryModel, deepfryCmd ) =
-                    Deepfry.init
+                ( farmModel, farmCmd ) =
+                    Farm.init
             in
             ( { prevModel
                 | route = route
-                , submodel = Deepfry deepfryModel
+                , submodel = Farm farmModel
               }
-            , Cmd.map DeepfryMsg deepfryCmd
+            , Cmd.map FarmMsg farmCmd
             )
 
         Routing.NotFound err ->
@@ -505,10 +505,10 @@ submodelSubscriptions submodel =
                 StatsMsg
                 (Stats.subscriptions statsModel)
         
-        Deepfry deepfryModel ->
+        Farm farmModel ->
             Sub.map
-                DeepfryMsg
-                (Deepfry.subscriptions deepfryModel)
+                FarmMsg
+                (Farm.subscriptions farmModel)
 
 
 subscriptions : Model -> Sub Msg

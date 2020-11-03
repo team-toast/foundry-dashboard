@@ -1,7 +1,7 @@
-module Deepfry.View exposing (..)
+module Farm.View exposing (..)
 
 import Common.Types exposing (..)
-import Deepfry.Types exposing (..)
+import Farm.Types exposing (..)
 import Element exposing (Element)
 import Helpers.Element as EH exposing (DisplayProfile)
 

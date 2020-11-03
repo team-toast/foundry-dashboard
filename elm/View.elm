@@ -4,7 +4,7 @@ import Browser
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
-import Deepfry.View as Deepfry
+import Farm.View as Farm
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -112,12 +112,12 @@ body model =
                         (Wallet.userInfo model.wallet)
                         statsModel
 
-            Deepfry deepfryModel ->
-                Element.map DeepfryMsg <|
-                    Deepfry.view
+            Farm farmModel ->
+                Element.map FarmMsg <|
+                    Farm.view
                         model.dProfile
                         (Wallet.userInfo model.wallet)
-                        deepfryModel
+                        farmModel
         ]
 
 

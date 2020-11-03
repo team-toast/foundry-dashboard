@@ -1,6 +1,6 @@
-module Deepfry.State exposing (..)
+module Farm.State exposing (..)
 
-import Deepfry.Types exposing (..)
+import Farm.Types exposing (..)
 
 
 init : ( Model, Cmd Msg )
