@@ -6,8 +6,9 @@ import Common.Types exposing (..)
 type alias Model =
     {}
 
-type Msg =
-    NoOp
+type Msg
+    = MsgUp MsgUp
+    | NoOp
 
 type alias UpdateResult =
     { newModel : Model
