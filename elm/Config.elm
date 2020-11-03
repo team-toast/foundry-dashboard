@@ -72,3 +72,8 @@ fryTokenAddress =
 bucketSaleAddress : Address
 bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
+
+
+stakingContractAddress : Address
+stakingContractAddress =
+    Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
