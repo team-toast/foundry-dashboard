@@ -77,3 +77,8 @@ bucketSaleAddress =
 stakingContractAddress : Address
 stakingContractAddress =
     Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
+
+
+stakingLiquidityContractAddress : Address
+stakingLiquidityContractAddress =
+    Eth.Utils.unsafeToAddress "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"

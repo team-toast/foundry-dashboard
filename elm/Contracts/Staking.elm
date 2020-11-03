@@ -42,11 +42,23 @@ callExit msgConstructor =
         |> Task.attempt msgConstructor
 
 
-getAmountEarned : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
-getAmountEarned address msgConstructor =
+getUnstakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+getUnstakedBalance address msgConstructor =
     Eth.call
         Config.httpProviderUrl
-        (StakingContract.earned
+        (ERC20.balanceOf
+            Config.stakingLiquidityContractAddress
+            address
+        )
+        |> Task.attempt
+            (Result.map TokenValue.tokenValue >> msgConstructor)
+
+
+getStakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+getStakedBalance address msgConstructor =
+    Eth.call
+        Config.httpProviderUrl
+        (ERC20.balanceOf
             Config.stakingContractAddress
             address
         )
@@ -54,11 +66,11 @@ getAmountEarned address msgConstructor =
             (Result.map TokenValue.tokenValue >> msgConstructor)
 
 
-getBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
-getBalance address msgConstructor =
+getAmountEarned : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+getAmountEarned address msgConstructor =
     Eth.call
         Config.httpProviderUrl
-        (ERC20.balanceOf
+        (StakingContract.earned
             Config.stakingContractAddress
             address
         )
