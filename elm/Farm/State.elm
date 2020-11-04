@@ -11,14 +11,14 @@ import Wallet exposing (Wallet)
 
 init : Maybe UserInfo -> Time.Posix -> ( Model, Cmd Msg )
 init maybeUserInfo now =
-    ( { userBalanceInfo = Nothing
+    ( { timedUserStakingInfo = Nothing
       , depositWithdrawUXModel =
             { inMenu = Nothing }
       , now = now
       }
     , case maybeUserInfo of
         Just userInfo ->
-            fetchUserBalanceInfoCmd userInfo.address
+            fetchUserStakingInfoCmd userInfo.address
 
         Nothing ->
             Cmd.none
@@ -50,11 +50,14 @@ update msg prevModel =
         FakeFetchBalanceInfo ->
             justModelUpdate
                 { prevModel
-                    | userBalanceInfo =
+                    | timedUserStakingInfo =
                         Just <|
-                            { unstaked = TokenValue.fromIntTokenValue 10
-                            , staked = TokenValue.fromIntTokenValue 10
-                            , claimableRewardsAtTime = ( TokenValue.zero, Time.millisToPosix 0 )
+                            { userStakingInfo =
+                                { unstaked = TokenValue.fromIntTokenValue 10
+                                , staked = TokenValue.fromIntTokenValue 10
+                                , claimableRewards = TokenValue.zero
+                                }
+                            , time = prevModel.now
                             }
                 }
 
@@ -65,12 +68,12 @@ runMsgDown msg prevModel =
         Common.Msg.UpdateWallet newWallet ->
             let
                 newModel =
-                    { prevModel | userBalanceInfo = Nothing }
+                    { prevModel | timedUserStakingInfo = Nothing }
 
                 cmd =
                     case Wallet.userInfo newWallet of
                         Just userInfo ->
-                            fetchUserBalanceInfoCmd userInfo.address
+                            fetchUserStakingInfoCmd userInfo.address
 
                         Nothing ->
                             Cmd.none
@@ -81,8 +84,8 @@ runMsgDown msg prevModel =
                 []
 
 
-fetchUserBalanceInfoCmd : Address -> Cmd Msg
-fetchUserBalanceInfoCmd userAddress =
+fetchUserStakingInfoCmd : Address -> Cmd Msg
+fetchUserStakingInfoCmd userAddress =
     Cmd.none
 
 

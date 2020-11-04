@@ -1,5 +1,6 @@
 module Common.Types exposing (..)
 
+import Time
 import Dict exposing (Dict)
 import Eth.Net
 import Eth.Sentry.Tx as TxSentry
@@ -61,3 +62,10 @@ type PhaceIconId
 
 -- type FailReason
 --     = MinedButExecutionFailed
+
+
+type alias UserStakingInfo =
+    { unstaked : TokenValue
+    , staked : TokenValue
+    , claimableRewards : TokenValue
+    }

@@ -51,7 +51,7 @@ view dProfile maybeUserInfo model =
                         MsgUp
 
                 Just userInfo ->
-                    case model.userBalanceInfo of
+                    case model.timedUserStakingInfo of
                         Nothing ->
                             Element.el
                                 [ Element.centerX
@@ -60,15 +60,15 @@ view dProfile maybeUserInfo model =
                                 ]
                                 (Element.text "Fetching info...")
 
-                        Just userBalanceInfo ->
+                        Just timedUserStakingInfo ->
                             Element.column
                                 [ Element.spacing 15
                                 , Element.centerX
                                 ]
-                                [ unstakedBalanceRow dProfile userBalanceInfo.unstaked
-                                , depositWithrawUX dProfile userInfo.address userBalanceInfo model.depositWithdrawUXModel
-                                , stakedBalanceRow dProfile userBalanceInfo.staked
-                                , rewardsAvailableRowAndUX dProfile userInfo.address userBalanceInfo model.now
+                                [ unstakedBalanceRow dProfile timedUserStakingInfo.userStakingInfo.unstaked
+                                , depositWithrawUX dProfile userInfo.address timedUserStakingInfo.userStakingInfo model.depositWithdrawUXModel
+                                , stakedBalanceRow dProfile timedUserStakingInfo.userStakingInfo.staked
+                                , rewardsAvailableRowAndUX dProfile userInfo.address timedUserStakingInfo model.now
                                 ]
             ]
 
@@ -84,7 +84,7 @@ unstakedBalanceRow dProfile unstakedBalance =
         ]
 
 
-depositWithrawUX : DisplayProfile -> Address -> UserBalanceInfo -> DepositWithdrawUXModel -> Element Msg
+depositWithrawUX : DisplayProfile -> Address -> UserStakingInfo -> DepositWithdrawUXModel -> Element Msg
 depositWithrawUX dProfile userAddress balanceInfo uxModel =
     if TokenValue.isZero balanceInfo.staked && TokenValue.isZero balanceInfo.unstaked then
         Element.row
@@ -178,7 +178,7 @@ stakedBalanceRow dProfile stakedBalance =
         ]
 
 
-rewardsAvailableRowAndUX : DisplayProfile -> Address -> UserBalanceInfo -> Time.Posix -> Element Msg
+rewardsAvailableRowAndUX : DisplayProfile -> Address -> TimedUserStakingInfo -> Time.Posix -> Element Msg
 rewardsAvailableRowAndUX dProfile userAddress balanceInfo now =
     Element.row
         [ Element.width Element.fill

@@ -7,7 +7,7 @@ import TokenValue exposing (TokenValue)
 
 
 type alias Model =
-    { userBalanceInfo : Maybe UserBalanceInfo
+    { timedUserStakingInfo : Maybe TimedUserStakingInfo
     , depositWithdrawUXModel : DepositWithdrawUXModel
     , now : Time.Posix
     }
@@ -37,10 +37,9 @@ justModelUpdate model =
     }
 
 
-type alias UserBalanceInfo =
-    { unstaked : TokenValue
-    , staked : TokenValue
-    , claimableRewardsAtTime : ( TokenValue, Time.Posix )
+type alias TimedUserStakingInfo =
+    { userStakingInfo : UserStakingInfo
+    , time : Time.Posix
     }
 
 
@@ -54,6 +53,6 @@ type DepositOrWithdraw
     | Withdraw
 
 
-calcAvailableRewards : UserBalanceInfo -> Time.Posix -> TokenValue
-calcAvailableRewards balanceInfo now =
+calcAvailableRewards : TimedUserStakingInfo -> Time.Posix -> TokenValue
+calcAvailableRewards stakingInfo now =
     TokenValue.zero

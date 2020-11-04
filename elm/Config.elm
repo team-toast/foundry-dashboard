@@ -84,6 +84,11 @@ stakingLiquidityContractAddress =
     Eth.Utils.unsafeToAddress "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
 
 
+stakingScriptsAddress : Address
+stakingScriptsAddress =
+    Eth.Utils.unsafeToAddress "0xD0B8aa0c898ffA01293EE2736D15201f49eBd3c2"
+
+
 urlToLiquidityPool : String
 urlToLiquidityPool =
     "https://info.uniswap.org/pair/0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"

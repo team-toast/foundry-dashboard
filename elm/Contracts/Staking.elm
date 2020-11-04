@@ -1,8 +1,10 @@
 module Contracts.Staking exposing (..)
 
+import Common.Types exposing (UserStakingInfo)
 import Config
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingContract
+import Contracts.Generated.StakingScripts as StakingScripts
 import Eth
 import Eth.Types exposing (..)
 import Helpers.Eth as EthHelpers
@@ -42,37 +44,55 @@ callExit msgConstructor =
         |> Task.attempt msgConstructor
 
 
-getUnstakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
-getUnstakedBalance address msgConstructor =
+getUserStakingInfo : Address -> (Result Http.Error UserStakingInfo -> msg) -> Cmd msg
+getUserStakingInfo userAddress msgConstructor =
     Eth.call
         Config.httpProviderUrl
-        (ERC20.balanceOf
-            Config.stakingLiquidityContractAddress
-            address
-        )
-        |> Task.attempt
-            (Result.map TokenValue.tokenValue >> msgConstructor)
-
-
-getStakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
-getStakedBalance address msgConstructor =
-    Eth.call
-        Config.httpProviderUrl
-        (ERC20.balanceOf
+        (StakingScripts.getData
+            Config.stakingScriptsAddress
             Config.stakingContractAddress
-            address
+            userAddress
         )
-        |> Task.attempt
-            (Result.map TokenValue.tokenValue >> msgConstructor)
+        |> Task.map bindingStructToUserStakingInfo
+        |> Task.attempt msgConstructor
 
 
-getAmountEarned : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
-getAmountEarned address msgConstructor =
-    Eth.call
-        Config.httpProviderUrl
-        (StakingContract.earned
-            Config.stakingContractAddress
-            address
-        )
-        |> Task.attempt
-            (Result.map TokenValue.tokenValue >> msgConstructor)
+bindingStructToUserStakingInfo : StakingScripts.GetData -> UserStakingInfo
+bindingStructToUserStakingInfo data =
+    { unstaked = TokenValue.tokenValue data.availableBalance
+    , staked = TokenValue.tokenValue data.stakedBalance
+    , claimableRewards = TokenValue.tokenValue data.earned
+    }
+
+
+
+-- getUnstakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+-- getUnstakedBalance address msgConstructor =
+--     Eth.call
+--         Config.httpProviderUrl
+--         (ERC20.balanceOf
+--             Config.stakingLiquidityContractAddress
+--             address
+--         )
+--         |> Task.attempt
+--             (Result.map TokenValue.tokenValue >> msgConstructor)
+-- getStakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+-- getStakedBalance address msgConstructor =
+--     Eth.call
+--         Config.httpProviderUrl
+--         (ERC20.balanceOf
+--             Config.stakingContractAddress
+--             address
+--         )
+--         |> Task.attempt
+--             (Result.map TokenValue.tokenValue >> msgConstructor)
+-- getAmountEarned : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+-- getAmountEarned address msgConstructor =
+--     Eth.call
+--         Config.httpProviderUrl
+--         (StakingContract.earned
+--             Config.stakingContractAddress
+--             address
+--         )
+--         |> Task.attempt
+--             (Result.map TokenValue.tokenValue >> msgConstructor)
