@@ -1,10 +1,12 @@
 module Farm.View exposing (..)
 
 import Common.Types exposing (..)
-import Farm.Types exposing (..)
-import Element exposing (Element)
-import Helpers.Element as EH exposing (DisplayProfile)
 import Common.View
+import Element exposing (Element)
+import Element.Font
+import Farm.Types exposing (..)
+import Helpers.Element as EH exposing (DisplayProfile)
+import Theme
 
 
 view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
@@ -17,5 +19,17 @@ view dProfile maybeUserInfo model =
                 , Element.centerY
                 ]
                 MsgUp
+
         Just userInfo ->
-            Element.text "Next up, fetch all data necessary. But what is that? Gotta write a fetch script in Solidity."
+            case model.userBalanceInfo of
+                Nothing ->
+                    Element.el
+                        [ Element.centerX
+                        , Element.centerY
+                        , Element.Font.italic
+                        , Element.Font.color Theme.darkGray
+                        ]
+                        (Element.text "Fetching info...")
+
+                Just userBalanceInfo ->
+                    Element.text "wut"

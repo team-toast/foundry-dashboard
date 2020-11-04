@@ -446,7 +446,7 @@ gotoRoute route prevModel =
         Routing.Farm ->
             let
                 ( farmModel, farmCmd ) =
-                    Farm.init
+                    Farm.init (Wallet.userInfo prevModel.wallet)
             in
             ( { prevModel
                 | route = route

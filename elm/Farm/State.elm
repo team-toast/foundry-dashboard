@@ -1,14 +1,22 @@
 module Farm.State exposing (..)
 
 import Common.Msg exposing (MsgDown, MsgUp)
+import Common.Types exposing (..)
+import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
+import Wallet exposing (Wallet)
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Maybe UserInfo -> ( Model, Cmd Msg )
+init maybeUserInfo =
     ( { userBalanceInfo = Nothing
       }
-    , Cmd.none
+    , case maybeUserInfo of
+        Just userInfo ->
+            fetchUserBalanceInfoCmd userInfo.address
+
+        Nothing ->
+            Cmd.none
     )
 
 
@@ -28,8 +36,28 @@ update msg prevModel =
 runMsgDown : MsgDown -> Model -> UpdateResult
 runMsgDown msg prevModel =
     case msg of
-        Common.Msg.UpdateWallet _ ->
-            justModelUpdate prevModel
+        Common.Msg.UpdateWallet newWallet ->
+            let
+                newModel =
+                    { prevModel | userBalanceInfo = Nothing }
+
+                cmd =
+                    case Wallet.userInfo newWallet of
+                        Just userInfo ->
+                            fetchUserBalanceInfoCmd userInfo.address
+
+                        Nothing ->
+                            Cmd.none
+            in
+            UpdateResult
+                newModel
+                cmd
+                []
+
+
+fetchUserBalanceInfoCmd : Address -> Cmd Msg
+fetchUserBalanceInfoCmd userAddress =
+    Cmd.none
 
 
 subscriptions : Model -> Sub Msg
