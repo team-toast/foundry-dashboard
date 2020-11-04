@@ -148,8 +148,8 @@ update msg prevModel =
                                             UserInfo
                                                 walletSentry.networkId
                                                 newAddress
-                                                Nothing
-                                                Checking
+                                                -- Nothing
+                                                -- Checking
                                         , True
                                         )
 

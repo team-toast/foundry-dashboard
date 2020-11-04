@@ -12,31 +12,31 @@ import TokenValue exposing (TokenValue)
 type alias UserInfo =
     { network : Eth.Net.NetworkId
     , address : Address
-    , balance : Maybe TokenValue
-    , unlockStatus : UnlockStatus
+    -- , balance : Maybe TokenValue
+    -- , unlockStatus : UnlockStatus
     }
 
 
-type UnlockStatus
-    = NotConnected
-    | Checking
-    | Locked
-    | Unlocking
-    | Unlocked
+-- type UnlockStatus
+--     = NotConnected
+--     | Checking
+--     | Locked
+--     | Unlocking
+--     | Unlocked
 
 
-withBalance : TokenValue -> UserInfo -> UserInfo
-withBalance balance userInfo =
-    { userInfo
-        | balance = Just balance
-    }
+-- withBalance : TokenValue -> UserInfo -> UserInfo
+-- withBalance balance userInfo =
+--     { userInfo
+--         | balance = Just balance
+--     }
 
 
-withUnlockStatus : UnlockStatus -> UserInfo -> UserInfo
-withUnlockStatus unlockStatus userInfo =
-    { userInfo
-        | unlockStatus = unlockStatus
-    }
+-- withUnlockStatus : UnlockStatus -> UserInfo -> UserInfo
+-- withUnlockStatus unlockStatus userInfo =
+--     { userInfo
+--         | unlockStatus = unlockStatus
+--     }
 
 type PhaceIconId
     = UserPhace
