@@ -7,12 +7,16 @@ import TokenValue exposing (TokenValue)
 
 
 type alias Model =
-    { userBalanceInfo : Maybe UserBalanceInfo }
+    { userBalanceInfo : Maybe UserBalanceInfo
+    , depositWithdrawUXModel : DepositWithdrawUXModel
+    }
 
 
 type Msg
     = MsgUp MsgUp
     | NoOp
+    | StartDeposit
+    | StartWithdraw
 
 
 type alias UpdateResult =
@@ -35,3 +39,11 @@ type alias UserBalanceInfo =
     , staked : TokenValue
     , claimableRewardsAtTime : ( TokenValue, Time.Posix )
     }
+
+type alias DepositWithdrawUXModel =
+    { inMenu : Maybe DepositOrWithdraw
+    }
+
+type DepositOrWithdraw
+    = Deposit
+    | Withdraw
