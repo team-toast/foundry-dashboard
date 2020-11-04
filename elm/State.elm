@@ -1,6 +1,5 @@
 port module State exposing (init, subscriptions, update)
 
-import Farm.State as Farm
 import Array exposing (Array)
 import Browser
 import Browser.Events
@@ -19,6 +18,7 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
+import Farm.State as Farm
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Home.State as Home
 import Json.Decode
@@ -137,28 +137,36 @@ update msg prevModel =
             case walletSentryResult of
                 Ok walletSentry ->
                     let
-                        newWallet =
+                        ( newWallet, notifySubmodel ) =
                             case walletSentry.account of
                                 Just newAddress ->
                                     if (prevModel.wallet |> Wallet.userInfo |> Maybe.map .address) == Just newAddress then
-                                        prevModel.wallet
+                                        ( prevModel.wallet, False )
 
                                     else
-                                        Wallet.Active <|
+                                        ( Wallet.Active <|
                                             UserInfo
                                                 walletSentry.networkId
                                                 newAddress
                                                 Nothing
                                                 Checking
+                                        , True
+                                        )
 
                                 Nothing ->
-                                    Wallet.OnlyNetwork walletSentry.networkId
+                                    ( Wallet.OnlyNetwork walletSentry.networkId
+                                    , prevModel.wallet /= Wallet.OnlyNetwork walletSentry.networkId
+                                    )
                     in
-                    ( { prevModel
+                    { prevModel
                         | wallet = newWallet
-                      }
-                    , Cmd.none
-                    )
+                    }
+                        |> (if notifySubmodel then
+                                runMsgDown (UpdateWallet newWallet)
+
+                            else
+                                \model -> ( model, Cmd.none )
+                           )
 
                 Err errStr ->
                     ( prevModel |> addUserNotice (UN.walletError errStr)
@@ -275,6 +283,7 @@ update msg prevModel =
 
                 _ ->
                     ( prevModel, Cmd.none )
+
         FarmMsg farmMsg ->
             case prevModel.submodel of
                 Farm farmModel ->
@@ -433,7 +442,7 @@ gotoRoute route prevModel =
               }
             , Cmd.map StatsMsg statsCmd
             )
-        
+
         Routing.Farm ->
             let
                 ( farmModel, farmCmd ) =
@@ -472,16 +481,71 @@ addUserNotices notices model =
     }
 
 
+runMsgDown : MsgDown -> Model -> ( Model, Cmd Msg )
+runMsgDown msg prevModel =
+    case prevModel.submodel of
+        BlankInitialSubmodel ->
+            ( prevModel, Cmd.none )
 
--- runMsgDown : MsgDown -> Submodel -> Submodel
--- runMsgDown msg submodel =
---     case submodel of
---         Home homeModel ->
---             Home
---                 (homeModel |> Home.runMsgDown msg )
---         Sentiment sentimentModel ->
---             Sentiment
---                 (homeModel |> Sentiment.runMsgDown msg )
+        Home homeModel ->
+            let
+                updateResult =
+                    homeModel |> Home.runMsgDown msg
+
+                newSubmodel =
+                    Home updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map HomeMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        Sentiment sentimentModel ->
+            let
+                updateResult =
+                    sentimentModel |> Sentiment.runMsgDown msg
+
+                newSubmodel =
+                    Sentiment updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map SentimentMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        Stats statsModel ->
+            let
+                updateResult =
+                    statsModel |> Stats.runMsgDown msg
+
+                newSubmodel =
+                    Stats updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map StatsMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        Farm farmModel ->
+            let
+                updateResult =
+                    farmModel |> Farm.runMsgDown msg
+
+                newSubmodel =
+                    Farm updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map FarmMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
 
 
 submodelSubscriptions : Submodel -> Sub Msg
@@ -504,7 +568,7 @@ submodelSubscriptions submodel =
             Sub.map
                 StatsMsg
                 (Stats.subscriptions statsModel)
-        
+
         Farm farmModel ->
             Sub.map
                 FarmMsg

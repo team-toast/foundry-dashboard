@@ -4,6 +4,7 @@ import Eth.Types exposing (Address)
 import Http
 import Json.Decode exposing (Decoder)
 import Stats.Types exposing (..)
+import Common.Msg exposing (..)
 
 
 init : ( Model, Cmd Msg )
@@ -21,6 +22,13 @@ update msg prevModel =
                 prevModel
                 Cmd.none
                 [ msgUp ]
+
+
+runMsgDown : MsgDown -> Model -> UpdateResult
+runMsgDown msg prevModel =
+    case msg of
+        UpdateWallet _ ->
+            justModelUpdate prevModel
 
 
 subscriptions : Model -> Sub Msg

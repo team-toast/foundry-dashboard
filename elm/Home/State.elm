@@ -23,6 +23,11 @@ update msg prevModel =
                 [ msgUp ]
 
 
+runMsgDown : MsgDown -> Model -> UpdateResult
+runMsgDown _ prevModel =
+    justModelUpdate prevModel
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
