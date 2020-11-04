@@ -6,60 +6,70 @@ import Config
 import Element exposing (Element)
 import Element.Background
 import Element.Border
+import Element.Events
 import Element.Font
 import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
 import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
 import Maybe.Extra
 import Theme
+import Time
 import TokenValue exposing (TokenValue)
 
 
 view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
 view dProfile maybeUserInfo model =
     Element.el
-        [ Element.centerX
+        [ Element.width Element.fill
         , Element.paddingEach
-            { top = responsiveVal dProfile 30 10
+            { top = responsiveVal dProfile 60 30
             , bottom = 0
             , left = 0
             , right = 0
             }
-        , Element.Background.color EH.white
-        , Element.Border.rounded 10
-        , Element.height <| Element.px <| responsiveVal dProfile 500 500
         ]
     <|
-        case maybeUserInfo of
-            Nothing ->
-                Common.View.web3ConnectButton
-                    dProfile
-                    [ Element.centerX
-                    , Element.centerY
-                    ]
-                    MsgUp
+        Element.column
+            [ Element.centerX
+            , Element.Background.color <| Element.rgb 0.6 0.6 1
+            , Element.Border.rounded 10
+            , Element.height <| Element.px <| responsiveVal dProfile 500 500
+            , Element.width <| Element.px <| responsiveVal dProfile 700 200
+            ]
+            [ Element.el
+                [ Element.Events.onClick FakeFetchBalanceInfo
+                ]
+                (Element.text "clicky")
+            , case maybeUserInfo of
+                Nothing ->
+                    Common.View.web3ConnectButton
+                        dProfile
+                        [ Element.centerX
+                        , Element.centerY
+                        ]
+                        MsgUp
 
-            Just userInfo ->
-                case model.userBalanceInfo of
-                    Nothing ->
-                        Element.el
-                            [ Element.centerX
-                            , Element.centerY
-                            , Element.Font.italic
-                            , Element.Font.color Theme.darkGray
-                            ]
-                            (Element.text "Fetching info...")
+                Just userInfo ->
+                    case model.userBalanceInfo of
+                        Nothing ->
+                            Element.el
+                                [ Element.centerX
+                                , Element.centerY
+                                , Element.Font.italic
+                                ]
+                                (Element.text "Fetching info...")
 
-                    Just userBalanceInfo ->
-                        Element.column
-                            [ Element.spacing 10
-                            , Element.width Element.fill
-                            ]
-                            [ unstakedBalanceRow dProfile userBalanceInfo.unstaked
-                            , depositWithrawUX dProfile userInfo.address userBalanceInfo model.depositWithdrawUXModel
-                            , stakedBalanceRow dProfile userBalanceInfo.staked
-                            , rewardsAvailableRowAndUX dProfile userInfo.address userBalanceInfo
-                            ]
+                        Just userBalanceInfo ->
+                            Element.column
+                                [ Element.spacing 15
+                                , Element.centerX
+                                ]
+                                [ unstakedBalanceRow dProfile userBalanceInfo.unstaked
+                                , depositWithrawUX dProfile userInfo.address userBalanceInfo model.depositWithdrawUXModel
+                                , stakedBalanceRow dProfile userBalanceInfo.staked
+                                , rewardsAvailableRowAndUX dProfile userInfo.address userBalanceInfo model.now
+                                ]
+            ]
 
 
 unstakedBalanceRow : DisplayProfile -> TokenValue -> Element Msg
@@ -93,19 +103,19 @@ depositWithrawUX dProfile userAddress balanceInfo uxModel =
                 let
                     maybeDepositStartButton =
                         if TokenValue.isZero balanceInfo.unstaked then
+                            Nothing
+
+                        else
                             Just <|
                                 makeDepositButton StartDeposit
 
-                        else
-                            Nothing
-
                     maybeWithdrawStartButton =
                         if TokenValue.isZero balanceInfo.staked then
-                            Just <|
-                                makeWithdrawButton StartWithdraw
+                            Nothing
 
                         else
-                            Nothing
+                            Just <|
+                                makeWithdrawButton StartWithdraw
                 in
                 Element.row
                     [ Element.centerX
@@ -116,35 +126,86 @@ depositWithrawUX dProfile userAddress balanceInfo uxModel =
                         [ maybeDepositStartButton
                         , maybeWithdrawStartButton
                         ]
+
             Just inMenu ->
                 Debug.todo ""
 
 
 makeDepositButton : Msg -> Element Msg
-makeDepositButton onclick =
-    Debug.todo ""
+makeDepositButton onClick =
+    Element.el
+        (depositWithdrawButtonStyles onClick)
+    <|
+        Element.el
+            [ Element.centerX
+            , Element.centerY
+            ]
+            (Element.text "\\/")
 
 
 makeWithdrawButton : Msg -> Element Msg
-makeWithdrawButton onclick =
-    Debug.todo ""
+makeWithdrawButton onClick =
+    Element.el
+        (depositWithdrawButtonStyles onClick)
+    <|
+        Element.el
+            [ Element.centerX
+            , Element.centerY
+            ]
+            (Element.text "/\\")
+
+
+depositWithdrawButtonStyles : Msg -> List (Element.Attribute Msg)
+depositWithdrawButtonStyles onClick =
+    [ Element.width <| Element.px 50
+    , Element.height <| Element.px 50
+    , Element.pointer
+    , Element.Events.onClick onClick
+    ]
 
 
 stakedBalanceRow : DisplayProfile -> TokenValue -> Element Msg
 stakedBalanceRow dProfile stakedBalance =
-    Debug.todo ""
+    Element.row
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ balanceLabel dProfile "Currently Staking"
+        , balanceOutput dProfile stakedBalance "ETHFRY"
+        ]
 
 
-rewardsAvailableRowAndUX : DisplayProfile -> Address -> UserBalanceInfo -> Element Msg
-rewardsAvailableRowAndUX dProfile userAddress balanceInfo =
-    Debug.todo ""
+rewardsAvailableRowAndUX : DisplayProfile -> Address -> UserBalanceInfo -> Time.Posix -> Element Msg
+rewardsAvailableRowAndUX dProfile userAddress balanceInfo now =
+    Element.row
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ balanceLabel dProfile "Available Rewards"
+        , balanceOutput
+            dProfile
+            (calcAvailableRewards
+                balanceInfo
+                now
+            )
+            "FRY"
+        ]
 
 
 balanceLabel : DisplayProfile -> String -> Element Msg
 balanceLabel dProfile text =
-    Debug.todo ""
+    Element.el
+        [ Element.Font.size <| responsiveVal dProfile 30 24
+        , Element.width <| Element.px <| responsiveVal dProfile 280 240 ]
+        (Element.text text)
 
 
 balanceOutput : DisplayProfile -> TokenValue -> String -> Element Msg
 balanceOutput dProfile amount label =
-    Debug.todo ""
+    Element.row
+        [ Element.Font.size <| responsiveVal dProfile 30 24
+        , Element.spacing 4
+        ]
+        [ Element.text <| TokenValue.toConciseString amount
+        , Element.text label
+        ]

@@ -4,12 +4,17 @@ import Common.Msg exposing (MsgDown, MsgUp)
 import Common.Types exposing (..)
 import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
+import Time
+import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-init : Maybe UserInfo -> ( Model, Cmd Msg )
-init maybeUserInfo =
+init : Maybe UserInfo -> Time.Posix -> ( Model, Cmd Msg )
+init maybeUserInfo now =
     ( { userBalanceInfo = Nothing
+      , depositWithdrawUXModel =
+            { inMenu = Nothing }
+      , now = now
       }
     , case maybeUserInfo of
         Just userInfo ->
@@ -31,6 +36,27 @@ update msg prevModel =
                 prevModel
                 Cmd.none
                 [ msgUp ]
+
+        UpdateNow newNow ->
+            justModelUpdate
+                { prevModel | now = newNow }
+
+        StartDeposit ->
+            Debug.todo ""
+
+        StartWithdraw ->
+            Debug.todo ""
+
+        FakeFetchBalanceInfo ->
+            justModelUpdate
+                { prevModel
+                    | userBalanceInfo =
+                        Just <|
+                            { unstaked = TokenValue.fromIntTokenValue 10
+                            , staked = TokenValue.zero
+                            , claimableRewardsAtTime = ( TokenValue.zero, Time.millisToPosix 0 )
+                            }
+                }
 
 
 runMsgDown : MsgDown -> Model -> UpdateResult
@@ -62,4 +88,4 @@ fetchUserBalanceInfoCmd userAddress =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Time.every 100 UpdateNow

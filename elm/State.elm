@@ -148,8 +148,8 @@ update msg prevModel =
                                             UserInfo
                                                 walletSentry.networkId
                                                 newAddress
-                                                -- Nothing
-                                                -- Checking
+                                          -- Nothing
+                                          -- Checking
                                         , True
                                         )
 
@@ -446,7 +446,7 @@ gotoRoute route prevModel =
         Routing.Farm ->
             let
                 ( farmModel, farmCmd ) =
-                    Farm.init (Wallet.userInfo prevModel.wallet)
+                    Farm.init (Wallet.userInfo prevModel.wallet) prevModel.now
             in
             ( { prevModel
                 | route = route
