@@ -2,6 +2,7 @@ module Farm.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import Http
 import Time
 import TokenValue exposing (TokenValue)
 
@@ -19,6 +20,7 @@ type Msg
     | UpdateNow Time.Posix
     | StartDeposit
     | StartWithdraw
+    | StakingInfoFetched (Result Http.Error UserStakingInfo)
     | FakeFetchBalanceInfo
 
 

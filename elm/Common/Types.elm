@@ -68,4 +68,5 @@ type alias UserStakingInfo =
     { unstaked : TokenValue
     , staked : TokenValue
     , claimableRewards : TokenValue
+    , rewardRate : TokenValue
     }

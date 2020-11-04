@@ -6,6 +6,7 @@ import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
 import Time
 import TokenValue exposing (TokenValue)
+import UserNotice as UN
 import Wallet exposing (Wallet)
 
 
@@ -47,6 +48,24 @@ update msg prevModel =
         StartWithdraw ->
             Debug.todo ""
 
+        StakingInfoFetched fetchResult ->
+            case fetchResult of
+                Err httpErr ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        [ Common.Msg.AddUserNotice <| UN.web3FetchError "staking info" httpErr ]
+
+                Ok userStakingInfo ->
+                    justModelUpdate
+                        { prevModel
+                            | timedUserStakingInfo =
+                                Just <|
+                                    { userStakingInfo = userStakingInfo
+                                    , time = prevModel.now
+                                    }
+                        }
+
         FakeFetchBalanceInfo ->
             justModelUpdate
                 { prevModel
@@ -56,6 +75,7 @@ update msg prevModel =
                                 { unstaked = TokenValue.fromIntTokenValue 10
                                 , staked = TokenValue.fromIntTokenValue 10
                                 , claimableRewards = TokenValue.zero
+                                , rewardRate = TokenValue.zero
                                 }
                             , time = prevModel.now
                             }
