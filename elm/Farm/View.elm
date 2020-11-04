@@ -15,6 +15,7 @@ import Maybe.Extra
 import Theme
 import Time
 import TokenValue exposing (TokenValue)
+import Images
 
 
 view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
@@ -31,7 +32,7 @@ view dProfile maybeUserInfo model =
     <|
         Element.column
             [ Element.centerX
-            , Element.Background.color <| Element.rgb 0.6 0.6 1
+            , Element.Background.color <| Element.rgb 0.3 0.3 0.3
             , Element.Border.rounded 10
             , Element.height <| Element.px <| responsiveVal dProfile 500 500
             , Element.width <| Element.px <| responsiveVal dProfile 700 200
@@ -136,11 +137,12 @@ makeDepositButton onClick =
     Element.el
         (depositWithdrawButtonStyles onClick)
     <|
-        Element.el
+        Images.toElement
             [ Element.centerX
             , Element.centerY
+            , Element.width <| Element.px <| 40
             ]
-            (Element.text "\\/")
+            Images.stakingDeposit
 
 
 makeWithdrawButton : Msg -> Element Msg
@@ -148,11 +150,12 @@ makeWithdrawButton onClick =
     Element.el
         (depositWithdrawButtonStyles onClick)
     <|
-        Element.el
+        Images.toElement
             [ Element.centerX
             , Element.centerY
+            , Element.width <| Element.px <| 40
             ]
-            (Element.text "/\\")
+            Images.stakingExit
 
 
 depositWithdrawButtonStyles : Msg -> List (Element.Attribute Msg)

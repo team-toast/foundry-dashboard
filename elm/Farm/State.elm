@@ -53,7 +53,7 @@ update msg prevModel =
                     | userBalanceInfo =
                         Just <|
                             { unstaked = TokenValue.fromIntTokenValue 10
-                            , staked = TokenValue.zero
+                            , staked = TokenValue.fromIntTokenValue 10
                             , claimableRewardsAtTime = ( TokenValue.zero, Time.millisToPosix 0 )
                             }
                 }

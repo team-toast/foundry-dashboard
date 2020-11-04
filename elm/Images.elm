@@ -173,6 +173,7 @@ checkmark =
         , description = "checked"
         }
 
+
 pollChoiceEmpty : Image
 pollChoiceEmpty =
     JustImage
@@ -180,9 +181,26 @@ pollChoiceEmpty =
         , description = "vote for this option"
         }
 
+
 pollChoiceMouseover : Image
 pollChoiceMouseover =
     JustImage
         { src = "img/poll-choice-mouseover.svg"
         , description = "vote for this option"
+        }
+
+
+stakingDeposit : Image
+stakingDeposit =
+    JustImage
+        { src = "img/deposit-icon.svg"
+        , description = "deposit"
+        }
+
+
+stakingExit : Image
+stakingExit =
+    JustImage
+        { src = "img/exit-icon.svg"
+        , description = "claim all and exit"
         }
