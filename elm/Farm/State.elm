@@ -42,6 +42,23 @@ update msg prevModel =
             justModelUpdate
                 { prevModel | now = newNow }
 
+        AmountInputChanged newInput ->
+            case prevModel.depositWithdrawUXModel of
+                Just ( depositOrWithdraw, amountInputUXModel ) ->
+                    justModelUpdate
+                        { prevModel
+                            | depositWithdrawUXModel =
+                                Just
+                                    ( depositOrWithdraw
+                                    , { amountInputUXModel
+                                        | amountInput = newInput
+                                      }
+                                    )
+                        }
+
+                Nothing ->
+                    justModelUpdate prevModel
+
         StartDeposit ->
             justModelUpdate
                 { prevModel
@@ -58,7 +75,11 @@ update msg prevModel =
             Debug.todo ""
 
         DoDeposit amount ->
-            Debug.todo ""
+            nowNeedToBringInChainCmd
+            -- UpdateResult
+            --     prevModel
+            --     (doDepositCmd amount)
+            --     []
 
         DoWithdraw amount ->
             Debug.todo ""
@@ -119,6 +140,14 @@ fetchUserStakingInfoCmd userAddress =
     StakingContract.getUserStakingInfo
         userAddress
         StakingInfoFetched
+
+
+
+-- doDepositCmd : TokenValue -> Cmd Msg
+-- doDepositCmd amount =
+--     StakingContract.callStake
+--         amount
+--         (always NoOp)
 
 
 subscriptions : Model -> Sub Msg

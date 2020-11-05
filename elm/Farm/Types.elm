@@ -1,9 +1,9 @@
 module Farm.Types exposing (..)
 
-import Helpers.Time as TimeHelpers
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Eth.Types exposing (Address)
+import Helpers.Time as TimeHelpers
 import Http
 import Time
 import TokenValue exposing (TokenValue)
@@ -20,6 +20,7 @@ type Msg
     = MsgUp MsgUp
     | NoOp
     | UpdateNow Time.Posix
+    | AmountInputChanged String
     | StartDeposit
     | DoDeposit TokenValue
     | DoExit
@@ -71,3 +72,16 @@ calcAvailableRewards stakingInfo now =
             TokenValue.mulFloatWithWarning stakingInfo.rewardRate secondsElapsed
     in
     TokenValue.add stakingInfo.claimableRewards accrued
+
+
+validateInput : String -> Maybe TokenValue
+validateInput input =
+    TokenValue.fromString input
+        |> Maybe.andThen
+            (\val ->
+                if TokenValue.compare val TokenValue.zero == LT then
+                    Nothing
+
+                else
+                    Just val
+            )

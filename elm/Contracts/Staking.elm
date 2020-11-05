@@ -25,6 +25,17 @@ callStake amount msgConstructor =
         |> Task.attempt msgConstructor
 
 
+callWithdraw : TokenValue -> (Result Http.Error () -> msg) -> Cmd msg
+callWithdraw amount msgConstructor =
+    Eth.call
+        Config.httpProviderUrl
+        (StakingContract.withdraw
+            Config.stakingContractAddress
+            (TokenValue.getEvmValue amount)
+        )
+        |> Task.attempt msgConstructor
+
+
 callGetReward : (Result Http.Error () -> msg) -> Cmd msg
 callGetReward msgConstructor =
     Eth.call

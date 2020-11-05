@@ -8,6 +8,7 @@ import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import Element.Input
 import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
 import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
@@ -114,8 +115,8 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
 
 
 depositExitUX : DisplayProfile -> Address -> UserStakingInfo -> Maybe AmountUXModel -> Element Msg
-depositExitUX dProfile userAddress balanceInfo uxModel =
-    case uxModel of
+depositExitUX dProfile userAddress balanceInfo maybeAmountUXModel =
+    case maybeAmountUXModel of
         Nothing ->
             let
                 maybeDepositStartButton =
@@ -124,7 +125,8 @@ depositExitUX dProfile userAddress balanceInfo uxModel =
 
                     else
                         Just <|
-                            makeDepositButton StartDeposit
+                            makeDepositButton <|
+                                Just StartDeposit
 
                 maybeWithdrawStartButton =
                     if TokenValue.isZero balanceInfo.staked then
@@ -143,28 +145,48 @@ depositExitUX dProfile userAddress balanceInfo uxModel =
                     , maybeWithdrawStartButton
                     ]
 
-        Just amountInput ->
+        Just amountUXModel ->
             Element.row
-                [ Element.centerX
-                , Element.spacing 5
+                [ Element.spacing 5
                 ]
-                []
+                [ amountInputField amountUXModel
+                , makeDepositButton
+                    (Maybe.map DoDeposit (validateInput amountUXModel.amountInput))
+                ]
 
 
 withdrawUX : DisplayProfile -> Maybe AmountUXModel -> Element Msg
-withdrawUX dProfile maybeAmountUX =
-    case maybeAmountUX of
+withdrawUX dProfile maybeAmountUXModel =
+    case maybeAmountUXModel of
         Nothing ->
-            makeWithdrawButton StartWithdraw
+            makeWithdrawButton <| Just StartWithdraw
 
-        Just amountInput ->
-            Debug.todo ""
+        Just amountUXModel ->
+            Element.row
+                [ Element.spacing 5 ]
+                [ amountInputField amountUXModel
+                , makeWithdrawButton
+                    (Maybe.map DoDeposit (validateInput amountUXModel.amountInput))
+                ]
 
 
-makeDepositButton : Msg -> Element Msg
-makeDepositButton onClick =
+amountInputField : AmountUXModel -> Element Msg
+amountInputField amountUXModel =
+    Element.Input.text
+        [ Element.width <| Element.px 200
+        , Element.height Element.fill
+        ]
+        { onChange = AmountInputChanged
+        , text = amountUXModel.amountInput
+        , placeholder = Nothing
+        , label = Element.Input.labelHidden "amount"
+        }
+
+
+makeDepositButton : Maybe Msg -> Element Msg
+makeDepositButton maybeOnClick =
     Element.el
-        (actionButtonStyles onClick)
+        (actionButtonStyles maybeOnClick)
     <|
         Images.toElement
             [ Element.centerX
@@ -174,10 +196,10 @@ makeDepositButton onClick =
             Images.stakingDeposit
 
 
-makeWithdrawButton : Msg -> Element Msg
-makeWithdrawButton onClick =
+makeWithdrawButton : Maybe Msg -> Element Msg
+makeWithdrawButton maybeOnClick =
     Element.el
-        (actionButtonStyles DoExit)
+        (actionButtonStyles maybeOnClick)
     <|
         Element.text "W"
 
@@ -194,7 +216,7 @@ makeWithdrawButton onClick =
 exitButton : Element Msg
 exitButton =
     Element.el
-        (actionButtonStyles DoExit)
+        (actionButtonStyles <| Just DoExit)
     <|
         Images.toElement
             [ Element.centerX
@@ -204,17 +226,24 @@ exitButton =
             Images.stakingExit
 
 
-actionButtonStyles : Msg -> List (Element.Attribute Msg)
-actionButtonStyles onClick =
+actionButtonStyles : Maybe Msg -> List (Element.Attribute Msg)
+actionButtonStyles maybeOnClick =
     [ Element.width <| Element.px 45
     , Element.height <| Element.px 45
-    , Element.pointer
-    , Element.Events.onClick onClick
-    , Element.Background.color <| Element.rgba 1 1 1 0.2
     , Element.Border.rounded 6
     , Element.Border.width 1
     , Element.Border.color <| Element.rgba 0 0 0 0.2
     ]
+        ++ (case maybeOnClick of
+                Just onClick ->
+                    [ Element.pointer
+                    , Element.Events.onClick onClick
+                    , Element.Background.color <| Element.rgba 1 1 1 0.2
+                    ]
+
+                Nothing ->
+                    [ Element.Background.color <| Element.rgb 0.7 0.7 0.7 ]
+           )
 
 
 stakedBalanceRow : DisplayProfile -> TokenValue -> DepositOrWithdrawUXModel -> Element Msg
