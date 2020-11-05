@@ -8,6 +8,7 @@ import Contracts.Generated.StakingScripts as StakingScripts
 import Eth
 import Eth.Types exposing (..)
 import Helpers.Eth as EthHelpers
+import Helpers.Time as TimeHelpers
 import Http
 import Task
 import TokenValue exposing (TokenValue)
@@ -63,6 +64,7 @@ bindingStructToUserStakingInfo data =
     , staked = TokenValue.tokenValue data.stakedBalance
     , claimableRewards = TokenValue.tokenValue data.earned
     , rewardRate = TokenValue.tokenValue data.rewardRate
+    , timestamp = TimeHelpers.secondsBigIntToPosixWithWarning data.timestamp
     }
 
 

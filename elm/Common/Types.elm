@@ -69,4 +69,5 @@ type alias UserStakingInfo =
     , staked : TokenValue
     , claimableRewards : TokenValue
     , rewardRate : TokenValue
+    , timestamp : Time.Posix
     }

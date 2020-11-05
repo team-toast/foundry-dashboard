@@ -76,7 +76,7 @@ bucketSaleAddress =
 
 stakingContractAddress : Address
 stakingContractAddress =
-    Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
+    Eth.Utils.unsafeToAddress "0xEb3f6479711e44c3a8F8bdd33CB90E9F7bac5F58"
 
 
 stakingLiquidityContractAddress : Address
@@ -86,7 +86,7 @@ stakingLiquidityContractAddress =
 
 stakingScriptsAddress : Address
 stakingScriptsAddress =
-    Eth.Utils.unsafeToAddress "0xD0B8aa0c898ffA01293EE2736D15201f49eBd3c2"
+    Eth.Utils.unsafeToAddress "0x0229C021F18DABb60D49702e9898509938846b0e"
 
 
 urlToLiquidityPool : String

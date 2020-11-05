@@ -56,7 +56,7 @@ view dProfile maybeUserInfo model =
                         MsgUp
 
                 Just userInfo ->
-                    case model.timedUserStakingInfo of
+                    case model.userStakingInfo of
                         Nothing ->
                             Element.el
                                 [ Element.centerX
@@ -65,20 +65,20 @@ view dProfile maybeUserInfo model =
                                 ]
                                 (Element.text "Fetching info...")
 
-                        Just timedUserStakingInfo ->
+                        Just userStakingInfo ->
                             Element.column
                                 [ Element.spacing 15
                                 ]
-                                [ unstakedBalanceRow dProfile timedUserStakingInfo model.depositWithdrawUXModel userInfo
-                                , maybeGetLiquidityMessageElement dProfile timedUserStakingInfo.userStakingInfo
-                                , stakedBalanceRow dProfile timedUserStakingInfo.userStakingInfo.staked model.depositWithdrawUXModel
-                                , rewardsAvailableRowAndUX dProfile userInfo.address timedUserStakingInfo model.now
+                                [ unstakedBalanceRow dProfile userStakingInfo model.depositWithdrawUXModel userInfo
+                                , maybeGetLiquidityMessageElement dProfile userStakingInfo
+                                , stakedBalanceRow dProfile userStakingInfo.staked model.depositWithdrawUXModel
+                                , rewardsAvailableRowAndUX dProfile userStakingInfo model.now
                                 ]
             ]
 
 
-unstakedBalanceRow : DisplayProfile -> TimedUserStakingInfo -> DepositOrWithdrawUXModel -> UserInfo -> Element Msg
-unstakedBalanceRow dProfile timedUserStakingInfo depositOrWithdrawUXModel userInfo =
+unstakedBalanceRow : DisplayProfile -> UserStakingInfo -> DepositOrWithdrawUXModel -> UserInfo -> Element Msg
+unstakedBalanceRow dProfile userStakingInfo depositOrWithdrawUXModel userInfo =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -90,8 +90,8 @@ unstakedBalanceRow dProfile timedUserStakingInfo depositOrWithdrawUXModel userIn
     in
     mainRow
         [ balanceLabel dProfile "Unstaked Balance"
-        , balanceOutput dProfile timedUserStakingInfo.userStakingInfo.unstaked "ETHFRY"
-        , depositExitUX dProfile userInfo.address timedUserStakingInfo.userStakingInfo maybeDepositAmountUXModel
+        , balanceOutput dProfile userStakingInfo.unstaked "ETHFRY"
+        , depositExitUX dProfile userInfo.address userStakingInfo maybeDepositAmountUXModel
         ]
 
 
@@ -239,14 +239,14 @@ stakedBalanceRow dProfile stakedBalance depositOrWithdrawUXModel =
         ]
 
 
-rewardsAvailableRowAndUX : DisplayProfile -> Address -> TimedUserStakingInfo -> Time.Posix -> Element Msg
-rewardsAvailableRowAndUX dProfile userAddress balanceInfo now =
+rewardsAvailableRowAndUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
+rewardsAvailableRowAndUX dProfile stakingInfo now =
     mainRow
         [ balanceLabel dProfile "Available Rewards"
         , balanceOutput
             dProfile
             (calcAvailableRewards
-                balanceInfo
+                stakingInfo
                 now
             )
             "FRY"

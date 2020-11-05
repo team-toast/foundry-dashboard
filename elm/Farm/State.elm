@@ -13,7 +13,7 @@ import Wallet exposing (Wallet)
 
 init : Maybe UserInfo -> Time.Posix -> ( Model, Cmd Msg )
 init maybeUserInfo now =
-    ( { timedUserStakingInfo = Nothing
+    ( { userStakingInfo = Nothing
       , depositWithdrawUXModel = Nothing
       , now = now
       }
@@ -74,25 +74,20 @@ update msg prevModel =
                 Ok userStakingInfo ->
                     justModelUpdate
                         { prevModel
-                            | timedUserStakingInfo =
-                                Just <|
-                                    { userStakingInfo = userStakingInfo
-                                    , time = prevModel.now
-                                    }
+                            | userStakingInfo =
+                                Just userStakingInfo
                         }
 
         FakeFetchBalanceInfo ->
             justModelUpdate
                 { prevModel
-                    | timedUserStakingInfo =
+                    | userStakingInfo =
                         Just <|
-                            { userStakingInfo =
-                                { unstaked = TokenValue.fromIntTokenValue 10
-                                , staked = TokenValue.fromIntTokenValue 10
-                                , claimableRewards = TokenValue.zero
-                                , rewardRate = TokenValue.zero
-                                }
-                            , time = prevModel.now
+                            { unstaked = TokenValue.fromIntTokenValue 10
+                            , staked = TokenValue.fromIntTokenValue 10
+                            , claimableRewards = TokenValue.zero
+                            , rewardRate = TokenValue.fromIntTokenValue 1
+                            , timestamp = prevModel.now
                             }
                 }
 
@@ -103,7 +98,7 @@ runMsgDown msg prevModel =
         Common.Msg.UpdateWallet newWallet ->
             let
                 newModel =
-                    { prevModel | timedUserStakingInfo = Nothing }
+                    { prevModel | userStakingInfo = Nothing }
 
                 cmd =
                     case Wallet.userInfo newWallet of
