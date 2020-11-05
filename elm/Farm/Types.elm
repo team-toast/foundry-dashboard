@@ -1,5 +1,6 @@
 module Farm.Types exposing (..)
 
+import Eth.Types exposing (Address)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Http
@@ -9,7 +10,7 @@ import TokenValue exposing (TokenValue)
 
 type alias Model =
     { timedUserStakingInfo : Maybe TimedUserStakingInfo
-    , depositWithdrawUXModel : DepositWithdrawUXModel
+    , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , now : Time.Posix
     }
 
@@ -19,7 +20,10 @@ type Msg
     | NoOp
     | UpdateNow Time.Posix
     | StartDeposit
+    | DoDeposit TokenValue
+    | DoExit
     | StartWithdraw
+    | DoWithdraw TokenValue
     | StakingInfoFetched (Result Http.Error UserStakingInfo)
     | FakeFetchBalanceInfo
 
@@ -45,8 +49,11 @@ type alias TimedUserStakingInfo =
     }
 
 
-type alias DepositWithdrawUXModel =
-    { inMenu : Maybe DepositOrWithdraw
+type alias DepositOrWithdrawUXModel =
+    Maybe (DepositOrWithdraw, AmountUXModel)
+
+type alias AmountUXModel =
+    { amountInput : String
     }
 
 

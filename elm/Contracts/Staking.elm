@@ -62,6 +62,7 @@ bindingStructToUserStakingInfo data =
     { unstaked = TokenValue.tokenValue data.availableBalance
     , staked = TokenValue.tokenValue data.stakedBalance
     , claimableRewards = TokenValue.tokenValue data.earned
+    , rewardRate = TokenValue.tokenValue data.rewardRate
     }
 
 

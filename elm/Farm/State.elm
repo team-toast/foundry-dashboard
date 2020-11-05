@@ -2,6 +2,7 @@ module Farm.State exposing (..)
 
 import Common.Msg exposing (MsgDown, MsgUp)
 import Common.Types exposing (..)
+import Contracts.Staking as StakingContract
 import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
 import Time
@@ -13,8 +14,7 @@ import Wallet exposing (Wallet)
 init : Maybe UserInfo -> Time.Posix -> ( Model, Cmd Msg )
 init maybeUserInfo now =
     ( { timedUserStakingInfo = Nothing
-      , depositWithdrawUXModel =
-            { inMenu = Nothing }
+      , depositWithdrawUXModel = Nothing
       , now = now
       }
     , case maybeUserInfo of
@@ -43,9 +43,24 @@ update msg prevModel =
                 { prevModel | now = newNow }
 
         StartDeposit ->
-            Debug.todo ""
+            justModelUpdate
+                { prevModel
+                    | depositWithdrawUXModel = Just ( Deposit, { amountInput = "" } )
+                }
 
         StartWithdraw ->
+            justModelUpdate
+                { prevModel
+                    | depositWithdrawUXModel = Just ( Withdraw, { amountInput = "" } )
+                }
+
+        DoExit ->
+            Debug.todo ""
+
+        DoDeposit amount ->
+            Debug.todo ""
+
+        DoWithdraw amount ->
             Debug.todo ""
 
         StakingInfoFetched fetchResult ->
@@ -106,7 +121,9 @@ runMsgDown msg prevModel =
 
 fetchUserStakingInfoCmd : Address -> Cmd Msg
 fetchUserStakingInfoCmd userAddress =
-    Cmd.none
+    StakingContract.getUserStakingInfo
+        userAddress
+        StakingInfoFetched
 
 
 subscriptions : Model -> Sub Msg
