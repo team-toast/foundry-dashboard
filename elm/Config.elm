@@ -86,7 +86,7 @@ stakingLiquidityContractAddress =
 
 stakingScriptsAddress : Address
 stakingScriptsAddress =
-    Eth.Utils.unsafeToAddress "0x0229C021F18DABb60D49702e9898509938846b0e"
+    Eth.Utils.unsafeToAddress "0xa939728f9cdCdc4EEA16bdF3Aff03AB27036f4c7"
 
 
 urlToLiquidityPool : String

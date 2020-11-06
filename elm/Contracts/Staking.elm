@@ -88,6 +88,7 @@ getUserStakingInfo userAddress msgConstructor =
 bindingStructToUserStakingInfo : StakingScripts.GetData -> UserStakingInfo
 bindingStructToUserStakingInfo data =
     { unstaked = TokenValue.tokenValue data.availableBalance
+    , allowance = TokenValue.tokenValue data.allowedBalance
     , staked = TokenValue.tokenValue data.stakedBalance
     , claimableRewards = TokenValue.tokenValue data.earned
     , rewardRate = TokenValue.tokenValue data.rewardRate

@@ -26,6 +26,7 @@ import Json.Decode.Pipeline exposing (custom)
 type alias GetData =
     { availableBalance : BigInt
     , stakedBalance : BigInt
+    , allowedBalance : BigInt
     , earned : BigInt
     , apy : BigInt
     , rewardRate : BigInt
@@ -49,6 +50,7 @@ getData contractAddress rewards_ staker_ =
 getDataDecoder : Decoder GetData
 getDataDecoder =
     abiDecode GetData
+        |> andMap D.uint
         |> andMap D.uint
         |> andMap D.uint
         |> andMap D.uint
