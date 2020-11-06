@@ -60,14 +60,12 @@ view dProfile maybeUserInfo model =
 
                         Just userStakingInfo ->
                             Element.column
-                                [ Element.spacing 15
+                                [ Element.spacing 25
                                 ]
                                 [ maybeGetLiquidityMessageElement dProfile userStakingInfo
                                 , unstakedRow dProfile userStakingInfo model.depositWithdrawUXModel
                                 , stakedRow dProfile userStakingInfo model.depositWithdrawUXModel
-
-                                -- , stakedBalanceRow dProfile userStakingInfo.staked model.depositWithdrawUXModel
-                                -- , rewardsAvailableRowAndUX dProfile userStakingInfo model.now
+                                , rewardsRow dProfile userStakingInfo model.now
                                 ]
             ]
 
@@ -184,12 +182,47 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
         ]
 
 
+rewardsRow : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
+rewardsRow dProfile stakingInfo now =
+    mainRow dProfile
+        [ rowLabel dProfile "Available Rewards"
+        , rewardsRowUX dProfile stakingInfo now
+        ]
 
--- , if TokenValue.isZero stakedBalance then
---     Element.none
---   else
---     withdrawUX dProfile maybeWithdrawAmountUXModel
--- ]
+
+rewardsRowUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
+rewardsRowUX dProfile stakingInfo now =
+    Element.row
+        (rowUXStyles dProfile False)
+        [ balanceOutputOrInput dProfile
+            (calcAvailableRewards
+                stakingInfo
+                now
+            )
+            Nothing
+            "FRY"
+        , if TokenValue.isZero stakingInfo.claimableRewards then
+            Element.none
+
+          else
+            claimRewardsButton
+        ]
+
+
+
+-- rewardsAvailableRowAndUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
+-- rewardsAvailableRowAndUX dProfile stakingInfo now =
+--     mainRow
+--         [ rowLabel dProfile "Available Rewards"
+--         , balanceOutput
+--             dProfile
+--             (calcAvailableRewards
+--                 stakingInfo
+--                 now
+--             )
+--             "FRY"
+--         ,
+--         ]
 
 
 rowUXStyles : DisplayProfile -> Bool -> List (Element.Attribute Msg)
@@ -239,7 +272,10 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
                         TokenValue.toFloatString Nothing <|
                             unstaked
                     )
-        , Element.text tokenLabel
+        , Element.el
+            [ Element.width <| Element.px 100 ]
+          <|
+            Element.text tokenLabel
         ]
 
 
@@ -320,21 +356,6 @@ depositExitUXButtons dProfile stakingInfo maybeAmountUXModel =
                 ]
 
 
-
--- withdrawUX : DisplayProfile -> Maybe AmountUXModel -> Element Msg
--- withdrawUX dProfile maybeAmountUXModel =
---     case maybeAmountUXModel of
---         Nothing ->
---             makeWithdrawButton <| Just StartWithdraw
---         Just amountUXModel ->
---             Element.row
---                 [ Element.spacing 5 ]
---                 [ amountInputField amountUXModel
---                 , makeWithdrawButton
---                     (Maybe.map DoWithdraw (validateInput amountUXModel.amountInput))
---                 ]
-
-
 amountInputField : AmountUXModel -> Element Msg
 amountInputField amountUXModel =
     Element.Input.text
@@ -346,25 +367,6 @@ amountInputField amountUXModel =
         , placeholder = Nothing
         , label = Element.Input.labelHidden "amount"
         }
-
-
-
--- rewardsAvailableRowAndUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
--- rewardsAvailableRowAndUX dProfile stakingInfo now =
---     mainRow
---         [ rowLabel dProfile "Available Rewards"
---         , balanceOutput
---             dProfile
---             (calcAvailableRewards
---                 stakingInfo
---                 now
---             )
---             "FRY"
---         , if TokenValue.isZero stakingInfo.claimableRewards then
---             Element.none
---           else
---             claimRewardsButton
---         ]
 
 
 mainRow : DisplayProfile -> List (Element Msg) -> Element Msg
