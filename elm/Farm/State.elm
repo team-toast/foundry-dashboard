@@ -81,7 +81,18 @@ update msg prevModel =
                 }
 
         DoExit ->
-            Debug.todo ""
+            UpdateResult
+                prevModel
+                Cmd.none
+                doExitChainCmd
+                []
+        
+        DoClaimRewards ->
+            UpdateResult
+                prevModel
+                Cmd.none
+                doClaimRewards
+                []
 
         DoDeposit amount ->
             UpdateResult
@@ -153,6 +164,16 @@ fetchUserStakingInfoCmd userAddress =
         StakingInfoFetched
 
 
+doApproveChainCmd : ChainCmd Msg
+doApproveChainCmd =
+    ChainCmd.custom
+        { onMined = Nothing
+        , onSign = Nothing
+        , onBroadcast = Nothing
+        }
+        StakingContract.approveLiquidityToken
+
+
 doDepositChainCmd : TokenValue -> ChainCmd Msg
 doDepositChainCmd amount =
     ChainCmd.custom
@@ -163,15 +184,24 @@ doDepositChainCmd amount =
         (StakingContract.stake amount)
 
 
-doApproveChainCmd : ChainCmd Msg
-doApproveChainCmd =
+doExitChainCmd : ChainCmd Msg
+doExitChainCmd =
     ChainCmd.custom
         { onMined = Nothing
         , onSign = Nothing
         , onBroadcast = Nothing
         }
-        StakingContract.approveLiquidityToken
+        StakingContract.exit
 
+
+doClaimRewards : ChainCmd Msg
+doClaimRewards =
+    ChainCmd.custom
+        { onMined = Nothing
+        , onSign = Nothing
+        , onBroadcast = Nothing
+        }
+        StakingContract.claimRewards
 
 
 -- doDepositCmd : TokenValue -> Cmd Msg

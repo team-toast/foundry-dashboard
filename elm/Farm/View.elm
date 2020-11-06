@@ -184,75 +184,6 @@ amountInputField amountUXModel =
         }
 
 
-makeDepositButton : Maybe Msg -> Element Msg
-makeDepositButton maybeOnClick =
-    Element.el
-        (actionButtonStyles maybeOnClick)
-    <|
-        Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
-            Images.stakingDeposit
-
-
-makeWithdrawButton : Maybe Msg -> Element Msg
-makeWithdrawButton maybeOnClick =
-    Element.el
-        (actionButtonStyles maybeOnClick)
-    <|
-        Element.text "W"
-
-
-
--- Images.toElement
---     [ Element.centerX
---     , Element.centerY
---     , Element.width <| Element.px <| 40
---     ]
---     Images.stakingWithdraw
-
-
-exitButton : Element Msg
-exitButton =
-    Element.el
-        (actionButtonStyles <| Just DoExit)
-    <|
-        Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
-            Images.stakingExit
-
-unlockButton : Element Msg
-unlockButton =
-    Element.el
-        (actionButtonStyles <| Just DoUnlock)
-        (Element.text "U")
-
-
-actionButtonStyles : Maybe Msg -> List (Element.Attribute Msg)
-actionButtonStyles maybeOnClick =
-    [ Element.width <| Element.px 45
-    , Element.height <| Element.px 45
-    , Element.Border.rounded 6
-    , Element.Border.width 1
-    , Element.Border.color <| Element.rgba 0 0 0 0.2
-    ]
-        ++ (case maybeOnClick of
-                Just onClick ->
-                    [ Element.pointer
-                    , Element.Events.onClick onClick
-                    , Element.Background.color <| Element.rgba 1 1 1 0.2
-                    ]
-
-                Nothing ->
-                    [ Element.Background.color <| Element.rgb 0.7 0.7 0.7 ]
-           )
-
-
 stakedBalanceRow : DisplayProfile -> TokenValue -> DepositOrWithdrawUXModel -> Element Msg
 stakedBalanceRow dProfile stakedBalance depositOrWithdrawUXModel =
     mainRow
@@ -286,6 +217,11 @@ rewardsAvailableRowAndUX dProfile stakingInfo now =
                 now
             )
             "FRY"
+        , if TokenValue.isZero stakingInfo.claimableRewards then
+            Element.none
+
+          else
+            claimRewardsButton
         ]
 
 
@@ -318,3 +254,71 @@ balanceOutput dProfile amount label =
         [ Element.text <| TokenValue.toConciseString amount
         , Element.text label
         ]
+
+
+unlockButton : Element Msg
+unlockButton =
+    Element.el
+        (actionButtonStyles <| Just DoUnlock)
+        (Element.text "U")
+
+
+makeDepositButton : Maybe Msg -> Element Msg
+makeDepositButton maybeOnClick =
+    Element.el
+        (actionButtonStyles maybeOnClick)
+    <|
+        Images.toElement
+            [ Element.centerX
+            , Element.centerY
+            , Element.width <| Element.px <| 40
+            ]
+            Images.stakingDeposit
+
+
+makeWithdrawButton : Maybe Msg -> Element Msg
+makeWithdrawButton maybeOnClick =
+    Element.el
+        (actionButtonStyles maybeOnClick)
+    <|
+        Element.text "W"
+
+
+exitButton : Element Msg
+exitButton =
+    Element.el
+        (actionButtonStyles <| Just DoExit)
+    <|
+        Images.toElement
+            [ Element.centerX
+            , Element.centerY
+            , Element.width <| Element.px <| 40
+            ]
+            Images.stakingExit
+
+
+claimRewardsButton : Element Msg
+claimRewardsButton =
+    Element.el
+        (actionButtonStyles <| Just DoClaimRewards)
+        (Element.text "R")
+
+
+actionButtonStyles : Maybe Msg -> List (Element.Attribute Msg)
+actionButtonStyles maybeOnClick =
+    [ Element.width <| Element.px 45
+    , Element.height <| Element.px 45
+    , Element.Border.rounded 6
+    , Element.Border.width 1
+    , Element.Border.color <| Element.rgba 0 0 0 0.2
+    ]
+        ++ (case maybeOnClick of
+                Just onClick ->
+                    [ Element.pointer
+                    , Element.Events.onClick onClick
+                    , Element.Background.color <| Element.rgba 1 1 1 0.2
+                    ]
+
+                Nothing ->
+                    [ Element.Background.color <| Element.rgb 0.7 0.7 0.7 ]
+           )

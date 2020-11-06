@@ -25,6 +25,7 @@ type Msg
     | StartDeposit
     | DoUnlock
     | DoDeposit TokenValue
+    | DoClaimRewards
     | DoExit
     | StartWithdraw
     | DoWithdraw TokenValue

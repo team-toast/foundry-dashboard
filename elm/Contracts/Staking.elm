@@ -32,6 +32,19 @@ stake amount =
         |> Eth.toSend
 
 
+exit : Eth.Send
+exit =
+    StakingContract.exit
+        Config.stakingContractAddress
+        |> Eth.toSend
+
+claimRewards : Eth.Send
+claimRewards =
+    StakingContract.getReward
+        Config.stakingContractAddress
+        |> Eth.toSend
+
+
 -- callWithdraw : TokenValue -> (Result Http.Error () -> msg) -> Cmd msg
 -- callWithdraw amount msgConstructor =
 --     Eth.call
@@ -41,8 +54,6 @@ stake amount =
 --             (TokenValue.getEvmValue amount)
 --         )
 --         |> Task.attempt msgConstructor
-
-
 -- callGetReward : (Result Http.Error () -> msg) -> Cmd msg
 -- callGetReward msgConstructor =
 --     Eth.call
@@ -51,8 +62,6 @@ stake amount =
 --             Config.stakingContractAddress
 --         )
 --         |> Task.attempt msgConstructor
-
-
 -- callExit : (Result Http.Error () -> msg) -> Cmd msg
 -- callExit msgConstructor =
 --     Eth.call
