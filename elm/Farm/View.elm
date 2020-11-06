@@ -36,7 +36,8 @@ view dProfile maybeUserInfo model =
             , Element.Background.color <| Element.rgb 0.6 0.6 1
             , Element.Border.rounded 10
             , Element.height <| Element.px <| responsiveVal dProfile 500 500
-            , Element.width <| Element.px <| responsiveVal dProfile 700 200
+            , Element.width <| Element.px <| responsiveVal dProfile 800 200
+            , Element.padding 20
 
             -- , Element.Font.color EH.white
             -- , Element.Border.glow (Element.rgba 1 1 1 0.2) 6
@@ -73,6 +74,7 @@ view dProfile maybeUserInfo model =
                                 ]
                                 [ maybeGetLiquidityMessageElement dProfile userStakingInfo
                                 , unstakedRow dProfile userStakingInfo model.depositWithdrawUXModel userInfo
+
                                 -- , stakedBalanceRow dProfile userStakingInfo.staked model.depositWithdrawUXModel
                                 -- , rewardsAvailableRowAndUX dProfile userStakingInfo model.now
                                 ]
@@ -108,7 +110,7 @@ unstakedRow dProfile userStakingInfo depositOrWithdrawUXModel userInfo =
                 _ ->
                     Nothing
     in
-    mainRow
+    mainRow dProfile
         [ rowLabel dProfile "Unstaked Balance"
         , unstakedRowUX dProfile userStakingInfo maybeDepositAmountUXModel
         ]
@@ -151,14 +153,17 @@ unstakedRowUX dProfile userStakingInfo maybeDepositAmountUXModel =
 
 balanceOutputOrInput : DisplayProfile -> TokenValue -> Maybe AmountUXModel -> String -> Element Msg
 balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
+    let
+        amountElWidth =
+            200
+    in
     Element.row
-        [ Element.width Element.fill
-        , Element.spacing 10
+        [ Element.spacing 10
         ]
         [ case maybeAmountUXModel of
             Just amountUXModel ->
                 Element.Input.text
-                    [ Element.width Element.fill
+                    [ Element.width <| Element.px amountElWidth
                     , Element.Background.color <| Element.rgba 1 1 1 0.3
                     , Element.height Element.fill
                     ]
@@ -169,7 +174,14 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
                     }
 
             Nothing ->
-                Element.text <| TokenValue.toFloatString Nothing <| unstaked
+                Element.el
+                    [ Element.width <| Element.px amountElWidth
+                    , Element.clip
+                    ]
+                    (Element.text <|
+                        TokenValue.toFloatString Nothing <|
+                            unstaked
+                    )
         , Element.text tokenLabel
         ]
 
@@ -182,6 +194,7 @@ activeDepositUXButtons dProfile amountUXModel =
         ]
 
 
+buttonsRow : List (Element Msg) -> Element Msg
 buttonsRow =
     Element.row [ Element.spacing 10 ]
 
@@ -201,7 +214,8 @@ depositExitUXButtons dProfile stakingInfo maybeAmountUXModel =
                     else
                         Just <|
                             makeDepositButton <|
-                                Just <| StartDeposit stakingInfo.unstaked
+                                Just <|
+                                    StartDeposit stakingInfo.unstaked
 
                 maybeWithdrawStartButton =
                     if TokenValue.isZero stakingInfo.staked then
@@ -230,12 +244,12 @@ depositExitUXButtons dProfile stakingInfo maybeAmountUXModel =
                 ]
 
 
+
 -- withdrawUX : DisplayProfile -> Maybe AmountUXModel -> Element Msg
 -- withdrawUX dProfile maybeAmountUXModel =
 --     case maybeAmountUXModel of
 --         Nothing ->
 --             makeWithdrawButton <| Just StartWithdraw
-
 --         Just amountUXModel ->
 --             Element.row
 --                 [ Element.spacing 5 ]
@@ -258,6 +272,7 @@ amountInputField amountUXModel =
         }
 
 
+
 -- stakedBalanceRow : DisplayProfile -> TokenValue -> DepositOrWithdrawUXModel -> Element Msg
 -- stakedBalanceRow dProfile stakedBalance depositOrWithdrawUXModel =
 --     mainRow
@@ -265,21 +280,17 @@ amountInputField amountUXModel =
 --         , balanceOutput dProfile stakedBalance "ETHFRY"
 --         , if TokenValue.isZero stakedBalance then
 --             Element.none
-
 --           else
 --             let
 --                 maybeWithdrawAmountUXModel =
 --                     case depositOrWithdrawUXModel of
 --                         Just ( Withdraw, amountUXModel ) ->
 --                             Just amountUXModel
-
 --                         _ ->
 --                             Nothing
 --             in
 --             withdrawUX dProfile maybeWithdrawAmountUXModel
 --         ]
-
-
 -- rewardsAvailableRowAndUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
 -- rewardsAvailableRowAndUX dProfile stakingInfo now =
 --     mainRow
@@ -293,27 +304,28 @@ amountInputField amountUXModel =
 --             "FRY"
 --         , if TokenValue.isZero stakingInfo.claimableRewards then
 --             Element.none
-
 --           else
 --             claimRewardsButton
 --         ]
 
 
-mainRow : List (Element Msg) -> Element Msg
-mainRow =
+mainRow : DisplayProfile -> List (Element Msg) -> Element Msg
+mainRow dProfile =
     Element.row
         [ Element.width Element.fill
         , Element.spacing 30
         , Element.height <| Element.px 40
+        , Element.Font.size <| responsiveVal dProfile 30 24
         ]
 
 
 rowLabel : DisplayProfile -> String -> Element Msg
 rowLabel dProfile text =
     Element.el
-        [ Element.Font.size <| responsiveVal dProfile 30 24
-        , Element.Font.alignRight
-        , Element.width <| Element.px <| responsiveVal dProfile 280 240
+        [ 
+
+        -- , Element.Font.alignRight
+        Element.width <| Element.px <| responsiveVal dProfile 280 240
         ]
         (Element.text text)
 
