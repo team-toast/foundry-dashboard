@@ -22,12 +22,13 @@ type Msg
     | NoOp
     | UpdateNow Time.Posix
     | AmountInputChanged String
-    | StartDeposit
+    | UXBack
+    | StartDeposit TokenValue
     | DoUnlock
     | DoDeposit TokenValue
     | DoClaimRewards
     | DoExit
-    | StartWithdraw
+    | StartWithdraw TokenValue
     | DoWithdraw TokenValue
     | StakingInfoFetched (Result Http.Error UserStakingInfo)
     -- | FakeFetchBalanceInfo

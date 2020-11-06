@@ -61,6 +61,12 @@ update msg prevModel =
                 Nothing ->
                     justModelUpdate prevModel
 
+        UXBack ->
+            justModelUpdate
+                { prevModel
+                    | depositWithdrawUXModel = Nothing
+                }
+
         DoUnlock ->
             UpdateResult
                 prevModel
@@ -68,16 +74,16 @@ update msg prevModel =
                 doApproveChainCmd
                 []
 
-        StartDeposit ->
+        StartDeposit defaultValue ->
             justModelUpdate
                 { prevModel
-                    | depositWithdrawUXModel = Just ( Deposit, { amountInput = "" } )
+                    | depositWithdrawUXModel = Just ( Deposit, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
                 }
 
-        StartWithdraw ->
+        StartWithdraw defaultValue ->
             justModelUpdate
                 { prevModel
-                    | depositWithdrawUXModel = Just ( Withdraw, { amountInput = "" } )
+                    | depositWithdrawUXModel = Just ( Withdraw, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
                 }
 
         DoExit ->
