@@ -204,3 +204,35 @@ stakingExit =
         { src = "img/exit-icon.svg"
         , description = "claim all and exit"
         }
+
+
+back : Image
+back =
+    JustImage
+        { src = "img/back-icon.svg"
+        , description = "back"
+        }
+
+
+stakingWithdraw : Image
+stakingWithdraw =
+    JustImage
+        { src = "img/withdraw-icon.svg"
+        , description = "withdraw"
+        }
+
+
+unlock : Image
+unlock =
+    JustImage
+        { src = "img/unlock-icon.svg"
+        , description = "unlock"
+        }
+
+
+stakingClaimReward : Image
+stakingClaimReward =
+    JustImage
+        { src = "img/claim-reward-icon.svg"
+        , description = "claim rewards"
+        }

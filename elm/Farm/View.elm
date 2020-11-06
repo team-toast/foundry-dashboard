@@ -405,7 +405,13 @@ unlockButton : Element Msg
 unlockButton =
     Element.el
         (actionButtonStyles <| Just DoUnlock)
-        (Element.text "U")
+    <|
+        Images.toElement
+            [ Element.centerX
+            , Element.centerY
+            , Element.width <| Element.px <| 40
+            ]
+            Images.unlock
 
 
 makeDepositButton : Maybe Msg -> Element Msg
@@ -426,7 +432,12 @@ makeWithdrawButton maybeOnClick =
     Element.el
         (actionButtonStyles maybeOnClick)
     <|
-        Element.text "W"
+        Images.toElement
+            [ Element.centerX
+            , Element.centerY
+            , Element.width <| Element.px <| 40
+            ]
+            Images.stakingWithdraw
 
 
 exitButton : Element Msg
@@ -446,14 +457,26 @@ claimRewardsButton : Element Msg
 claimRewardsButton =
     Element.el
         (actionButtonStyles <| Just DoClaimRewards)
-        (Element.text "R")
+    <|
+        Images.toElement
+            [ Element.centerX
+            , Element.centerY
+            , Element.width <| Element.px <| 40
+            ]
+            Images.stakingClaimReward
 
 
 uxBackButton : Element Msg
 uxBackButton =
     Element.el
         (actionButtonStyles <| Just UXBack)
-        (Element.text "B")
+    <|
+        Images.toElement
+            [ Element.centerX
+            , Element.centerY
+            , Element.width <| Element.px <| 40
+            ]
+            Images.back
 
 
 actionButtonStyles : Maybe Msg -> List (Element.Attribute Msg)
