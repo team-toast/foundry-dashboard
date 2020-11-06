@@ -30,7 +30,7 @@ type Msg
     | StartWithdraw
     | DoWithdraw TokenValue
     | StakingInfoFetched (Result Http.Error UserStakingInfo)
-    | FakeFetchBalanceInfo
+    -- | FakeFetchBalanceInfo
 
 
 type alias UpdateResult =

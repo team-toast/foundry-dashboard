@@ -86,7 +86,7 @@ update msg prevModel =
                 Cmd.none
                 doExitChainCmd
                 []
-        
+
         DoClaimRewards ->
             UpdateResult
                 prevModel
@@ -102,7 +102,11 @@ update msg prevModel =
                 []
 
         DoWithdraw amount ->
-            Debug.todo ""
+            UpdateResult
+                prevModel
+                Cmd.none
+                (doWithdrawChainCmd amount)
+                []
 
         StakingInfoFetched fetchResult ->
             case fetchResult of
@@ -120,18 +124,20 @@ update msg prevModel =
                                 Just userStakingInfo
                         }
 
-        FakeFetchBalanceInfo ->
-            justModelUpdate
-                { prevModel
-                    | userStakingInfo =
-                        Just <|
-                            { unstaked = TokenValue.fromIntTokenValue 10
-                            , staked = TokenValue.fromIntTokenValue 10
-                            , claimableRewards = TokenValue.zero
-                            , rewardRate = TokenValue.fromIntTokenValue 1
-                            , timestamp = prevModel.now
-                            }
-                }
+
+
+-- FakeFetchBalanceInfo ->
+--     justModelUpdate
+--         { prevModel
+--             | userStakingInfo =
+--                 Just <|
+--                     { unstaked = TokenValue.fromIntTokenValue 10
+--                     , staked = TokenValue.fromIntTokenValue 10
+--                     , claimableRewards = TokenValue.zero
+--                     , rewardRate = TokenValue.fromIntTokenValue 1
+--                     , timestamp = prevModel.now
+--                     }
+--         }
 
 
 runMsgDown : MsgDown -> Model -> UpdateResult
@@ -184,6 +190,16 @@ doDepositChainCmd amount =
         (StakingContract.stake amount)
 
 
+doWithdrawChainCmd : TokenValue -> ChainCmd Msg
+doWithdrawChainCmd amount =
+    ChainCmd.custom
+        { onMined = Nothing
+        , onSign = Nothing
+        , onBroadcast = Nothing
+        }
+        (StakingContract.withdraw amount)
+
+
 doExitChainCmd : ChainCmd Msg
 doExitChainCmd =
     ChainCmd.custom
@@ -202,6 +218,7 @@ doClaimRewards =
         , onBroadcast = Nothing
         }
         StakingContract.claimRewards
+
 
 
 -- doDepositCmd : TokenValue -> Cmd Msg

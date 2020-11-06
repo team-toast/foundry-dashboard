@@ -43,11 +43,13 @@ view dProfile maybeUserInfo model =
             -- , Element.Border.width 3
             -- , Element.Border.color EH.black
             ]
-            [ Element.el
-                [ Element.Events.onClick FakeFetchBalanceInfo
-                ]
-                (Element.text "clicky")
-            , case maybeUserInfo of
+            [ 
+                -- Element.el
+                -- [ Element.Events.onClick FakeFetchBalanceInfo
+                -- ]
+                -- (Element.text "clicky")
+            -- , 
+            case maybeUserInfo of
                 Nothing ->
                     Common.View.web3ConnectButton
                         dProfile
@@ -70,8 +72,8 @@ view dProfile maybeUserInfo model =
                             Element.column
                                 [ Element.spacing 15
                                 ]
-                                [ unstakedBalanceRow dProfile userStakingInfo model.depositWithdrawUXModel userInfo
-                                , maybeGetLiquidityMessageElement dProfile userStakingInfo
+                                [ maybeGetLiquidityMessageElement dProfile userStakingInfo
+                                , unstakedBalanceRow dProfile userStakingInfo model.depositWithdrawUXModel userInfo
                                 , stakedBalanceRow dProfile userStakingInfo.staked model.depositWithdrawUXModel
                                 , rewardsAvailableRowAndUX dProfile userStakingInfo model.now
                                 ]
@@ -119,9 +121,12 @@ depositExitUX dProfile userAddress balanceInfo maybeAmountUXModel =
     case maybeAmountUXModel of
         Nothing ->
             let
-                maybeDepositStartButton =
+                maybeUnlockOrDepositStartButton =
                     if TokenValue.isZero balanceInfo.unstaked then
                         Nothing
+
+                    else if TokenValue.isZero balanceInfo.allowance then
+                        Just unlockButton
 
                     else
                         Just <|
@@ -141,8 +146,7 @@ depositExitUX dProfile userAddress balanceInfo maybeAmountUXModel =
                 ]
             <|
                 Maybe.Extra.values
-                    [ Just unlockButton
-                    , maybeDepositStartButton
+                    [ maybeUnlockOrDepositStartButton
                     , maybeWithdrawStartButton
                     ]
 
@@ -167,7 +171,7 @@ withdrawUX dProfile maybeAmountUXModel =
                 [ Element.spacing 5 ]
                 [ amountInputField amountUXModel
                 , makeWithdrawButton
-                    (Maybe.map DoDeposit (validateInput amountUXModel.amountInput))
+                    (Maybe.map DoWithdraw (validateInput amountUXModel.amountInput))
                 ]
 
 

@@ -66,6 +66,7 @@ type PhaceIconId
 
 type alias UserStakingInfo =
     { unstaked : TokenValue
+    , allowance : TokenValue
     , staked : TokenValue
     , claimableRewards : TokenValue
     , rewardRate : TokenValue

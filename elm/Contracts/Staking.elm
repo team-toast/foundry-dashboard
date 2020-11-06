@@ -32,17 +32,27 @@ stake amount =
         |> Eth.toSend
 
 
+withdraw : TokenValue -> Eth.Send
+withdraw amount =
+    StakingContract.withdraw
+        Config.stakingContractAddress
+        (TokenValue.getEvmValue amount)
+        |> Eth.toSend
+
+
 exit : Eth.Send
 exit =
     StakingContract.exit
         Config.stakingContractAddress
         |> Eth.toSend
 
+
 claimRewards : Eth.Send
 claimRewards =
     StakingContract.getReward
         Config.stakingContractAddress
         |> Eth.toSend
+
 
 
 -- callWithdraw : TokenValue -> (Result Http.Error () -> msg) -> Cmd msg
