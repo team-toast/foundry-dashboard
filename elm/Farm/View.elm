@@ -131,7 +131,7 @@ unstakedRowUX dProfile stakingInfo maybeDepositAmountUXModel =
                 activeDepositUXButtons dProfile depositAmountUX
 
             Nothing ->
-                depositExitUXButtons dProfile stakingInfo maybeDepositAmountUXModel
+                inactiveUnstackedRowButtons dProfile stakingInfo
         ]
 
 
@@ -178,7 +178,15 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
                 activeWithdrawUXButtons dProfile withdrawAmountUX
 
             Nothing ->
-                startWithdrawButton dProfile stakingInfo.staked
+                stakedRowUXButtons dProfile stakingInfo.staked
+        ]
+
+
+stakedRowUXButtons : DisplayProfile -> TokenValue -> Element Msg
+stakedRowUXButtons dProfile staked =
+    buttonsRow
+        [ maybeStartWithdrawButton dProfile staked
+        , maybeExitButton dProfile staked
         ]
 
 
@@ -207,22 +215,6 @@ rewardsRowUX dProfile stakingInfo now =
           else
             claimRewardsButton
         ]
-
-
-
--- rewardsAvailableRowAndUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
--- rewardsAvailableRowAndUX dProfile stakingInfo now =
---     mainRow
---         [ rowLabel dProfile "Available Rewards"
---         , balanceOutput
---             dProfile
---             (calcAvailableRewards
---                 stakingInfo
---                 now
---             )
---             "FRY"
---         ,
---         ]
 
 
 rowUXStyles : DisplayProfile -> Bool -> List (Element.Attribute Msg)
@@ -300,8 +292,8 @@ buttonsRow =
     Element.row [ Element.spacing 10 ]
 
 
-startWithdrawButton : DisplayProfile -> TokenValue -> Element Msg
-startWithdrawButton dProfile currentBalance =
+maybeStartWithdrawButton : DisplayProfile -> TokenValue -> Element Msg
+maybeStartWithdrawButton dProfile currentBalance =
     if TokenValue.isZero currentBalance then
         Element.none
 
@@ -311,49 +303,27 @@ startWithdrawButton dProfile currentBalance =
                 StartWithdraw currentBalance
 
 
-depositExitUXButtons : DisplayProfile -> UserStakingInfo -> Maybe AmountUXModel -> Element Msg
-depositExitUXButtons dProfile stakingInfo maybeAmountUXModel =
-    case maybeAmountUXModel of
-        Nothing ->
-            let
-                maybeUnlockOrDepositStartButton =
-                    if TokenValue.isZero stakingInfo.unstaked then
-                        Nothing
+maybeExitButton : DisplayProfile -> TokenValue -> Element Msg
+maybeExitButton dProfile stakedAmount =
+    if TokenValue.isZero stakedAmount then
+        Element.none
 
-                    else if TokenValue.isZero stakingInfo.allowance then
-                        Just unlockButton
+    else
+        exitButton dProfile
 
-                    else
-                        Just <|
-                            makeDepositButton <|
-                                Just <|
-                                    StartDeposit stakingInfo.unstaked
 
-                maybeWithdrawStartButton =
-                    if TokenValue.isZero stakingInfo.staked then
-                        Nothing
+inactiveUnstackedRowButtons : DisplayProfile -> UserStakingInfo -> Element Msg
+inactiveUnstackedRowButtons dProfile stakingInfo =
+    if TokenValue.isZero stakingInfo.unstaked then
+        Element.none
 
-                    else
-                        Just <|
-                            exitButton
-            in
-            Element.row
-                [ Element.spacing 10
-                ]
-            <|
-                Maybe.Extra.values
-                    [ maybeUnlockOrDepositStartButton
-                    , maybeWithdrawStartButton
-                    ]
+    else if TokenValue.isZero stakingInfo.allowance then
+        unlockButton
 
-        Just amountUXModel ->
-            Element.row
-                [ Element.spacing 5
-                ]
-                [ amountInputField amountUXModel
-                , makeDepositButton
-                    (Maybe.map DoDeposit (validateInput amountUXModel.amountInput))
-                ]
+    else
+        makeDepositButton <|
+            Just <|
+                StartDeposit stakingInfo.unstaked
 
 
 amountInputField : AmountUXModel -> Element Msg
@@ -382,23 +352,9 @@ mainRow dProfile =
 rowLabel : DisplayProfile -> String -> Element Msg
 rowLabel dProfile text =
     Element.el
-        [ -- , Element.Font.alignRight
-          Element.width <| Element.px <| responsiveVal dProfile 280 240
+        [ Element.width <| Element.px <| responsiveVal dProfile 280 240
         ]
         (Element.text text)
-
-
-
--- balanceOutput : DisplayProfile -> TokenValue -> String -> Element Msg
--- balanceOutput dProfile amount label =
---     Element.row
---         [ Element.Font.size <| responsiveVal dProfile 30 24
---         , Element.spacing 4
---         , Element.width <| Element.px 200
---         ]
---         [ Element.text <| TokenValue.toConciseString amount
---         , Element.text label
---         ]
 
 
 unlockButton : Element Msg
@@ -440,8 +396,8 @@ makeWithdrawButton maybeOnClick =
             Images.stakingWithdraw
 
 
-exitButton : Element Msg
-exitButton =
+exitButton : DisplayProfile -> Element Msg
+exitButton dProfile =
     Element.el
         (actionButtonStyles <| Just DoExit)
     <|
