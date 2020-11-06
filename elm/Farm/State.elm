@@ -1,5 +1,6 @@
 module Farm.State exposing (..)
 
+import ChainCmd exposing (ChainCmd)
 import Common.Msg exposing (MsgDown, MsgUp)
 import Common.Types exposing (..)
 import Contracts.Staking as StakingContract
@@ -36,6 +37,7 @@ update msg prevModel =
             UpdateResult
                 prevModel
                 Cmd.none
+                ChainCmd.none
                 [ msgUp ]
 
         UpdateNow newNow ->
@@ -59,6 +61,13 @@ update msg prevModel =
                 Nothing ->
                     justModelUpdate prevModel
 
+        DoUnlock ->
+            UpdateResult
+                prevModel
+                Cmd.none
+                doApproveChainCmd
+                []
+
         StartDeposit ->
             justModelUpdate
                 { prevModel
@@ -75,11 +84,11 @@ update msg prevModel =
             Debug.todo ""
 
         DoDeposit amount ->
-            nowNeedToBringInChainCmd
-            -- UpdateResult
-            --     prevModel
-            --     (doDepositCmd amount)
-            --     []
+            UpdateResult
+                prevModel
+                Cmd.none
+                (doDepositChainCmd amount)
+                []
 
         DoWithdraw amount ->
             Debug.todo ""
@@ -90,6 +99,7 @@ update msg prevModel =
                     UpdateResult
                         prevModel
                         Cmd.none
+                        ChainCmd.none
                         [ Common.Msg.AddUserNotice <| UN.web3FetchError "staking info" httpErr ]
 
                 Ok userStakingInfo ->
@@ -132,6 +142,7 @@ runMsgDown msg prevModel =
             UpdateResult
                 newModel
                 cmd
+                ChainCmd.none
                 []
 
 
@@ -140,6 +151,26 @@ fetchUserStakingInfoCmd userAddress =
     StakingContract.getUserStakingInfo
         userAddress
         StakingInfoFetched
+
+
+doDepositChainCmd : TokenValue -> ChainCmd Msg
+doDepositChainCmd amount =
+    ChainCmd.custom
+        { onMined = Nothing
+        , onSign = Nothing
+        , onBroadcast = Nothing
+        }
+        (StakingContract.stake amount)
+
+
+doApproveChainCmd : ChainCmd Msg
+doApproveChainCmd =
+    ChainCmd.custom
+        { onMined = Nothing
+        , onSign = Nothing
+        , onBroadcast = Nothing
+        }
+        StakingContract.approveLiquidityToken
 
 
 

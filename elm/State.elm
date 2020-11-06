@@ -4,6 +4,7 @@ import Array exposing (Array)
 import Browser
 import Browser.Events
 import Browser.Navigation
+import ChainCmd exposing (ChainCmd)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View
@@ -291,14 +292,24 @@ update msg prevModel =
                         updateResult =
                             farmModel
                                 |> Farm.update farmMsg
+
+                        ( newTxSentry, chainCmd, userNotices ) =
+                            ChainCmd.execute prevModel.txSentry (ChainCmd.map FarmMsg updateResult.chainCmd)
                     in
                     ( { prevModel
-                        | submodel =
+                        | txSentry = newTxSentry
+                        , submodel =
                             Farm updateResult.newModel
                       }
-                    , Cmd.map FarmMsg updateResult.cmd
+                    , Cmd.batch
+                        [ Cmd.map FarmMsg updateResult.cmd
+                        , chainCmd
+                        ]
                     )
-                        |> withMsgUps updateResult.msgUps
+                        |> withMsgUps
+                            (updateResult.msgUps
+                                ++ (List.map AddUserNotice userNotices)
+                            )
 
                 _ ->
                     ( prevModel, Cmd.none )

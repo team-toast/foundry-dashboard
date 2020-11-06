@@ -1,5 +1,6 @@
 module Farm.Types exposing (..)
 
+import ChainCmd exposing (ChainCmd)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Eth.Types exposing (Address)
@@ -22,6 +23,7 @@ type Msg
     | UpdateNow Time.Posix
     | AmountInputChanged String
     | StartDeposit
+    | DoUnlock
     | DoDeposit TokenValue
     | DoExit
     | StartWithdraw
@@ -33,6 +35,7 @@ type Msg
 type alias UpdateResult =
     { newModel : Model
     , cmd : Cmd Msg
+    , chainCmd : ChainCmd Msg
     , msgUps : List MsgUp
     }
 
@@ -41,6 +44,7 @@ justModelUpdate : Model -> UpdateResult
 justModelUpdate model =
     { newModel = model
     , cmd = Cmd.none
+    , chainCmd = ChainCmd.none
     , msgUps = []
     }
 

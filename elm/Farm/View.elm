@@ -141,7 +141,8 @@ depositExitUX dProfile userAddress balanceInfo maybeAmountUXModel =
                 ]
             <|
                 Maybe.Extra.values
-                    [ maybeDepositStartButton
+                    [ Just unlockButton
+                    , maybeDepositStartButton
                     , maybeWithdrawStartButton
                     ]
 
@@ -224,6 +225,12 @@ exitButton =
             , Element.width <| Element.px <| 40
             ]
             Images.stakingExit
+
+unlockButton : Element Msg
+unlockButton =
+    Element.el
+        (actionButtonStyles <| Just DoUnlock)
+        (Element.text "U")
 
 
 actionButtonStyles : Maybe Msg -> List (Element.Attribute Msg)
