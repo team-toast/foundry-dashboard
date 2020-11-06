@@ -38,18 +38,8 @@ view dProfile maybeUserInfo model =
             , Element.height <| Element.px <| responsiveVal dProfile 500 500
             , Element.width <| Element.px <| responsiveVal dProfile 800 200
             , Element.padding 20
-
-            -- , Element.Font.color EH.white
-            -- , Element.Border.glow (Element.rgba 1 1 1 0.2) 6
-            -- , Element.Border.width 3
-            -- , Element.Border.color EH.black
             ]
-            [ -- Element.el
-              -- [ Element.Events.onClick FakeFetchBalanceInfo
-              -- ]
-              -- (Element.text "clicky")
-              -- ,
-              case maybeUserInfo of
+            [ case maybeUserInfo of
                 Nothing ->
                     Common.View.web3ConnectButton
                         dProfile
@@ -73,7 +63,8 @@ view dProfile maybeUserInfo model =
                                 [ Element.spacing 15
                                 ]
                                 [ maybeGetLiquidityMessageElement dProfile userStakingInfo
-                                , unstakedRow dProfile userStakingInfo model.depositWithdrawUXModel userInfo
+                                , unstakedRow dProfile userStakingInfo model.depositWithdrawUXModel
+                                , stakedRow dProfile userStakingInfo model.depositWithdrawUXModel
 
                                 -- , stakedBalanceRow dProfile userStakingInfo.staked model.depositWithdrawUXModel
                                 -- , rewardsAvailableRowAndUX dProfile userStakingInfo model.now
@@ -99,8 +90,8 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
         Element.none
 
 
-unstakedRow : DisplayProfile -> UserStakingInfo -> DepositOrWithdrawUXModel -> UserInfo -> Element Msg
-unstakedRow dProfile userStakingInfo depositOrWithdrawUXModel userInfo =
+unstakedRow : DisplayProfile -> UserStakingInfo -> DepositOrWithdrawUXModel -> Element Msg
+unstakedRow dProfile userStakingInfo depositOrWithdrawUXModel =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -117,38 +108,104 @@ unstakedRow dProfile userStakingInfo depositOrWithdrawUXModel userInfo =
 
 
 unstakedRowUX : DisplayProfile -> UserStakingInfo -> Maybe AmountUXModel -> Element Msg
-unstakedRowUX dProfile userStakingInfo maybeDepositAmountUXModel =
+unstakedRowUX dProfile stakingInfo maybeDepositAmountUXModel =
     let
         rowStyles =
-            [ Element.spacing 30
-            , Element.width Element.fill
-            , Element.padding 5
-            ]
-                ++ (case maybeDepositAmountUXModel of
+            let
+                isInput =
+                    case maybeDepositAmountUXModel of
                         Just _ ->
-                            [ Element.Border.rounded 5
-                            , Element.Background.color <| Element.rgba 1 1 1 0.3
-                            ]
+                            True
 
-                        Nothing ->
-                            []
-                   )
+                        _ ->
+                            False
+            in
+            rowUXStyles dProfile isInput
     in
     Element.row
         rowStyles
         [ balanceOutputOrInput dProfile
-            userStakingInfo.unstaked
+            stakingInfo.unstaked
             maybeDepositAmountUXModel
             "ETHFRY"
-
-        -- (balanceOutput dProfile userStakingInfo.unstaked "ETHFRY")
         , case maybeDepositAmountUXModel of
             Just depositAmountUX ->
                 activeDepositUXButtons dProfile depositAmountUX
 
             Nothing ->
-                depositExitUXButtons dProfile userStakingInfo maybeDepositAmountUXModel
+                depositExitUXButtons dProfile stakingInfo maybeDepositAmountUXModel
         ]
+
+
+stakedRow : DisplayProfile -> UserStakingInfo -> DepositOrWithdrawUXModel -> Element Msg
+stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
+    let
+        maybeWithdrawAmountUXModel =
+            case depositOrWithdrawUXModel of
+                Just ( Withdraw, amountUXModel ) ->
+                    Just amountUXModel
+
+                _ ->
+                    Nothing
+    in
+    mainRow dProfile
+        [ rowLabel dProfile "Currently Staking"
+        , stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel
+        ]
+
+
+stakedRowUX : DisplayProfile -> UserStakingInfo -> Maybe AmountUXModel -> Element Msg
+stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
+    let
+        rowStyles =
+            let
+                isInput =
+                    case maybeWithdrawAmountUXModel of
+                        Just _ ->
+                            True
+
+                        _ ->
+                            False
+            in
+            rowUXStyles dProfile isInput
+    in
+    Element.row
+        rowStyles
+        [ balanceOutputOrInput dProfile
+            stakingInfo.staked
+            maybeWithdrawAmountUXModel
+            "ETHFRY"
+        , case maybeWithdrawAmountUXModel of
+            Just withdrawAmountUX ->
+                activeWithdrawUXButtons dProfile withdrawAmountUX
+
+            Nothing ->
+                startWithdrawButton dProfile stakingInfo.staked
+        ]
+
+
+
+-- , if TokenValue.isZero stakedBalance then
+--     Element.none
+--   else
+--     withdrawUX dProfile maybeWithdrawAmountUXModel
+-- ]
+
+
+rowUXStyles : DisplayProfile -> Bool -> List (Element.Attribute Msg)
+rowUXStyles dProfile isInput =
+    [ Element.spacing 30
+    , Element.width Element.fill
+    , Element.padding 5
+    ]
+        ++ (if isInput then
+                [ Element.Border.rounded 5
+                , Element.Background.color <| Element.rgba 1 1 1 0.3
+                ]
+
+            else
+                []
+           )
 
 
 balanceOutputOrInput : DisplayProfile -> TokenValue -> Maybe AmountUXModel -> String -> Element Msg
@@ -186,6 +243,14 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
         ]
 
 
+activeWithdrawUXButtons : DisplayProfile -> AmountUXModel -> Element Msg
+activeWithdrawUXButtons dProfile amountUXModel =
+    buttonsRow
+        [ makeWithdrawButton (Maybe.map DoWithdraw (validateInput amountUXModel.amountInput))
+        , uxBackButton
+        ]
+
+
 activeDepositUXButtons : DisplayProfile -> AmountUXModel -> Element Msg
 activeDepositUXButtons dProfile amountUXModel =
     buttonsRow
@@ -197,6 +262,17 @@ activeDepositUXButtons dProfile amountUXModel =
 buttonsRow : List (Element Msg) -> Element Msg
 buttonsRow =
     Element.row [ Element.spacing 10 ]
+
+
+startWithdrawButton : DisplayProfile -> TokenValue -> Element Msg
+startWithdrawButton dProfile currentBalance =
+    if TokenValue.isZero currentBalance then
+        Element.none
+
+    else
+        makeWithdrawButton <|
+            Just <|
+                StartWithdraw currentBalance
 
 
 depositExitUXButtons : DisplayProfile -> UserStakingInfo -> Maybe AmountUXModel -> Element Msg
@@ -273,24 +349,6 @@ amountInputField amountUXModel =
 
 
 
--- stakedBalanceRow : DisplayProfile -> TokenValue -> DepositOrWithdrawUXModel -> Element Msg
--- stakedBalanceRow dProfile stakedBalance depositOrWithdrawUXModel =
---     mainRow
---         [ rowLabel dProfile "Currently Staking"
---         , balanceOutput dProfile stakedBalance "ETHFRY"
---         , if TokenValue.isZero stakedBalance then
---             Element.none
---           else
---             let
---                 maybeWithdrawAmountUXModel =
---                     case depositOrWithdrawUXModel of
---                         Just ( Withdraw, amountUXModel ) ->
---                             Just amountUXModel
---                         _ ->
---                             Nothing
---             in
---             withdrawUX dProfile maybeWithdrawAmountUXModel
---         ]
 -- rewardsAvailableRowAndUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
 -- rewardsAvailableRowAndUX dProfile stakingInfo now =
 --     mainRow
@@ -322,10 +380,8 @@ mainRow dProfile =
 rowLabel : DisplayProfile -> String -> Element Msg
 rowLabel dProfile text =
     Element.el
-        [ 
-
-        -- , Element.Font.alignRight
-        Element.width <| Element.px <| responsiveVal dProfile 280 240
+        [ -- , Element.Font.alignRight
+          Element.width <| Element.px <| responsiveVal dProfile 280 240
         ]
         (Element.text text)
 
