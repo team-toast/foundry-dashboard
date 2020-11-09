@@ -245,11 +245,23 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
         ]
         [ case maybeAmountUXModel of
             Just amountUXModel ->
+                let
+                    inputStyles =
+                        [ Element.width <| Element.px amountElWidth
+                        , Element.Background.color <| Element.rgba 1 1 1 0.3
+                        , Element.height Element.fill
+                        ]
+                            ++ (if validateInput amountUXModel.amountInput == Nothing then
+                                    [ Element.Border.width 2
+                                    , Element.Border.color <| Theme.darkRed
+                                    ]
+
+                                else
+                                    []
+                               )
+                in
                 Element.Input.text
-                    [ Element.width <| Element.px amountElWidth
-                    , Element.Background.color <| Element.rgba 1 1 1 0.3
-                    , Element.height Element.fill
-                    ]
+                    inputStyles
                     { onChange = AmountInputChanged
                     , text = amountUXModel.amountInput
                     , placeholder = Nothing
