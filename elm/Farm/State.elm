@@ -12,13 +12,14 @@ import UserNotice as UN
 import Wallet exposing (Wallet)
 
 
-init : Maybe UserInfo -> Time.Posix -> ( Model, Cmd Msg )
-init maybeUserInfo now =
-    ( { userStakingInfo = Nothing
+init : Wallet -> Time.Posix -> ( Model, Cmd Msg )
+init wallet now =
+    ( { wallet = wallet
+      , userStakingInfo = Nothing
       , depositWithdrawUXModel = Nothing
       , now = now
       }
-    , case maybeUserInfo of
+    , case Wallet.userInfo wallet of
         Just userInfo ->
             fetchUserStakingInfoCmd userInfo.address
 
@@ -114,6 +115,19 @@ update msg prevModel =
                 (doWithdrawChainCmd amount)
                 []
 
+        RefetchStakingInfo ->
+            UpdateResult
+                prevModel
+                (case Wallet.userInfo prevModel.wallet of
+                    Just userInfo ->
+                        fetchUserStakingInfoCmd userInfo.address
+
+                    Nothing ->
+                        Cmd.none
+                )
+                ChainCmd.none
+                []
+
         StakingInfoFetched fetchResult ->
             case fetchResult of
                 Err httpErr ->
@@ -152,7 +166,10 @@ runMsgDown msg prevModel =
         Common.Msg.UpdateWallet newWallet ->
             let
                 newModel =
-                    { prevModel | userStakingInfo = Nothing }
+                    { prevModel
+                        | wallet = newWallet
+                        , userStakingInfo = Nothing
+                    }
 
                 cmd =
                     case Wallet.userInfo newWallet of
@@ -179,7 +196,7 @@ fetchUserStakingInfoCmd userAddress =
 doApproveChainCmd : ChainCmd Msg
 doApproveChainCmd =
     ChainCmd.custom
-        { onMined = Nothing
+        { onMined = Just <| (always RefetchStakingInfo, Nothing)
         , onSign = Nothing
         , onBroadcast = Nothing
         }
@@ -189,7 +206,7 @@ doApproveChainCmd =
 doDepositChainCmd : TokenValue -> ChainCmd Msg
 doDepositChainCmd amount =
     ChainCmd.custom
-        { onMined = Nothing
+        { onMined = Just <| (always RefetchStakingInfo, Nothing)
         , onSign = Nothing
         , onBroadcast = Nothing
         }
@@ -199,7 +216,7 @@ doDepositChainCmd amount =
 doWithdrawChainCmd : TokenValue -> ChainCmd Msg
 doWithdrawChainCmd amount =
     ChainCmd.custom
-        { onMined = Nothing
+        { onMined = Just <| (always RefetchStakingInfo, Nothing)
         , onSign = Nothing
         , onBroadcast = Nothing
         }
@@ -209,7 +226,7 @@ doWithdrawChainCmd amount =
 doExitChainCmd : ChainCmd Msg
 doExitChainCmd =
     ChainCmd.custom
-        { onMined = Nothing
+        { onMined = Just <| (always RefetchStakingInfo, Nothing)
         , onSign = Nothing
         , onBroadcast = Nothing
         }
@@ -219,7 +236,7 @@ doExitChainCmd =
 doClaimRewards : ChainCmd Msg
 doClaimRewards =
     ChainCmd.custom
-        { onMined = Nothing
+        { onMined = Just <| (always RefetchStakingInfo, Nothing)
         , onSign = Nothing
         , onBroadcast = Nothing
         }
@@ -236,4 +253,7 @@ doClaimRewards =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every 100 UpdateNow
+    Sub.batch
+        [ Time.every 50 UpdateNow
+        , Time.every 10 (always RefetchStakingInfo)
+        ]

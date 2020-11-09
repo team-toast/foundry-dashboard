@@ -7,11 +7,13 @@ import Eth.Types exposing (Address)
 import Helpers.Time as TimeHelpers
 import Http
 import Time
+import Wallet exposing (Wallet)
 import TokenValue exposing (TokenValue)
 
 
 type alias Model =
-    { userStakingInfo : Maybe UserStakingInfo
+    { wallet : Wallet.Wallet
+    , userStakingInfo : Maybe UserStakingInfo
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , now : Time.Posix
     }
@@ -31,7 +33,7 @@ type Msg
     | StartWithdraw TokenValue
     | DoWithdraw TokenValue
     | StakingInfoFetched (Result Http.Error UserStakingInfo)
-    -- | FakeFetchBalanceInfo
+    | RefetchStakingInfo
 
 
 type alias UpdateResult =

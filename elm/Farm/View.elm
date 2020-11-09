@@ -15,12 +15,13 @@ import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
 import Images
 import Maybe.Extra
 import Theme
+import Wallet exposing (Wallet)
 import Time
 import TokenValue exposing (TokenValue)
 
 
-view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
-view dProfile maybeUserInfo model =
+view : DisplayProfile -> Model -> Element Msg
+view dProfile model =
     Element.el
         [ Element.width Element.fill
         , Element.paddingEach
@@ -39,7 +40,7 @@ view dProfile maybeUserInfo model =
             , Element.width <| Element.px <| responsiveVal dProfile 800 200
             , Element.padding 20
             ]
-            [ case maybeUserInfo of
+            [ case Wallet.userInfo model.wallet of
                 Nothing ->
                     Common.View.web3ConnectButton
                         dProfile

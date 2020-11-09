@@ -4,7 +4,6 @@ import Browser
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
-import Farm.View as Farm
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -17,6 +16,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
+import Farm.View as Farm
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
@@ -116,7 +116,6 @@ body model =
                 Element.map FarmMsg <|
                     Farm.view
                         model.dProfile
-                        (Wallet.userInfo model.wallet)
                         farmModel
         ]
 

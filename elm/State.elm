@@ -308,7 +308,7 @@ update msg prevModel =
                     )
                         |> withMsgUps
                             (updateResult.msgUps
-                                ++ (List.map AddUserNotice userNotices)
+                                ++ List.map AddUserNotice userNotices
                             )
 
                 _ ->
@@ -457,7 +457,7 @@ gotoRoute route prevModel =
         Routing.Farm ->
             let
                 ( farmModel, farmCmd ) =
-                    Farm.init (Wallet.userInfo prevModel.wallet) prevModel.now
+                    Farm.init prevModel.wallet prevModel.now
             in
             ( { prevModel
                 | route = route
