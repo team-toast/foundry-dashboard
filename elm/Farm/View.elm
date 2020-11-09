@@ -129,7 +129,7 @@ unstakedRowUX dProfile stakingInfo maybeDepositAmountUXModel =
             "ETHFRY"
         , case maybeDepositAmountUXModel of
             Just depositAmountUX ->
-                activeDepositUXButtons dProfile depositAmountUX
+                activeDepositUXButtons dProfile depositAmountUX stakingInfo.unstaked
 
             Nothing ->
                 inactiveUnstackedRowButtons dProfile stakingInfo
@@ -176,7 +176,7 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
             "ETHFRY"
         , case maybeWithdrawAmountUXModel of
             Just withdrawAmountUX ->
-                activeWithdrawUXButtons dProfile withdrawAmountUX
+                activeWithdrawUXButtons dProfile withdrawAmountUX stakingInfo.staked
 
             Nothing ->
                 stakedRowUXButtons dProfile stakingInfo.staked
@@ -235,7 +235,7 @@ rowUXStyles dProfile isInput =
 
 
 balanceOutputOrInput : DisplayProfile -> TokenValue -> Maybe AmountUXModel -> String -> Element Msg
-balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
+balanceOutputOrInput dProfile balance maybeAmountUXModel tokenLabel =
     let
         amountElWidth =
             200
@@ -251,7 +251,7 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
                         , Element.Background.color <| Element.rgba 1 1 1 0.3
                         , Element.height Element.fill
                         ]
-                            ++ (if validateInput amountUXModel.amountInput == Nothing then
+                            ++ (if validateInput amountUXModel.amountInput balance == Nothing then
                                     [ Element.Border.width 2
                                     , Element.Border.color <| Theme.darkRed
                                     ]
@@ -275,7 +275,7 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
                     ]
                     (Element.text <|
                         TokenValue.toFloatString Nothing <|
-                            unstaked
+                            balance
                     )
         , Element.el
             [ Element.width <| Element.px 100 ]
@@ -284,11 +284,11 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
         ]
 
 
-activeWithdrawUXButtons : DisplayProfile -> AmountUXModel -> Element Msg
-activeWithdrawUXButtons dProfile amountUXModel =
+activeWithdrawUXButtons : DisplayProfile -> AmountUXModel -> TokenValue -> Element Msg
+activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
     let
         withdrawButton =
-            case validateInput amountUXModel.amountInput of
+            case validateInput amountUXModel.amountInput stakedBalance of
                 Just amount ->
                     makeWithdrawButton
                         (Just <|
@@ -307,11 +307,11 @@ activeWithdrawUXButtons dProfile amountUXModel =
         ]
 
 
-activeDepositUXButtons : DisplayProfile -> AmountUXModel -> Element Msg
-activeDepositUXButtons dProfile amountUXModel =
+activeDepositUXButtons : DisplayProfile -> AmountUXModel -> TokenValue -> Element Msg
+activeDepositUXButtons dProfile amountUXModel unstakedBalance =
     let
         depositButton =
-            case validateInput amountUXModel.amountInput of
+            case validateInput amountUXModel.amountInput unstakedBalance of
                 Just amount ->
                     makeDepositButton
                         (Just <|

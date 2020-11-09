@@ -7,8 +7,8 @@ import Eth.Types exposing (Address)
 import Helpers.Time as TimeHelpers
 import Http
 import Time
-import Wallet exposing (Wallet)
 import TokenValue exposing (TokenValue)
+import Wallet exposing (Wallet)
 
 
 type alias Model =
@@ -82,12 +82,15 @@ calcAvailableRewards stakingInfo now =
     TokenValue.add stakingInfo.claimableRewards accrued
 
 
-validateInput : String -> Maybe TokenValue
-validateInput input =
+validateInput : String -> TokenValue -> Maybe TokenValue
+validateInput input max =
     TokenValue.fromString input
         |> Maybe.andThen
             (\val ->
                 if TokenValue.compare val TokenValue.zero == LT then
+                    Nothing
+
+                else if TokenValue.compare val max == GT then
                     Nothing
 
                 else
