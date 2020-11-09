@@ -15,9 +15,9 @@ import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
 import Images
 import Maybe.Extra
 import Theme
-import Wallet exposing (Wallet)
 import Time
 import TokenValue exposing (TokenValue)
+import Wallet exposing (Wallet)
 
 
 view : DisplayProfile -> Model -> Element Msg
@@ -274,16 +274,46 @@ balanceOutputOrInput dProfile unstaked maybeAmountUXModel tokenLabel =
 
 activeWithdrawUXButtons : DisplayProfile -> AmountUXModel -> Element Msg
 activeWithdrawUXButtons dProfile amountUXModel =
+    let
+        withdrawButton =
+            case validateInput amountUXModel.amountInput of
+                Just amount ->
+                    makeWithdrawButton
+                        (Just <|
+                            "Withdraw "
+                                ++ TokenValue.toConciseString amount
+                                ++ " ETHFRY"
+                        )
+                        (Just <| DoWithdraw amount)
+
+                Nothing ->
+                    makeWithdrawButton Nothing Nothing
+    in
     buttonsRow
-        [ makeWithdrawButton (Maybe.map DoWithdraw (validateInput amountUXModel.amountInput))
+        [ withdrawButton
         , uxBackButton
         ]
 
 
 activeDepositUXButtons : DisplayProfile -> AmountUXModel -> Element Msg
 activeDepositUXButtons dProfile amountUXModel =
+    let
+        depositButton =
+            case validateInput amountUXModel.amountInput of
+                Just amount ->
+                    makeDepositButton
+                        (Just <|
+                            "Deposit "
+                                ++ TokenValue.toConciseString amount
+                                ++ " ETHFRY"
+                        )
+                        (Just <| DoDeposit amount)
+
+                Nothing ->
+                    makeDepositButton Nothing Nothing
+    in
     buttonsRow
-        [ makeDepositButton (Maybe.map DoDeposit (validateInput amountUXModel.amountInput))
+        [ depositButton
         , uxBackButton
         ]
 
@@ -299,9 +329,9 @@ maybeStartWithdrawButton dProfile currentBalance =
         Element.none
 
     else
-        makeWithdrawButton <|
-            Just <|
-                StartWithdraw currentBalance
+        makeWithdrawButton
+            (Just "Withdraw ETHFRY")
+            (Just <| StartWithdraw currentBalance)
 
 
 maybeExitButton : DisplayProfile -> TokenValue -> Element Msg
@@ -322,9 +352,9 @@ inactiveUnstackedRowButtons dProfile stakingInfo =
         unlockButton
 
     else
-        makeDepositButton <|
-            Just <|
-                StartDeposit stakingInfo.unstaked
+        makeDepositButton
+            (Just "Deposit ETHFRY")
+            (Just <| StartDeposit stakingInfo.unstaked)
 
 
 amountInputField : AmountUXModel -> Element Msg
@@ -361,7 +391,10 @@ rowLabel dProfile text =
 unlockButton : Element Msg
 unlockButton =
     Element.el
-        (actionButtonStyles <| Just DoUnlock)
+        (actionButtonStyles
+            (Just "Approve ETHFRY for Deposit")
+            (Just DoUnlock)
+        )
     <|
         Images.toElement
             [ Element.centerX
@@ -371,10 +404,13 @@ unlockButton =
             Images.unlock
 
 
-makeDepositButton : Maybe Msg -> Element Msg
-makeDepositButton maybeOnClick =
+makeDepositButton : Maybe String -> Maybe Msg -> Element Msg
+makeDepositButton maybeHoverText maybeOnClick =
     Element.el
-        (actionButtonStyles maybeOnClick)
+        (actionButtonStyles
+            maybeHoverText
+            maybeOnClick
+        )
     <|
         Images.toElement
             [ Element.centerX
@@ -384,10 +420,10 @@ makeDepositButton maybeOnClick =
             Images.stakingDeposit
 
 
-makeWithdrawButton : Maybe Msg -> Element Msg
-makeWithdrawButton maybeOnClick =
+makeWithdrawButton : Maybe String -> Maybe Msg -> Element Msg
+makeWithdrawButton maybeHoverText maybeOnClick =
     Element.el
-        (actionButtonStyles maybeOnClick)
+        (actionButtonStyles maybeHoverText maybeOnClick)
     <|
         Images.toElement
             [ Element.centerX
@@ -400,7 +436,10 @@ makeWithdrawButton maybeOnClick =
 exitButton : DisplayProfile -> Element Msg
 exitButton dProfile =
     Element.el
-        (actionButtonStyles <| Just DoExit)
+        (actionButtonStyles
+            (Just "Exit with all assets (FRY and ETHFRY)")
+            (Just DoExit)
+        )
     <|
         Images.toElement
             [ Element.centerX
@@ -413,7 +452,10 @@ exitButton dProfile =
 claimRewardsButton : Element Msg
 claimRewardsButton =
     Element.el
-        (actionButtonStyles <| Just DoClaimRewards)
+        (actionButtonStyles
+            (Just "Claim FRY Rewards")
+            (Just DoClaimRewards)
+        )
     <|
         Images.toElement
             [ Element.centerX
@@ -426,7 +468,10 @@ claimRewardsButton =
 uxBackButton : Element Msg
 uxBackButton =
     Element.el
-        (actionButtonStyles <| Just UXBack)
+        (actionButtonStyles
+            (Just "Back")
+            (Just UXBack)
+        )
     <|
         Images.toElement
             [ Element.centerX
@@ -436,14 +481,16 @@ uxBackButton =
             Images.back
 
 
-actionButtonStyles : Maybe Msg -> List (Element.Attribute Msg)
-actionButtonStyles maybeOnClick =
+actionButtonStyles : Maybe String -> Maybe Msg -> List (Element.Attribute Msg)
+actionButtonStyles maybeHoverText maybeOnClick =
     [ Element.width <| Element.px 45
     , Element.height <| Element.px 45
     , Element.Border.rounded 6
     , Element.Border.width 1
     , Element.Border.color <| Element.rgba 0 0 0 0.2
     ]
+        ++ Maybe.Extra.values
+            [ Maybe.map EH.withTitle maybeHoverText ]
         ++ (case maybeOnClick of
                 Just onClick ->
                     [ Element.pointer
