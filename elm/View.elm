@@ -141,7 +141,7 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
                 logoBlock dProfile
         , (Maybe.map
             (Element.el
-                [ Element.centerY
+                [ Element.alignTop
                 , Element.alignRight
                 ]
             )
@@ -338,8 +338,9 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         totals
 
             tallies =
-                trackedTxs
-                    |> List.foldl tallyFunc ( 0, 0, 0 )
+                (1,1,1)
+                -- trackedTxs
+                --     |> List.foldl tallyFunc ( 0, 0, 0 )
 
             renderedTallyEls =
                 tallies
@@ -405,6 +406,8 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                 <|
                     Element.column
                         [ Element.Border.rounded 5
+                        , Element.Border.width 2
+                        , Element.Border.color Theme.blue
                         , Element.Background.color <| Element.rgb 0.2 0.2 0.2
                         , Element.padding (10 |> changeForMobile 5 dProfile)
                         , Element.spacing (10 |> changeForMobile 5 dProfile)
