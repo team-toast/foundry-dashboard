@@ -531,8 +531,8 @@ initiateUserTx txSentry prevTrackedTxs txInitiator =
 trackingNotifiers : Int -> UserTx.Notifiers Msg
 trackingNotifiers trackedTxId =
     { onSign = Just <| TxSigned trackedTxId
-    , onBroadcast = Nothing
 
+    -- , onBroadcast = Nothing
     -- , onBroadcast = Just <| TxBroadcast trackedTxId
     , onMine = Just <| TxMined trackedTxId
     }

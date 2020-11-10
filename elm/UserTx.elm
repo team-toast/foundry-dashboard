@@ -16,7 +16,6 @@ type alias Initiator msg =
 type alias Notifiers msg =
     { onSign : Maybe (Result String Eth.TxHash -> msg)
     , onMine : Maybe (Result String Eth.TxReceipt -> msg)
-    , onBroadcast : Maybe (Result String Eth.Tx -> msg)
     }
 
 
@@ -56,7 +55,6 @@ mapInitiator mapper initiator =
     { notifiers =
         { onSign = Maybe.map ((<<) mapper) initiator.notifiers.onSign
         , onMine = Maybe.map ((<<) mapper) initiator.notifiers.onMine
-        , onBroadcast = Maybe.map ((<<) mapper) initiator.notifiers.onBroadcast
         }
     , send = initiator.send
     , txInfo = initiator.txInfo
@@ -80,7 +78,7 @@ notifiersToEthCustomSend : Notifiers msg -> TxSentry.CustomSend msg
 notifiersToEthCustomSend notifiers =
     { onSign = notifiers.onSign
     , onMined = Maybe.map (\n -> Tuple.pair n Nothing) notifiers.onMine
-    , onBroadcast = notifiers.onBroadcast
+    , onBroadcast = Nothing
     }
 
 

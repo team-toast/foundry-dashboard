@@ -3,7 +3,7 @@ module Farm.Types exposing (..)
 import UserTx exposing (TxInfo)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, TxHash)
 import Helpers.Time as TimeHelpers
 import Http
 import Time
@@ -32,6 +32,7 @@ type Msg
     | DoExit
     | StartWithdraw TokenValue
     | DoWithdraw TokenValue
+    | WithdrawOrDepositSigned (Result String TxHash)
     | StakingInfoFetched (Result Http.Error UserStakingInfo)
     | RefetchStakingInfo
 

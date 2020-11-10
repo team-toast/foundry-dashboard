@@ -115,6 +115,17 @@ update msg prevModel =
                 [ doWithdrawChainCmd amount ]
                 []
 
+        WithdrawOrDepositSigned signResult ->
+            case signResult of
+                Ok _ ->
+                    justModelUpdate
+                        { prevModel
+                            | depositWithdrawUXModel = Nothing
+                        }
+
+                _ ->
+                    justModelUpdate prevModel
+
         RefetchStakingInfo ->
             UpdateResult
                 prevModel
@@ -183,7 +194,6 @@ doApproveChainCmd =
     { notifiers =
         { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
-        , onBroadcast = Nothing
         }
     , send = StakingContract.approveLiquidityToken
     , txInfo = UserTx.StakingApprove
@@ -194,8 +204,7 @@ doDepositChainCmd : TokenValue -> UserTx.Initiator Msg
 doDepositChainCmd amount =
     { notifiers =
         { onMine = Just <| always RefetchStakingInfo
-        , onSign = Nothing
-        , onBroadcast = Nothing
+        , onSign = Just WithdrawOrDepositSigned
         }
     , send = StakingContract.stake amount
     , txInfo = UserTx.StakingDeposit amount
@@ -206,8 +215,7 @@ doWithdrawChainCmd : TokenValue -> UserTx.Initiator Msg
 doWithdrawChainCmd amount =
     { notifiers =
         { onMine = Just <| always RefetchStakingInfo
-        , onSign = Nothing
-        , onBroadcast = Nothing
+        , onSign = Just <| WithdrawOrDepositSigned
         }
     , send = StakingContract.withdraw amount
     , txInfo = UserTx.StakingWithdraw amount
@@ -219,7 +227,6 @@ doExitChainCmd =
     { notifiers =
         { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
-        , onBroadcast = Nothing
         }
     , send = StakingContract.exit
     , txInfo = UserTx.StakingExit
@@ -231,7 +238,6 @@ doClaimRewards =
     { notifiers =
         { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
-        , onBroadcast = Nothing
         }
     , send = StakingContract.claimRewards
     , txInfo = UserTx.StakingClaim
