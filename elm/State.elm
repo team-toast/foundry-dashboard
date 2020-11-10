@@ -280,9 +280,6 @@ update msg prevModel =
         --             wut
         TxMined trackedTxId mineResult ->
             let
-                _ =
-                    Debug.log "mineReslt" mineResult
-
                 newTrackedTxs =
                     prevModel.trackedTxs
                         |> UserTx.setTrackedTxSignedStatus trackedTxId
