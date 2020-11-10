@@ -124,6 +124,7 @@ unstakedRowUX dProfile stakingInfo maybeDepositAmountUXModel =
     Element.row
         rowStyles
         [ balanceOutputOrInput dProfile
+            False
             stakingInfo.unstaked
             maybeDepositAmountUXModel
             "ETHFRY"
@@ -171,6 +172,7 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
     Element.row
         rowStyles
         [ balanceOutputOrInput dProfile
+            False
             stakingInfo.staked
             maybeWithdrawAmountUXModel
             "ETHFRY"
@@ -204,6 +206,7 @@ rewardsRowUX dProfile stakingInfo now =
     Element.row
         (rowUXStyles dProfile False)
         [ balanceOutputOrInput dProfile
+            True
             (calcAvailableRewards
                 stakingInfo
                 now
@@ -223,6 +226,7 @@ rowUXStyles dProfile isInput =
     [ Element.spacing 30
     , Element.width Element.fill
     , Element.padding 5
+    , Element.height <| Element.px 50
     ]
         ++ (if isInput then
                 [ Element.Border.rounded 5
@@ -234,14 +238,15 @@ rowUXStyles dProfile isInput =
            )
 
 
-balanceOutputOrInput : DisplayProfile -> TokenValue -> Maybe AmountUXModel -> String -> Element Msg
-balanceOutputOrInput dProfile balance maybeAmountUXModel tokenLabel =
+balanceOutputOrInput : DisplayProfile -> Bool -> TokenValue -> Maybe AmountUXModel -> String -> Element Msg
+balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
     let
         amountElWidth =
-            200
+            150
     in
     Element.row
         [ Element.spacing 10
+        , Element.Font.size 26
         ]
         [ case maybeAmountUXModel of
             Just amountUXModel ->
@@ -249,7 +254,8 @@ balanceOutputOrInput dProfile balance maybeAmountUXModel tokenLabel =
                     inputStyles =
                         [ Element.width <| Element.px amountElWidth
                         , Element.Background.color <| Element.rgba 1 1 1 0.3
-                        , Element.height Element.fill
+                        , Element.padding 0
+                        , Element.Border.width 0
                         ]
                             ++ (if validateInput amountUXModel.amountInput balance == Nothing then
                                     [ Element.Border.width 2
@@ -278,7 +284,15 @@ balanceOutputOrInput dProfile balance maybeAmountUXModel tokenLabel =
                             balance
                     )
         , Element.el
-            [ Element.width <| Element.px 100 ]
+            [ Element.width <| Element.px 100
+            , Element.Font.color
+                (if isRed then
+                    Element.rgb 1 0 0
+
+                 else
+                    EH.black
+                )
+            ]
           <|
             Element.text tokenLabel
         ]
@@ -369,25 +383,33 @@ inactiveUnstackedRowButtons dProfile stakingInfo =
             (Just <| StartDeposit stakingInfo.unstaked)
 
 
-amountInputField : AmountUXModel -> Element Msg
-amountInputField amountUXModel =
-    Element.Input.text
-        [ Element.width <| Element.px 200
-        , Element.height Element.fill
-        ]
-        { onChange = AmountInputChanged
-        , text = amountUXModel.amountInput
-        , placeholder = Nothing
-        , label = Element.Input.labelHidden "amount"
-        }
+
+-- amountInputField : AmountUXModel -> Element Msg
+-- amountInputField amountUXModel =
+--     Element.Input.text
+--         [ Element.width <| Element.px 200
+--         , Element.height <| Element.px 30
+--         , Element.padding 0
+--         ]
+--         { onChange = AmountInputChanged
+--         , text = amountUXModel.amountInput
+--         , placeholder = Nothing
+--         , label = Element.Input.labelHidden "amount"
+--         }
 
 
 mainRow : DisplayProfile -> List (Element Msg) -> Element Msg
 mainRow dProfile =
-    Element.row
-        [ Element.width Element.fill
-        , Element.spacing 30
-        , Element.height <| Element.px 40
+    Element.column
+        [ Element.spacing 5
+        , Element.Background.color <| Element.rgba 1 1 1 0.1
+        , Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Border.width 1
+        , Element.Border.color <| Element.rgba 0 0 0 0.1
+        , Element.width <| Element.px 420
+
+        -- , Element.height <| Element.px 40
         , Element.Font.size <| responsiveVal dProfile 30 24
         ]
 
@@ -396,6 +418,8 @@ rowLabel : DisplayProfile -> String -> Element Msg
 rowLabel dProfile text =
     Element.el
         [ Element.width <| Element.px <| responsiveVal dProfile 280 240
+        , Element.Font.size 40
+        , Element.Font.medium
         ]
         (Element.text text)
 
