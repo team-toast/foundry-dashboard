@@ -33,28 +33,50 @@ view dProfile model =
             }
         ]
     <|
-        Element.row
+        Element.column
             [ Element.centerX
-            , Element.Background.color <| Element.rgb 0.6 0.6 1
-            , Element.Border.rounded 10
-            , Element.height <| Element.px <| responsiveVal dProfile 500 500
-            , Element.width <| Element.px <| responsiveVal dProfile 800 200
-            , Element.padding 20
-            , Element.spacing 10
+            , Element.spacing 40
             ]
-            [ balancesElement dProfile model.now model.wallet model.userStakingInfo model.depositWithdrawUXModel
-            , apyElement dProfile model.apy
+            [ titleEl dProfile
+            , bodyEl dProfile model
             ]
+
+
+titleEl : DisplayProfile -> Element Msg
+titleEl dProfile =
+    Element.el
+        [ Element.Font.size 50
+        , Element.Font.color EH.white
+        , Element.Font.medium
+        , Element.centerX
+        ]
+        <| Element.text "Farming for Fryers!"
+
+
+bodyEl : DisplayProfile -> Model -> Element Msg
+bodyEl dProfile model =
+    Element.row
+        [ Element.centerX
+        , Element.Background.color <| Element.rgb 0.6 0.6 1
+        , Element.Border.rounded 10
+        , Element.height <| Element.px <| responsiveVal dProfile 500 500
+        , Element.width <| Element.px <| responsiveVal dProfile 800 200
+        , Element.padding 20
+        , Element.spacing 10
+        ]
+        [ balancesElement dProfile model.now model.wallet model.userStakingInfo model.depositWithdrawUXModel
+        , apyElement dProfile model.apy
+        ]
 
 
 balancesElement : DisplayProfile -> Time.Posix -> Wallet -> Maybe UserStakingInfo -> DepositOrWithdrawUXModel -> Element Msg
 balancesElement dProfile now wallet maybeUserStakingInfo depositWithdrawUXModel =
-    Element.el [ Element.alignTop, Element.alignLeft ] <|
+    
         case Wallet.userInfo wallet of
             Nothing ->
                 Common.View.web3ConnectButton
                     dProfile
-                    []
+                    [Element.centerY]
                     MsgUp
 
             Just userInfo ->
@@ -62,12 +84,14 @@ balancesElement dProfile now wallet maybeUserStakingInfo depositWithdrawUXModel 
                     Nothing ->
                         Element.el
                             [ Element.Font.italic
+                            , Element.centerY
                             ]
                             (Element.text "Fetching info...")
 
                     Just userStakingInfo ->
                         Element.column
                             [ Element.spacing 25
+                            , Element.alignTop
                             ]
                             [ maybeGetLiquidityMessageElement dProfile userStakingInfo
                             , unstakedRow dProfile userStakingInfo depositWithdrawUXModel
