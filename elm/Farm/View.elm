@@ -210,7 +210,7 @@ rewardsRowUX dProfile stakingInfo now =
             )
             Nothing
             "FRY"
-        , if TokenValue.isZero stakingInfo.claimableRewards then
+        , if TokenValue.isZero <| calcAvailableRewards stakingInfo now then
             Element.none
 
           else
