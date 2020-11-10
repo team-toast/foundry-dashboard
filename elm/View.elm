@@ -565,26 +565,30 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
         ]
 
 
-trackedTxMiningColor =
-    Theme.darkYellow
-
-
-trackedTxFailedColor =
-    Theme.softRed
-
-
-trackedTxSuccessColor =
-    Theme.green
-
 
 signedTxStatusToColor : UserTx.SignedTxStatus -> Element.Color
 signedTxStatusToColor signedStatus =
     case signedStatus of
         UserTx.Mining ->
-            Theme.darkYellow
+            trackedTxMiningColor
 
         UserTx.Success _ ->
-            Theme.green
+            trackedTxSuccessColor
 
         UserTx.Failed ->
-            Theme.softRed
+            trackedTxFailedColor
+
+
+trackedTxMiningColor : Element.Color
+trackedTxMiningColor =
+    Theme.darkYellow
+
+
+trackedTxFailedColor : Element.Color
+trackedTxFailedColor =
+    Theme.softRed
+
+
+trackedTxSuccessColor : Element.Color
+trackedTxSuccessColor =
+    Theme.green
