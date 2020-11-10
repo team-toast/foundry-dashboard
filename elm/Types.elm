@@ -1,6 +1,5 @@
 module Types exposing (..)
 
-import Farm.Types as Farm
 import Array exposing (Array)
 import Browser
 import Browser.Navigation
@@ -11,6 +10,7 @@ import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
+import Farm.Types as Farm
 import Helpers.Element as EH
 import Home.Types as Home
 import Routing exposing (Route)
@@ -20,6 +20,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Url exposing (Url)
 import UserNotice exposing (UserNotice)
+import UserTx exposing (TxInfo)
 import Wallet exposing (Wallet)
 
 
@@ -44,6 +45,8 @@ type alias Model =
     , submodel : Submodel
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
+    , trackedTxs : UserTx.Tracker Msg
+    , trackedTxsExpanded : Bool
     }
 
 
@@ -66,6 +69,10 @@ type Msg
     | EventSentryMsg EventSentry.Msg
     | DismissNotice Int
     | ClickHappened
+    | ShowExpandedTrackedTxs Bool
+    | TxSigned Int (Result String TxHash)
+    -- | TxBroadcast Int (Result String Tx)
+    | TxMined Int (Result String TxReceipt)
     | HomeMsg Home.Msg
     | SentimentMsg Sentiment.Msg
     | StatsMsg Stats.Msg

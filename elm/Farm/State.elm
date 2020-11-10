@@ -1,6 +1,5 @@
 module Farm.State exposing (..)
 
-import ChainCmd exposing (ChainCmd)
 import Common.Msg exposing (MsgDown, MsgUp)
 import Common.Types exposing (..)
 import Contracts.Staking as StakingContract
@@ -9,6 +8,7 @@ import Farm.Types exposing (..)
 import Time
 import TokenValue exposing (TokenValue)
 import UserNotice as UN
+import UserTx exposing (TxInfo)
 import Wallet exposing (Wallet)
 
 
@@ -38,7 +38,7 @@ update msg prevModel =
             UpdateResult
                 prevModel
                 Cmd.none
-                ChainCmd.none
+                []
                 [ msgUp ]
 
         UpdateNow newNow ->
@@ -72,7 +72,7 @@ update msg prevModel =
             UpdateResult
                 prevModel
                 Cmd.none
-                doApproveChainCmd
+                [ doApproveChainCmd ]
                 []
 
         StartDeposit defaultValue ->
@@ -91,28 +91,28 @@ update msg prevModel =
             UpdateResult
                 prevModel
                 Cmd.none
-                doExitChainCmd
+                [ doExitChainCmd ]
                 []
 
         DoClaimRewards ->
             UpdateResult
                 prevModel
                 Cmd.none
-                doClaimRewards
+                [ doClaimRewards ]
                 []
 
         DoDeposit amount ->
             UpdateResult
                 prevModel
                 Cmd.none
-                (doDepositChainCmd amount)
+                [ doDepositChainCmd amount ]
                 []
 
         DoWithdraw amount ->
             UpdateResult
                 prevModel
                 Cmd.none
-                (doWithdrawChainCmd amount)
+                [ doWithdrawChainCmd amount ]
                 []
 
         RefetchStakingInfo ->
@@ -125,7 +125,7 @@ update msg prevModel =
                     Nothing ->
                         Cmd.none
                 )
-                ChainCmd.none
+                []
                 []
 
         StakingInfoFetched fetchResult ->
@@ -134,7 +134,7 @@ update msg prevModel =
                     UpdateResult
                         prevModel
                         Cmd.none
-                        ChainCmd.none
+                        []
                         [ Common.Msg.AddUserNotice <| UN.web3FetchError "staking info" httpErr ]
 
                 Ok userStakingInfo ->
@@ -143,21 +143,6 @@ update msg prevModel =
                             | userStakingInfo =
                                 Just userStakingInfo
                         }
-
-
-
--- FakeFetchBalanceInfo ->
---     justModelUpdate
---         { prevModel
---             | userStakingInfo =
---                 Just <|
---                     { unstaked = TokenValue.fromIntTokenValue 10
---                     , staked = TokenValue.fromIntTokenValue 10
---                     , claimableRewards = TokenValue.zero
---                     , rewardRate = TokenValue.fromIntTokenValue 1
---                     , timestamp = prevModel.now
---                     }
---         }
 
 
 runMsgDown : MsgDown -> Model -> UpdateResult
@@ -182,7 +167,7 @@ runMsgDown msg prevModel =
             UpdateResult
                 newModel
                 cmd
-                ChainCmd.none
+                []
                 []
 
 
@@ -193,54 +178,64 @@ fetchUserStakingInfoCmd userAddress =
         StakingInfoFetched
 
 
-doApproveChainCmd : ChainCmd Msg
+doApproveChainCmd : UserTx.Initiator Msg
 doApproveChainCmd =
-    ChainCmd.custom
-        { onMined = Just <| (always RefetchStakingInfo, Nothing)
+    { notifiers =
+        { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
         , onBroadcast = Nothing
         }
-        StakingContract.approveLiquidityToken
+    , send = StakingContract.approveLiquidityToken
+    , txInfo = UserTx.StakingApprove
+    }
 
 
-doDepositChainCmd : TokenValue -> ChainCmd Msg
+doDepositChainCmd : TokenValue -> UserTx.Initiator Msg
 doDepositChainCmd amount =
-    ChainCmd.custom
-        { onMined = Just <| (always RefetchStakingInfo, Nothing)
+    { notifiers =
+        { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
         , onBroadcast = Nothing
         }
-        (StakingContract.stake amount)
+    , send = StakingContract.stake amount
+    , txInfo = UserTx.StakingDeposit amount
+    }
 
 
-doWithdrawChainCmd : TokenValue -> ChainCmd Msg
+doWithdrawChainCmd : TokenValue -> UserTx.Initiator Msg
 doWithdrawChainCmd amount =
-    ChainCmd.custom
-        { onMined = Just <| (always RefetchStakingInfo, Nothing)
+    { notifiers =
+        { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
         , onBroadcast = Nothing
         }
-        (StakingContract.withdraw amount)
+    , send = StakingContract.withdraw amount
+    , txInfo = UserTx.StakingWithdraw amount
+    }
 
 
-doExitChainCmd : ChainCmd Msg
+doExitChainCmd : UserTx.Initiator Msg
 doExitChainCmd =
-    ChainCmd.custom
-        { onMined = Just <| (always RefetchStakingInfo, Nothing)
+    { notifiers =
+        { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
         , onBroadcast = Nothing
         }
-        StakingContract.exit
+    , send = StakingContract.exit
+    , txInfo = UserTx.StakingExit
+    }
 
 
-doClaimRewards : ChainCmd Msg
+doClaimRewards : UserTx.Initiator Msg
 doClaimRewards =
-    ChainCmd.custom
-        { onMined = Just <| (always RefetchStakingInfo, Nothing)
+    { notifiers =
+        { onMine = Just <| always RefetchStakingInfo
         , onSign = Nothing
         , onBroadcast = Nothing
         }
-        StakingContract.claimRewards
+    , send = StakingContract.claimRewards
+    , txInfo = UserTx.StakingClaim
+    }
 
 
 

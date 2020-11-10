@@ -1,6 +1,6 @@
 module Farm.Types exposing (..)
 
-import ChainCmd exposing (ChainCmd)
+import UserTx exposing (TxInfo)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Eth.Types exposing (Address)
@@ -39,7 +39,7 @@ type Msg
 type alias UpdateResult =
     { newModel : Model
     , cmd : Cmd Msg
-    , chainCmd : ChainCmd Msg
+    , userTxs : List (UserTx.Initiator Msg)
     , msgUps : List MsgUp
     }
 
@@ -48,7 +48,7 @@ justModelUpdate : Model -> UpdateResult
 justModelUpdate model =
     { newModel = model
     , cmd = Cmd.none
-    , chainCmd = ChainCmd.none
+    , userTxs = []
     , msgUps = []
     }
 

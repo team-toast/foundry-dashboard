@@ -1,6 +1,5 @@
 module Contracts.Staking exposing (..)
 
-import ChainCmd
 import Common.Types exposing (UserStakingInfo)
 import Config
 import Contracts.Generated.ERC20 as ERC20

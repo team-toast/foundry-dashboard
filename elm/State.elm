@@ -4,7 +4,6 @@ import Array exposing (Array)
 import Browser
 import Browser.Events
 import Browser.Navigation
-import ChainCmd exposing (ChainCmd)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View
@@ -21,6 +20,7 @@ import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
 import Farm.State as Farm
 import Helpers.Element as EH exposing (DisplayProfile(..))
+import Helpers.Tuple as TupleHelpers
 import Home.State as Home
 import Json.Decode
 import Json.Encode
@@ -37,6 +37,7 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
+import UserTx exposing (TxInfo)
 import Wallet
 
 
@@ -83,6 +84,8 @@ init flags url key =
     , submodel = BlankInitialSubmodel
     , showAddressId = Nothing
     , userNotices = walletNotices
+    , trackedTxs = []
+    , trackedTxsExpanded = False
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -228,6 +231,90 @@ update msg prevModel =
             , Cmd.none
             )
 
+        ShowExpandedTrackedTxs flag ->
+            ( { prevModel
+                | trackedTxsExpanded = flag
+              }
+            , Cmd.none
+            )
+
+        TxSigned trackedTxId signResult ->
+            let
+                newTrackedTxs =
+                    prevModel.trackedTxs
+                        |> UserTx.setTrackedTxStatus trackedTxId
+                            (case signResult of
+                                Err errStr ->
+                                    UserTx.Rejected
+
+                                Ok txHash ->
+                                    UserTx.Signed txHash UserTx.Mining
+                            )
+
+                maybeExtraMsgConstructor =
+                    prevModel.trackedTxs
+                        |> List.Extra.getAt trackedTxId
+                        |> Maybe.map .notifiers
+                        |> Maybe.andThen .onSign
+
+                intermediateModel =
+                    { prevModel
+                        | trackedTxs = newTrackedTxs
+                    }
+            in
+            case maybeExtraMsgConstructor of
+                Just extraMsgConstructor ->
+                    intermediateModel
+                        |> update (extraMsgConstructor signResult)
+
+                Nothing ->
+                    ( intermediateModel
+                    , Cmd.none
+                    )
+
+        -- TxBroadcast trackedTxId broadcastResult ->
+        --     case broadcastResult of
+        --         Err errStr ->
+        --             wut
+        --         Ok tx ->
+        --             wut
+        TxMined trackedTxId mineResult ->
+            let
+                _ =
+                    Debug.log "mineReslt" mineResult
+
+                newTrackedTxs =
+                    prevModel.trackedTxs
+                        |> UserTx.setTrackedTxSignedStatus trackedTxId
+                            (case mineResult of
+                                Err errStr ->
+                                    UserTx.Failed
+
+                                Ok txReceipt ->
+                                    UserTx.Success txReceipt
+                            )
+
+                maybeExtraMsgConstructor =
+                    prevModel.trackedTxs
+                        |> List.Extra.getAt trackedTxId
+                        |> Maybe.map .notifiers
+                        |> Maybe.andThen .onMine
+
+                intermediateModel =
+                    { prevModel
+                        | trackedTxs = newTrackedTxs
+                    }
+            in
+            case maybeExtraMsgConstructor of
+                Just extraMsgConstructor ->
+                    intermediateModel
+                        |> update (extraMsgConstructor mineResult)
+
+                Nothing ->
+                    ( intermediateModel
+                    , Cmd.none
+                    )
+
         HomeMsg homeMsg ->
             case prevModel.submodel of
                 Home homeModel ->
@@ -293,23 +380,24 @@ update msg prevModel =
                             farmModel
                                 |> Farm.update farmMsg
 
-                        ( newTxSentry, chainCmd, userNotices ) =
-                            ChainCmd.execute prevModel.txSentry (ChainCmd.map FarmMsg updateResult.chainCmd)
+                        ( newTxSentry, sentryCmd, newTrackedTxs ) =
+                            initiateUserTxs
+                                prevModel.txSentry
+                                prevModel.trackedTxs
+                                (UserTx.mapInitiatorList FarmMsg updateResult.userTxs)
                     in
                     ( { prevModel
                         | txSentry = newTxSentry
-                        , submodel =
-                            Farm updateResult.newModel
+                        , submodel = Farm updateResult.newModel
+                        , trackedTxs = newTrackedTxs
                       }
                     , Cmd.batch
                         [ Cmd.map FarmMsg updateResult.cmd
-                        , chainCmd
+                        , sentryCmd
                         ]
                     )
                         |> withMsgUps
-                            (updateResult.msgUps
-                                ++ List.map AddUserNotice userNotices
-                            )
+                            updateResult.msgUps
 
                 _ ->
                     ( prevModel, Cmd.none )
@@ -401,6 +489,69 @@ withMsgUps msgUps ( prevModel, prevCmd ) =
             (\newCmd ->
                 Cmd.batch [ prevCmd, newCmd ]
             )
+
+
+initiateUserTxs : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> List (UserTx.Initiator Msg) -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
+initiateUserTxs txSentry prevTrackedTxs txInitiators =
+    List.foldl
+        (\initiator ( accTxSentry, accCmd, accTrackedTxs ) ->
+            initiateUserTx accTxSentry accTrackedTxs initiator
+                |> TupleHelpers.tuple3MapSecond
+                    (\newCmd ->
+                        Cmd.batch
+                            [ accCmd
+                            , newCmd
+                            ]
+                    )
+        )
+        ( txSentry, Cmd.none, prevTrackedTxs )
+        txInitiators
+
+
+initiateUserTx : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> UserTx.Initiator Msg -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
+initiateUserTx txSentry prevTrackedTxs txInitiator =
+    let
+        ( trackedTxId, newTrackedTxs ) =
+            prevTrackedTxs
+                |> addTrackedTx txInitiator.txInfo txInitiator.notifiers
+
+        ( newTxSentry, txSentryCmd ) =
+            UserTx.execute
+                txSentry
+                { txInitiator
+                    | notifiers = trackingNotifiers trackedTxId
+                }
+    in
+    ( newTxSentry
+    , txSentryCmd
+    , newTrackedTxs
+    )
+
+
+trackingNotifiers : Int -> UserTx.Notifiers Msg
+trackingNotifiers trackedTxId =
+    { onSign = Just <| TxSigned trackedTxId
+    , onBroadcast = Nothing
+
+    -- , onBroadcast = Just <| TxBroadcast trackedTxId
+    , onMine = Just <| TxMined trackedTxId
+    }
+
+
+addTrackedTx : TxInfo -> UserTx.Notifiers Msg -> UserTx.Tracker Msg -> ( Int, UserTx.Tracker Msg )
+addTrackedTx userTx notifiers tracker =
+    let
+        newTrackedTx =
+            UserTx.TrackedTx
+                notifiers
+                userTx
+                UserTx.Signing
+    in
+    ( List.length tracker
+    , List.append
+        tracker
+        [ newTrackedTx ]
+    )
 
 
 updateFromPageRoute : Route -> Model -> ( Model, Cmd Msg )
