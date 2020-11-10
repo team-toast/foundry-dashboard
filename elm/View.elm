@@ -338,9 +338,8 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         totals
 
             tallies =
-                (1,1,1)
-                -- trackedTxs
-                --     |> List.foldl tallyFunc ( 0, 0, 0 )
+                trackedTxs
+                    |> List.foldl tallyFunc ( 0, 0, 0 )
 
             renderedTallyEls =
                 tallies
