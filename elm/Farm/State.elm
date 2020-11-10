@@ -17,14 +17,10 @@ init wallet now =
     ( { wallet = wallet
       , userStakingInfo = Nothing
       , depositWithdrawUXModel = Nothing
+      , apy = Nothing
       , now = now
       }
-    , case Wallet.userInfo wallet of
-        Just userInfo ->
-            fetchUserStakingInfoCmd userInfo.address
-
-        Nothing ->
-            Cmd.none
+    , fetchStakingInfoOrApyCmd wallet
     )
 
 
@@ -126,16 +122,10 @@ update msg prevModel =
                 _ ->
                     justModelUpdate prevModel
 
-        RefetchStakingInfo ->
+        RefetchStakingInfoOrApy ->
             UpdateResult
                 prevModel
-                (case Wallet.userInfo prevModel.wallet of
-                    Just userInfo ->
-                        fetchUserStakingInfoCmd userInfo.address
-
-                    Nothing ->
-                        Cmd.none
-                )
+                (fetchStakingInfoOrApyCmd prevModel.wallet)
                 []
                 []
 
@@ -148,11 +138,26 @@ update msg prevModel =
                         []
                         [ Common.Msg.AddUserNotice <| UN.web3FetchError "staking info" httpErr ]
 
-                Ok userStakingInfo ->
+                Ok ( userStakingInfo, apy ) ->
                     justModelUpdate
                         { prevModel
-                            | userStakingInfo =
-                                Just userStakingInfo
+                            | userStakingInfo = Just userStakingInfo
+                            , apy = Just apy
+                        }
+
+        ApyFetched fetchResult ->
+            case fetchResult of
+                Err httpErr ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+                        [ Common.Msg.AddUserNotice <| UN.web3FetchError "apy" httpErr ]
+
+                Ok apy ->
+                    justModelUpdate
+                        { prevModel
+                            | apy = Just apy
                         }
 
 
@@ -182,6 +187,16 @@ runMsgDown msg prevModel =
                 []
 
 
+fetchStakingInfoOrApyCmd : Wallet -> Cmd Msg
+fetchStakingInfoOrApyCmd wallet =
+    case Wallet.userInfo wallet of
+        Just userInfo ->
+            fetchUserStakingInfoCmd userInfo.address
+
+        Nothing ->
+            fetchApyCmd
+
+
 fetchUserStakingInfoCmd : Address -> Cmd Msg
 fetchUserStakingInfoCmd userAddress =
     StakingContract.getUserStakingInfo
@@ -189,10 +204,16 @@ fetchUserStakingInfoCmd userAddress =
         StakingInfoFetched
 
 
+fetchApyCmd : Cmd Msg
+fetchApyCmd =
+    StakingContract.getApy
+        ApyFetched
+
+
 doApproveChainCmd : UserTx.Initiator Msg
 doApproveChainCmd =
     { notifiers =
-        { onMine = Just <| always RefetchStakingInfo
+        { onMine = Just <| always RefetchStakingInfoOrApy
         , onSign = Nothing
         }
     , send = StakingContract.approveLiquidityToken
@@ -203,7 +224,7 @@ doApproveChainCmd =
 doDepositChainCmd : TokenValue -> UserTx.Initiator Msg
 doDepositChainCmd amount =
     { notifiers =
-        { onMine = Just <| always RefetchStakingInfo
+        { onMine = Just <| always RefetchStakingInfoOrApy
         , onSign = Just WithdrawOrDepositSigned
         }
     , send = StakingContract.stake amount
@@ -214,7 +235,7 @@ doDepositChainCmd amount =
 doWithdrawChainCmd : TokenValue -> UserTx.Initiator Msg
 doWithdrawChainCmd amount =
     { notifiers =
-        { onMine = Just <| always RefetchStakingInfo
+        { onMine = Just <| always RefetchStakingInfoOrApy
         , onSign = Just <| WithdrawOrDepositSigned
         }
     , send = StakingContract.withdraw amount
@@ -225,7 +246,7 @@ doWithdrawChainCmd amount =
 doExitChainCmd : UserTx.Initiator Msg
 doExitChainCmd =
     { notifiers =
-        { onMine = Just <| always RefetchStakingInfo
+        { onMine = Just <| always RefetchStakingInfoOrApy
         , onSign = Nothing
         }
     , send = StakingContract.exit
@@ -236,7 +257,7 @@ doExitChainCmd =
 doClaimRewards : UserTx.Initiator Msg
 doClaimRewards =
     { notifiers =
-        { onMine = Just <| always RefetchStakingInfo
+        { onMine = Just <| always RefetchStakingInfoOrApy
         , onSign = Nothing
         }
     , send = StakingContract.claimRewards
@@ -244,17 +265,9 @@ doClaimRewards =
     }
 
 
-
--- doDepositCmd : TokenValue -> Cmd Msg
--- doDepositCmd amount =
---     StakingContract.callStake
---         amount
---         (always NoOp)
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 50 UpdateNow
-        , Time.every 10 (always RefetchStakingInfo)
+        , Time.every 10 (always RefetchStakingInfoOrApy)
         ]

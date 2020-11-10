@@ -14,6 +14,7 @@ import Wallet exposing (Wallet)
 type alias Model =
     { wallet : Wallet.Wallet
     , userStakingInfo : Maybe UserStakingInfo
+    , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , now : Time.Posix
     }
@@ -33,8 +34,9 @@ type Msg
     | StartWithdraw TokenValue
     | DoWithdraw TokenValue
     | WithdrawOrDepositSigned (Result String TxHash)
-    | StakingInfoFetched (Result Http.Error UserStakingInfo)
-    | RefetchStakingInfo
+    | StakingInfoFetched (Result Http.Error (UserStakingInfo, Float))
+    | ApyFetched (Result Http.Error Float)
+    | RefetchStakingInfoOrApy
 
 
 type alias UpdateResult =

@@ -11,6 +11,7 @@ import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
+import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
 import Images
 import Maybe.Extra
@@ -32,43 +33,83 @@ view dProfile model =
             }
         ]
     <|
-        Element.column
+        Element.row
             [ Element.centerX
             , Element.Background.color <| Element.rgb 0.6 0.6 1
             , Element.Border.rounded 10
             , Element.height <| Element.px <| responsiveVal dProfile 500 500
             , Element.width <| Element.px <| responsiveVal dProfile 800 200
             , Element.padding 20
+            , Element.spacing 10
             ]
-            [ case Wallet.userInfo model.wallet of
-                Nothing ->
-                    Common.View.web3ConnectButton
-                        dProfile
+            [ balancesElement dProfile model.now model.wallet model.userStakingInfo model.depositWithdrawUXModel
+            , apyElement dProfile model.apy
+            ]
+
+
+balancesElement : DisplayProfile -> Time.Posix -> Wallet -> Maybe UserStakingInfo -> DepositOrWithdrawUXModel -> Element Msg
+balancesElement dProfile now wallet maybeUserStakingInfo depositWithdrawUXModel =
+    Element.el [ Element.alignTop, Element.alignLeft ] <|
+        case Wallet.userInfo wallet of
+            Nothing ->
+                Common.View.web3ConnectButton
+                    dProfile
+                    []
+                    MsgUp
+
+            Just userInfo ->
+                case maybeUserStakingInfo of
+                    Nothing ->
+                        Element.el
+                            [ Element.Font.italic
+                            ]
+                            (Element.text "Fetching info...")
+
+                    Just userStakingInfo ->
+                        Element.column
+                            [ Element.spacing 25
+                            ]
+                            [ maybeGetLiquidityMessageElement dProfile userStakingInfo
+                            , unstakedRow dProfile userStakingInfo depositWithdrawUXModel
+                            , stakedRow dProfile userStakingInfo depositWithdrawUXModel
+                            , rewardsRow dProfile userStakingInfo now
+                            ]
+
+
+apyElement : DisplayProfile -> Maybe Float -> Element Msg
+apyElement dProfile maybeApy =
+    Element.el
+        [ Element.alignTop
+        , Element.alignRight
+        , Element.Font.size 30
+        ]
+    <|
+        case maybeApy of
+            Nothing ->
+                Element.el
+                    [ Element.Font.italic ]
+                    (Element.text "Fetching APY...")
+
+            Just apy ->
+                Element.column
+                    [ Element.spacing 5
+                    , Element.padding 5
+                    , Element.Background.color <| Element.rgba 0 0 0 0.15
+                    , Element.Border.rounded 5
+                    , Element.Border.width 1
+                    , Element.Border.color <| Element.rgba 0 0 0 0.1
+                    ]
+                    [ Element.text "Current APY: "
+                    , Element.el
                         [ Element.centerX
-                        , Element.centerY
+                        , Element.Font.color <| Theme.darkBlue
+                        , Element.Font.medium
                         ]
-                        MsgUp
-
-                Just userInfo ->
-                    case model.userStakingInfo of
-                        Nothing ->
-                            Element.el
-                                [ Element.centerX
-                                , Element.centerY
-                                , Element.Font.italic
-                                ]
-                                (Element.text "Fetching info...")
-
-                        Just userStakingInfo ->
-                            Element.column
-                                [ Element.spacing 25
-                                ]
-                                [ maybeGetLiquidityMessageElement dProfile userStakingInfo
-                                , unstakedRow dProfile userStakingInfo model.depositWithdrawUXModel
-                                , stakedRow dProfile userStakingInfo model.depositWithdrawUXModel
-                                , rewardsRow dProfile userStakingInfo model.now
-                                ]
-            ]
+                      <|
+                        Element.text <|
+                            FormatFloat.formatFloat 2 apy
+                                ++ "%"
+                    ]
 
 
 maybeGetLiquidityMessageElement : DisplayProfile -> UserStakingInfo -> Element Msg
@@ -381,21 +422,6 @@ inactiveUnstackedRowButtons dProfile stakingInfo =
         makeDepositButton
             (Just "Deposit ETHFRY")
             (Just <| StartDeposit stakingInfo.unstaked)
-
-
-
--- amountInputField : AmountUXModel -> Element Msg
--- amountInputField amountUXModel =
---     Element.Input.text
---         [ Element.width <| Element.px 200
---         , Element.height <| Element.px 30
---         , Element.padding 0
---         ]
---         { onChange = AmountInputChanged
---         , text = amountUXModel.amountInput
---         , placeholder = Nothing
---         , label = Element.Input.labelHidden "amount"
---         }
 
 
 mainRow : DisplayProfile -> List (Element Msg) -> Element Msg

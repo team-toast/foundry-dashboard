@@ -1,5 +1,6 @@
 module Contracts.Staking exposing (..)
 
+import BigInt exposing (BigInt)
 import Common.Types exposing (UserStakingInfo)
 import Config
 import Contracts.Generated.ERC20 as ERC20
@@ -7,6 +8,7 @@ import Contracts.Generated.StakingRewards as StakingContract
 import Contracts.Generated.StakingScripts as StakingScripts
 import Eth
 import Eth.Types as Eth exposing (Address)
+import Helpers.BigInt as BigIntHelpers
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Http
@@ -81,7 +83,7 @@ claimRewards =
 --         |> Task.attempt msgConstructor
 
 
-getUserStakingInfo : Address -> (Result Http.Error UserStakingInfo -> msg) -> Cmd msg
+getUserStakingInfo : Address -> (Result Http.Error ( UserStakingInfo, Float ) -> msg) -> Cmd msg
 getUserStakingInfo userAddress msgConstructor =
     Eth.call
         Config.httpProviderUrl
@@ -90,19 +92,41 @@ getUserStakingInfo userAddress msgConstructor =
             Config.stakingContractAddress
             userAddress
         )
-        |> Task.map bindingStructToUserStakingInfo
+        |> Task.map unpackBindingStruct
         |> Task.attempt msgConstructor
 
 
-bindingStructToUserStakingInfo : StakingScripts.GetData -> UserStakingInfo
-bindingStructToUserStakingInfo data =
-    { unstaked = TokenValue.tokenValue data.availableBalance
-    , allowance = TokenValue.tokenValue data.allowedBalance
-    , staked = TokenValue.tokenValue data.stakedBalance
-    , claimableRewards = TokenValue.tokenValue data.earned
-    , rewardRate = TokenValue.tokenValue data.rewardRate
-    , timestamp = TimeHelpers.secondsBigIntToPosixWithWarning data.timestamp
-    }
+unpackBindingStruct : StakingScripts.GetData -> ( UserStakingInfo, Float )
+unpackBindingStruct data =
+    ( { unstaked = TokenValue.tokenValue data.availableBalance
+      , allowance = TokenValue.tokenValue data.allowedBalance
+      , staked = TokenValue.tokenValue data.stakedBalance
+      , claimableRewards = TokenValue.tokenValue data.earned
+      , rewardRate = TokenValue.tokenValue data.rewardRate
+      , timestamp = TimeHelpers.secondsBigIntToPosixWithWarning data.timestamp
+      }
+    , unpackApy data.apy
+    )
+
+
+getApy : (Result Http.Error Float -> msg) -> Cmd msg
+getApy msgConstructor =
+    Eth.call
+        Config.httpProviderUrl
+        (StakingScripts.getData
+            Config.stakingScriptsAddress
+            Config.stakingContractAddress
+            EthHelpers.zeroAddress
+        )
+        |> Task.map unpackBindingStruct
+        |> Task.map Tuple.second
+        |> Task.attempt msgConstructor
+
+
+unpackApy : BigInt -> Float
+unpackApy uintVal =
+    (BigIntHelpers.toIntWithWarning uintVal |> toFloat)
+        / 1000.0
 
 
 
