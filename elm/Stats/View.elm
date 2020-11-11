@@ -13,7 +13,7 @@ import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Routing exposing (Route)
 import Stats.Types exposing (..)
@@ -29,7 +29,9 @@ view dProfile maybeUserInfo model =
         [ Element.row
             [ Element.width Element.fill ]
             [ Element.el
-                [ Element.Font.color EH.white, Element.Font.size 30 ]
+                [ Element.Font.color EH.white
+                , Element.Font.size 30
+                ]
               <|
                 Element.text " Foundry Addresses"
             ]
