@@ -35,7 +35,9 @@ function startDapp() {
                 }
             });
 
+            gtagPortStuff(app);
             web3PortStuff(app, web3);
+
         });
     } else {
         window.app = Elm.App.init({
@@ -48,6 +50,8 @@ function startDapp() {
                 nowInMillis: Date.now(),
             }
         });
+
+        gtagPortStuff(app);
 
         console.log("Web3 wallet not detected.");
     }
@@ -100,6 +104,16 @@ function web3PortStuff(app, web3) {
         };
 
         app.ports.web3ValidateSigResult.send(successObject);
+    });
+}
+
+function gtagPortStuff(app) {
+    app.ports.gTagOut.subscribe(function (data) {
+        gtag('event', data.event, {
+            'event_category': data.category,
+            'event_label': data.label,
+            'value': data.value
+        });
     });
 }
 

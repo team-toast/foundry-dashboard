@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+	<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">
+	<!ENTITY ns_ai "http://ns.adobe.com/AdobeIllustrator/10.0/">
+	<!ENTITY ns_graphs "http://ns.adobe.com/Graphs/1.0/">
+	<!ENTITY ns_vars "http://ns.adobe.com/Variables/1.0/">
+	<!ENTITY ns_imrep "http://ns.adobe.com/ImageReplacement/1.0/">
+	<!ENTITY ns_sfw "http://ns.adobe.com/SaveForWeb/1.0/">
+	<!ENTITY ns_custom "http://ns.adobe.com/GenericCustomNamespace/1.0/">
+	<!ENTITY ns_adobe_xpath "http://ns.adobe.com/XPath/1.0/">
+]>
+<svg version="1.1" id="Layer_1" xmlns:x="&ns_extend;" xmlns:i="&ns_ai;" xmlns:graph="&ns_graphs;"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="50px" height="50px"
+	 viewBox="0 0 50 50" enable-background="new 0 0 50 50" xml:space="preserve">
+<switch>
+	<foreignObject requiredExtensions="&ns_ai;" x="0" y="0" width="1" height="1">
+		<i:pgfRef  xlink:href="#adobe_illustrator_pgf">
+		</i:pgfRef>
+	</foreignObject>
+	<g i:extraneous="self">
+		<g>
+			<g>
+				<path fill="#000000" d="M7.092,45.709H4.327v-4.354h2.765V45.709z M7.092,38.452H4.327v-4.356h2.765V38.452z M7.092,31.193
+					H4.327v-4.356h2.765V31.193z"/>
+				<path fill="#000000" d="M7.092,23.935H4.327V21.86c0-0.764,0.619-1.382,1.383-1.382h2.074v2.765H7.092V23.935z"/>
+				<path fill="#000000" d="M39.666,23.243H35.84v-2.765h3.826V23.243z M33.29,23.243h-3.826v-2.765h3.826V23.243z M20.536,23.243
+					H16.71v-2.765h3.826V23.243z M14.16,23.243h-3.826v-2.765h3.826V23.243z"/>
+				<path fill="#000000" d="M45.673,23.935h-2.765v-0.691h-0.691v-2.765h2.074c0.764,0,1.383,0.619,1.383,1.382V23.935z"/>
+				<path fill="#000000" d="M45.673,45.709h-2.765v-4.354h2.765V45.709z M45.673,38.452h-2.765v-4.356h2.765V38.452z M45.673,31.193
+					h-2.765v-4.356h2.765V31.193z"/>
+			</g>
+			<g>
+				<polygon fill="#EB1F79" points="32.102,15.357 24.771,4.29 17.443,15.357 22.558,15.357 22.558,38.729 26.987,38.729 
+					26.987,15.357 				"/>
+			</g>
+		</g>
+	</g>
+</switch>
+</svg>

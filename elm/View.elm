@@ -16,6 +16,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
+import Farm.View as Farm
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
@@ -38,6 +39,7 @@ import TokenValue exposing (TokenValue)
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
+import UserTx
 import Wallet exposing (Wallet)
 
 
@@ -83,7 +85,8 @@ body model =
         ]
         [ header
             model.dProfile
-            model.submodel
+            model.trackedTxs
+            model.trackedTxsExpanded
             (Wallet.userInfo model.wallet)
             model.showAddressId
         , case model.submodel of
@@ -108,13 +111,19 @@ body model =
                 Element.map StatsMsg <|
                     Stats.view
                         model.dProfile
-                        statsModel
                         (Wallet.userInfo model.wallet)
+                        statsModel
+
+            Farm farmModel ->
+                Element.map FarmMsg <|
+                    Farm.view
+                        model.dProfile
+                        farmModel
         ]
 
 
-header : EH.DisplayProfile -> Submodel -> Maybe UserInfo -> Maybe PhaceIconId -> Element Msg
-header dProfile mode maybeUserInfo showAddressId =
+header : EH.DisplayProfile -> UserTx.Tracker Msg -> Bool -> Maybe UserInfo -> Maybe PhaceIconId -> Element Msg
+header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
@@ -130,6 +139,16 @@ header dProfile mode maybeUserInfo showAddressId =
 
             Desktop ->
                 logoBlock dProfile
+        , (Maybe.map
+            (Element.el
+                [ Element.alignTop
+                , Element.alignRight
+                ]
+            )
+           <|
+            maybeTxTracker dProfile trackedTxsExpanded trackedTxs
+          )
+            |> Maybe.withDefault Element.none
         , Element.el
             [ Element.centerY
             , Element.alignRight
@@ -299,3 +318,281 @@ userNotice dProfile ( id, notice ) =
                 , Element.width Element.fill
                 ]
         )
+
+
+maybeTxTracker : DisplayProfile -> Bool -> UserTx.Tracker Msg -> Maybe (Element Msg)
+maybeTxTracker dProfile showExpanded trackedTxs =
+    if List.isEmpty trackedTxs then
+        Nothing
+
+    else
+        let
+            tallyFunc : UserTx.TrackedTx Msg -> ( Int, Int, Int ) -> ( Int, Int, Int )
+            tallyFunc trackedTx totals =
+                case trackedTx.status of
+                    UserTx.Signed _ UserTx.Mining ->
+                        Tuple3.mapFirst ((+) 1) totals
+
+                    UserTx.Signed _ (UserTx.Success _) ->
+                        Tuple3.mapSecond ((+) 1) totals
+
+                    UserTx.Signed _ UserTx.Failed ->
+                        Tuple3.mapThird ((+) 1) totals
+
+                    _ ->
+                        totals
+
+            tallies =
+                trackedTxs
+                    |> List.foldl tallyFunc ( 0, 0, 0 )
+
+            renderedTallyEls =
+                tallies
+                    |> TupleHelpers.mapTuple3
+                        (\n ->
+                            if n == 0 then
+                                Nothing
+
+                            else
+                                Just n
+                        )
+                    |> TupleHelpers.mapEachTuple3
+                        (Maybe.map
+                            (\n ->
+                                Element.el
+                                    [ Element.Font.color <| trackedTxMiningColor ]
+                                <|
+                                    Element.text <|
+                                        String.fromInt n
+                                            ++ " TXs mining"
+                            )
+                        )
+                        (Maybe.map
+                            (\n ->
+                                Element.el
+                                    [ Element.Font.color <| trackedTxSuccessColor ]
+                                <|
+                                    Element.text <|
+                                        String.fromInt n
+                                            ++ " TXs mined"
+                            )
+                        )
+                        (Maybe.map
+                            (\n ->
+                                Element.el
+                                    [ Element.Font.color <| trackedTxFailedColor ]
+                                <|
+                                    Element.text <|
+                                        String.fromInt n
+                                            ++ " TXs failed"
+                            )
+                        )
+                    |> TupleHelpers.tuple3ToList
+        in
+        if List.all Maybe.Extra.isNothing renderedTallyEls then
+            Nothing
+
+        else
+            Just <|
+                Element.el
+                    [ Element.below <|
+                        if showExpanded then
+                            Element.el
+                                [ Element.alignRight
+                                , Element.alignTop
+                                ]
+                            <|
+                                trackedTxsColumn trackedTxs
+
+                        else
+                            Element.none
+                    ]
+                <|
+                    Element.column
+                        [ Element.Border.rounded 5
+                        , Element.Border.width 2
+                        , Element.Border.color Theme.blue
+                        , Element.Background.color <| Element.rgb 0.2 0.2 0.2
+                        , Element.padding (10 |> changeForMobile 5 dProfile)
+                        , Element.spacing (10 |> changeForMobile 5 dProfile)
+                        , Element.Font.size (20 |> changeForMobile 12 dProfile)
+                        , Element.pointer
+                        , EH.onClickNoPropagation <|
+                            if showExpanded then
+                                ShowExpandedTrackedTxs False
+
+                            else
+                                ShowExpandedTrackedTxs True
+                        ]
+                        (renderedTallyEls
+                            |> List.map (Maybe.withDefault Element.none)
+                        )
+
+
+trackedTxsColumn : UserTx.Tracker Msg -> Element Msg
+trackedTxsColumn trackedTxs =
+    Element.column
+        [ Element.Background.color <| Theme.lightBlue
+        , Element.Border.rounded 3
+        , Element.Border.glow
+            (Element.rgba 0 0 0 0.2)
+            4
+        , Element.padding 10
+        , Element.spacing 5
+        , EH.onClickNoPropagation Types.NoOp
+        , Element.height (Element.shrink |> Element.maximum 400)
+        , Element.scrollbarY
+        , Element.alignRight
+        ]
+        (trackedTxs
+            |> List.indexedMap
+                (\trackedTxId trackedTx ->
+                    case trackedTx.status of
+                        UserTx.Signed txHash signedTxStatus ->
+                            Just <|
+                                viewTrackedTxRow trackedTxId trackedTx.txInfo txHash signedTxStatus
+
+                        _ ->
+                            Nothing
+                )
+            |> Maybe.Extra.values
+        )
+
+
+viewTrackedTxRow : Int -> UserTx.TxInfo -> TxHash -> UserTx.SignedTxStatus -> Element Msg
+viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
+    let
+        etherscanLink label =
+            Element.newTabLink
+                [ Element.Font.italic
+                , Element.Font.color defaultTheme.linkTextColor
+                ]
+                { url = EthHelpers.etherscanTxUrl txHash
+                , label = Element.text label
+                }
+
+        titleEl =
+            Element.text <|
+                case txInfo of
+                    UserTx.StakingApprove ->
+                        "Enable Farming Deposit"
+
+                    UserTx.StakingDeposit amount ->
+                        "Deposit "
+                            ++ TokenValue.toConciseString amount
+                            ++ " ETHFRY"
+
+                    UserTx.StakingWithdraw amount ->
+                        "Withrdaw "
+                            ++ TokenValue.toConciseString amount
+                            ++ " ETHFRY"
+
+                    UserTx.StakingClaim ->
+                        "Claim FRY Rewards"
+
+                    UserTx.StakingExit ->
+                        "Exit Farming"
+
+        -- case ( trackedTx.txInfo, trackedTx.status ) of
+        --     ( UnlockTx, _ ) ->
+        --         Element.text "Unlock DAI"
+        --     ( TipTx postId amount, _ ) ->
+        --         Element.row
+        --             []
+        --             [ Element.text "Tip "
+        --             , Element.el
+        --                 [ Element.Font.color defaultTheme.linkTextColor
+        --                 , Element.pointer
+        --                 , Element.Events.onClick <|
+        --                     MsgUp <|
+        --                         GotoRoute <|
+        --                             Routing.ViewContext <|
+        --                                 Post.ForPost postId
+        --                 ]
+        --                 (Element.text "Post")
+        --             ]
+        --     ( BurnTx postId amount, _ ) ->
+        --         Element.row
+        --             []
+        --             [ Element.text "Burn for "
+        --             , Element.el
+        --                 [ Element.Font.color defaultTheme.linkTextColor
+        --                 , Element.pointer
+        --                 , Element.Events.onClick <|
+        --                     MsgUp <|
+        --                         GotoRoute <|
+        --                             Routing.ViewContext <|
+        --                                 Post.ForPost postId
+        --                 ]
+        --                 (Element.text "Post")
+        --             ]
+        --     ( PostTx _, Mined _ ) ->
+        --         Element.text "Post"
+        --     ( PostTx draft, _ ) ->
+        --         Element.row
+        --             [ Element.spacing 8
+        --             ]
+        --             [ Element.text "Post"
+        --             , Element.el
+        --                 [ Element.Font.color defaultTheme.linkTextColor
+        --                 , Element.pointer
+        --                 , Element.Events.onClick <| ViewDraft <| Just draft
+        --                 ]
+        --                 (Element.text "(View Draft)")
+        --             ]
+        statusEl =
+            case signedTxStatus of
+                UserTx.Mining ->
+                    etherscanLink "Mining"
+
+                UserTx.Failed ->
+                    etherscanLink "Failed"
+
+                UserTx.Success txReceipt ->
+                    etherscanLink "Mined"
+    in
+    Element.row
+        [ Element.width <| Element.px 300
+        , Element.Background.color
+            (signedTxStatusToColor signedTxStatus
+                |> EH.withAlpha 0.3
+            )
+        , Element.Border.rounded 2
+        , Element.Border.width 1
+        , Element.Border.color <| Element.rgba 0 0 0 0.3
+        , Element.padding 4
+        , Element.spacing 4
+        , Element.Font.size 20
+        ]
+        [ titleEl
+        , Element.el [ Element.alignRight ] <| statusEl
+        ]
+
+
+
+signedTxStatusToColor : UserTx.SignedTxStatus -> Element.Color
+signedTxStatusToColor signedStatus =
+    case signedStatus of
+        UserTx.Mining ->
+            trackedTxMiningColor
+
+        UserTx.Success _ ->
+            trackedTxSuccessColor
+
+        UserTx.Failed ->
+            trackedTxFailedColor
+
+
+trackedTxMiningColor : Element.Color
+trackedTxMiningColor =
+    Theme.darkYellow
+
+
+trackedTxFailedColor : Element.Color
+trackedTxFailedColor =
+    Theme.softRed
+
+
+trackedTxSuccessColor : Element.Color
+trackedTxSuccessColor =
+    Theme.green

@@ -72,3 +72,23 @@ fryTokenAddress =
 bucketSaleAddress : Address
 bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
+
+
+stakingContractAddress : Address
+stakingContractAddress =
+    Eth.Utils.unsafeToAddress "0xEb3f6479711e44c3a8F8bdd33CB90E9F7bac5F58"
+
+
+stakingLiquidityContractAddress : Address
+stakingLiquidityContractAddress =
+    Eth.Utils.unsafeToAddress "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+
+
+stakingScriptsAddress : Address
+stakingScriptsAddress =
+    Eth.Utils.unsafeToAddress "0xa939728f9cdCdc4EEA16bdF3Aff03AB27036f4c7"
+
+
+urlToLiquidityPool : String
+urlToLiquidityPool =
+    "https://info.uniswap.org/pair/0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"

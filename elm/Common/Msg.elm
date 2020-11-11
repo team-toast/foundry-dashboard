@@ -14,6 +14,8 @@ type MsgUp
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
+    | GTag GTagData
+    | NonRepeatingGTag GTagData
     | NoOp
 
 

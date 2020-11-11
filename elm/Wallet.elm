@@ -37,31 +37,31 @@ network walletState =
             Just uInfo.network
 
 
-withFetchedBalance : TokenValue -> Wallet -> Wallet
-withFetchedBalance balance wallet =
-    case wallet of
-        Active uInfo ->
-            Active <|
-                (uInfo |> withBalance balance)
+-- withFetchedBalance : TokenValue -> Wallet -> Wallet
+-- withFetchedBalance balance wallet =
+--     case wallet of
+--         Active uInfo ->
+--             Active <|
+--                 (uInfo |> withBalance balance)
 
-        _ ->
-            wallet
+--         _ ->
+--             wallet
 
 
-withUnlockStatus : UnlockStatus -> Wallet -> Wallet
-withUnlockStatus status wallet =
-    case wallet of
-        Active uInfo ->
-            Active <|
-                (uInfo |> Common.Types.withUnlockStatus status)
+-- withUnlockStatus : UnlockStatus -> Wallet -> Wallet
+-- withUnlockStatus status wallet =
+--     case wallet of
+--         Active uInfo ->
+--             Active <|
+--                 (uInfo |> Common.Types.withUnlockStatus status)
 
-        _ ->
-            wallet
+--         _ ->
+--             wallet
 
-unlockStatus : Wallet -> UnlockStatus
-unlockStatus wallet =
-    case wallet of
-        Active uInfo ->
-            uInfo.unlockStatus
-        _ ->
-            NotConnected
+-- unlockStatus : Wallet -> UnlockStatus
+-- unlockStatus wallet =
+--     case wallet of
+--         Active uInfo ->
+--             uInfo.unlockStatus
+--         _ ->
+--             NotConnected

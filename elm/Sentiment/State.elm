@@ -290,6 +290,13 @@ update msg prevModel =
                 }
 
 
+runMsgDown : MsgDown -> Model -> UpdateResult
+runMsgDown msg prevModel =
+    case msg of
+        UpdateWallet _ ->
+            justModelUpdate prevModel
+
+
 fetchAllPollsCmd : Cmd Msg
 fetchAllPollsCmd =
     Http.request

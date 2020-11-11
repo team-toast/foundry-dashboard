@@ -18,7 +18,9 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
+import Farm.State as Farm
 import Helpers.Element as EH exposing (DisplayProfile(..))
+import Helpers.Tuple as TupleHelpers
 import Home.State as Home
 import Json.Decode
 import Json.Encode
@@ -35,6 +37,7 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
+import UserTx exposing (TxInfo)
 import Wallet
 
 
@@ -81,6 +84,9 @@ init flags url key =
     , submodel = BlankInitialSubmodel
     , showAddressId = Nothing
     , userNotices = walletNotices
+    , trackedTxs = []
+    , trackedTxsExpanded = False
+    , nonRepeatingGTagsSent = []
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -136,28 +142,36 @@ update msg prevModel =
             case walletSentryResult of
                 Ok walletSentry ->
                     let
-                        newWallet =
+                        ( newWallet, notifySubmodel ) =
                             case walletSentry.account of
                                 Just newAddress ->
                                     if (prevModel.wallet |> Wallet.userInfo |> Maybe.map .address) == Just newAddress then
-                                        prevModel.wallet
+                                        ( prevModel.wallet, False )
 
                                     else
-                                        Wallet.Active <|
+                                        ( Wallet.Active <|
                                             UserInfo
                                                 walletSentry.networkId
                                                 newAddress
-                                                Nothing
-                                                Checking
+                                          -- Nothing
+                                          -- Checking
+                                        , True
+                                        )
 
                                 Nothing ->
-                                    Wallet.OnlyNetwork walletSentry.networkId
+                                    ( Wallet.OnlyNetwork walletSentry.networkId
+                                    , prevModel.wallet /= Wallet.OnlyNetwork walletSentry.networkId
+                                    )
                     in
-                    ( { prevModel
+                    { prevModel
                         | wallet = newWallet
-                      }
-                    , Cmd.none
-                    )
+                    }
+                        |> (if notifySubmodel then
+                                runMsgDown (UpdateWallet newWallet)
+
+                            else
+                                \model -> ( model, Cmd.none )
+                           )
 
                 Err errStr ->
                     ( prevModel |> addUserNotice (UN.walletError errStr)
@@ -218,6 +232,81 @@ update msg prevModel =
             , Cmd.none
             )
 
+        ShowExpandedTrackedTxs flag ->
+            ( { prevModel
+                | trackedTxsExpanded = flag
+              }
+            , Cmd.none
+            )
+
+        TxSigned trackedTxId signResult ->
+            let
+                newTrackedTxs =
+                    prevModel.trackedTxs
+                        |> UserTx.setTrackedTxStatus trackedTxId
+                            (case signResult of
+                                Err errStr ->
+                                    UserTx.Rejected
+
+                                Ok txHash ->
+                                    UserTx.Signed txHash UserTx.Mining
+                            )
+
+                maybeExtraMsgConstructor =
+                    prevModel.trackedTxs
+                        |> List.Extra.getAt trackedTxId
+                        |> Maybe.map .notifiers
+                        |> Maybe.andThen .onSign
+
+                intermediateModel =
+                    { prevModel
+                        | trackedTxs = newTrackedTxs
+                    }
+            in
+            case maybeExtraMsgConstructor of
+                Just extraMsgConstructor ->
+                    intermediateModel
+                        |> update (extraMsgConstructor signResult)
+
+                Nothing ->
+                    ( intermediateModel
+                    , Cmd.none
+                    )
+
+        TxMined trackedTxId mineResult ->
+            let
+                newTrackedTxs =
+                    prevModel.trackedTxs
+                        |> UserTx.setTrackedTxSignedStatus trackedTxId
+                            (case mineResult of
+                                Err errStr ->
+                                    UserTx.Failed
+
+                                Ok txReceipt ->
+                                    UserTx.Success txReceipt
+                            )
+
+                maybeExtraMsgConstructor =
+                    prevModel.trackedTxs
+                        |> List.Extra.getAt trackedTxId
+                        |> Maybe.map .notifiers
+                        |> Maybe.andThen .onMine
+
+                intermediateModel =
+                    { prevModel
+                        | trackedTxs = newTrackedTxs
+                    }
+            in
+            case maybeExtraMsgConstructor of
+                Just extraMsgConstructor ->
+                    intermediateModel
+                        |> update (extraMsgConstructor mineResult)
+
+                Nothing ->
+                    ( intermediateModel
+                    , Cmd.none
+                    )
+
         HomeMsg homeMsg ->
             case prevModel.submodel of
                 Home homeModel ->
@@ -271,6 +360,36 @@ update msg prevModel =
                     , Cmd.map StatsMsg updateResult.cmd
                     )
                         |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
+
+        FarmMsg farmMsg ->
+            case prevModel.submodel of
+                Farm farmModel ->
+                    let
+                        updateResult =
+                            farmModel
+                                |> Farm.update farmMsg
+
+                        ( newTxSentry, sentryCmd, newTrackedTxs ) =
+                            initiateUserTxs
+                                prevModel.txSentry
+                                prevModel.trackedTxs
+                                (UserTx.mapInitiatorList FarmMsg updateResult.userTxs)
+                    in
+                    ( { prevModel
+                        | txSentry = newTxSentry
+                        , submodel = Farm updateResult.newModel
+                        , trackedTxs = newTrackedTxs
+                      }
+                    , Cmd.batch
+                        [ Cmd.map FarmMsg updateResult.cmd
+                        , sentryCmd
+                        ]
+                    )
+                        |> withMsgUps
+                            updateResult.msgUps
 
                 _ ->
                     ( prevModel, Cmd.none )
@@ -334,6 +453,33 @@ handleMsgUp msgUp prevModel =
             , Cmd.none
             )
 
+        GTag gtag ->
+            ( prevModel
+            , gTagOut (encodeGTag gtag)
+            )
+
+        NonRepeatingGTag gtag ->
+            let
+                alreadySent =
+                    prevModel.nonRepeatingGTagsSent
+                        |> List.any
+                            (\event ->
+                                event == gtag.event
+                            )
+            in
+            if alreadySent then
+                ( prevModel, Cmd.none )
+
+            else
+                ( { prevModel
+                    | nonRepeatingGTagsSent =
+                        prevModel.nonRepeatingGTagsSent
+                            |> List.append
+                                [ gtag.event ]
+                  }
+                , gTagOut (encodeGTag gtag)
+                )
+
         Common.Msg.NoOp ->
             ( prevModel, Cmd.none )
 
@@ -362,6 +508,69 @@ withMsgUps msgUps ( prevModel, prevCmd ) =
             (\newCmd ->
                 Cmd.batch [ prevCmd, newCmd ]
             )
+
+
+initiateUserTxs : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> List (UserTx.Initiator Msg) -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
+initiateUserTxs txSentry prevTrackedTxs txInitiators =
+    List.foldl
+        (\initiator ( accTxSentry, accCmd, accTrackedTxs ) ->
+            initiateUserTx accTxSentry accTrackedTxs initiator
+                |> TupleHelpers.tuple3MapSecond
+                    (\newCmd ->
+                        Cmd.batch
+                            [ accCmd
+                            , newCmd
+                            ]
+                    )
+        )
+        ( txSentry, Cmd.none, prevTrackedTxs )
+        txInitiators
+
+
+initiateUserTx : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> UserTx.Initiator Msg -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
+initiateUserTx txSentry prevTrackedTxs txInitiator =
+    let
+        ( trackedTxId, newTrackedTxs ) =
+            prevTrackedTxs
+                |> addTrackedTx txInitiator.txInfo txInitiator.notifiers
+
+        ( newTxSentry, txSentryCmd ) =
+            UserTx.execute
+                txSentry
+                { txInitiator
+                    | notifiers = trackingNotifiers trackedTxId
+                }
+    in
+    ( newTxSentry
+    , txSentryCmd
+    , newTrackedTxs
+    )
+
+
+trackingNotifiers : Int -> UserTx.Notifiers Msg
+trackingNotifiers trackedTxId =
+    { onSign = Just <| TxSigned trackedTxId
+
+    -- , onBroadcast = Nothing
+    -- , onBroadcast = Just <| TxBroadcast trackedTxId
+    , onMine = Just <| TxMined trackedTxId
+    }
+
+
+addTrackedTx : TxInfo -> UserTx.Notifiers Msg -> UserTx.Tracker Msg -> ( Int, UserTx.Tracker Msg )
+addTrackedTx userTx notifiers tracker =
+    let
+        newTrackedTx =
+            UserTx.TrackedTx
+                notifiers
+                userTx
+                UserTx.Signing
+    in
+    ( List.length tracker
+    , List.append
+        tracker
+        [ newTrackedTx ]
+    )
 
 
 updateFromPageRoute : Route -> Model -> ( Model, Cmd Msg )
@@ -415,6 +624,18 @@ gotoRoute route prevModel =
             , Cmd.map StatsMsg statsCmd
             )
 
+        Routing.Farm ->
+            let
+                ( farmModel, farmCmd ) =
+                    Farm.init prevModel.wallet prevModel.now
+            in
+            ( { prevModel
+                | route = route
+                , submodel = Farm farmModel
+              }
+            , Cmd.map FarmMsg farmCmd
+            )
+
         Routing.NotFound err ->
             ( { prevModel
                 | route = route
@@ -441,17 +662,81 @@ addUserNotices notices model =
     }
 
 
+runMsgDown : MsgDown -> Model -> ( Model, Cmd Msg )
+runMsgDown msg prevModel =
+    case prevModel.submodel of
+        BlankInitialSubmodel ->
+            ( prevModel, Cmd.none )
 
--- runMsgDown : MsgDown -> Submodel -> Submodel
--- runMsgDown msg submodel =
---     case submodel of
---         Home homeModel ->
---             Home
---                 (homeModel |> Home.runMsgDown msg )
---         Sentiment sentimentModel ->
---             Sentiment
---                 (homeModel |> Sentiment.runMsgDown msg )
+        Home homeModel ->
+            let
+                updateResult =
+                    homeModel |> Home.runMsgDown msg
 
+                newSubmodel =
+                    Home updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map HomeMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        Sentiment sentimentModel ->
+            let
+                updateResult =
+                    sentimentModel |> Sentiment.runMsgDown msg
+
+                newSubmodel =
+                    Sentiment updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map SentimentMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        Stats statsModel ->
+            let
+                updateResult =
+                    statsModel |> Stats.runMsgDown msg
+
+                newSubmodel =
+                    Stats updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map StatsMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        Farm farmModel ->
+            let
+                updateResult =
+                    farmModel |> Farm.runMsgDown msg
+
+                newSubmodel =
+                    Farm updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map FarmMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+
+encodeGTag : GTagData -> Json.Decode.Value
+encodeGTag gtag =
+    Json.Encode.object
+        [ ( "event", Json.Encode.string gtag.event )
+        , ( "category", Json.Encode.string gtag.category )
+        , ( "label", Json.Encode.string gtag.label )
+        , ( "value", Json.Encode.int gtag.value )
+        ]
 
 submodelSubscriptions : Submodel -> Sub Msg
 submodelSubscriptions submodel =
@@ -473,6 +758,11 @@ submodelSubscriptions submodel =
             Sub.map
                 StatsMsg
                 (Stats.subscriptions statsModel)
+
+        Farm farmModel ->
+            Sub.map
+                FarmMsg
+                (Farm.subscriptions farmModel)
 
 
 subscriptions : Model -> Sub Msg
@@ -501,3 +791,6 @@ port txOut : Json.Decode.Value -> Cmd msg
 
 
 port txIn : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port gTagOut : Json.Decode.Value -> Cmd msg
