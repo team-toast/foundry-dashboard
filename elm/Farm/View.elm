@@ -3,7 +3,7 @@ module Farm.View exposing (..)
 import Common.Types exposing (..)
 import Common.View
 import Config
-import Element exposing (Element)
+import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -26,7 +26,11 @@ view dProfile model =
     Element.el
         [ Element.width Element.fill
         , Element.paddingEach
-            { top = responsiveVal dProfile 60 30
+            { top =
+                responsiveVal
+                    dProfile
+                    60
+                    15
             , bottom = 0
             , left = 0
             , right = 0
@@ -35,7 +39,11 @@ view dProfile model =
     <|
         Element.column
             [ Element.centerX
-            , Element.spacing 40
+            , Element.spacing <|
+                responsiveVal
+                    dProfile
+                    40
+                    15
             ]
             [ titleEl dProfile
             , bodyEl dProfile model
@@ -45,59 +53,126 @@ view dProfile model =
 titleEl : DisplayProfile -> Element Msg
 titleEl dProfile =
     Element.el
-        [ Element.Font.size 50
+        [ Element.Font.size <|
+            responsiveVal
+                dProfile
+                50
+                25
         , Element.Font.color EH.white
         , Element.Font.medium
         , Element.centerX
         ]
-        <| Element.text "Farming for Fryers!"
+    <|
+        Element.text "Farming for Fryers!"
 
 
 bodyEl : DisplayProfile -> Model -> Element Msg
 bodyEl dProfile model =
-    Element.row
+    let
+        mainEl =
+            case dProfile of
+                EH.Desktop ->
+                    Element.row
+
+                EH.Mobile ->
+                    Element.column
+
+        balancesEl =
+            balancesElement
+                dProfile
+                model.now
+                model.wallet
+                model.userStakingInfo
+                model.depositWithdrawUXModel
+
+        apyEl =
+            apyElement
+                dProfile
+                model.apy
+    in
+    mainEl
         [ Element.centerX
         , Element.Background.color <| Element.rgb 0.6 0.6 1
         , Element.Border.rounded 10
-        , Element.height <| Element.px <| responsiveVal dProfile 500 500
-        , Element.width <| Element.px <| responsiveVal dProfile 800 200
-        , Element.padding 20
-        , Element.spacing 10
+        , Element.height <|
+            Element.px <|
+                responsiveVal
+                    dProfile
+                    500
+                    400
+        , Element.width <|
+            Element.px <|
+                responsiveVal
+                    dProfile
+                    800
+                    300
+        , Element.padding <|
+            responsiveVal
+                dProfile
+                20
+                10
+        , Element.spacing <|
+            responsiveVal
+                dProfile
+                10
+                5
         ]
-        [ balancesElement dProfile model.now model.wallet model.userStakingInfo model.depositWithdrawUXModel
-        , apyElement dProfile model.apy
-        ]
+        (case dProfile of
+            EH.Desktop ->
+                [ balancesEl
+                , apyEl
+                ]
+
+            EH.Mobile ->
+                [ apyEl
+                , balancesEl
+                ]
+        )
 
 
 balancesElement : DisplayProfile -> Time.Posix -> Wallet -> Maybe UserStakingInfo -> DepositOrWithdrawUXModel -> Element Msg
 balancesElement dProfile now wallet maybeUserStakingInfo depositWithdrawUXModel =
-    
-        case Wallet.userInfo wallet of
-            Nothing ->
-                Common.View.web3ConnectButton
-                    dProfile
-                    [Element.centerY]
-                    MsgUp
+    case Wallet.userInfo wallet of
+        Nothing ->
+            Common.View.web3ConnectButton
+                dProfile
+                [ Element.centerY ]
+                MsgUp
 
-            Just userInfo ->
-                case maybeUserStakingInfo of
-                    Nothing ->
-                        Element.el
-                            [ Element.Font.italic
-                            , Element.centerY
-                            ]
-                            (Element.text "Fetching info...")
+        Just userInfo ->
+            case maybeUserStakingInfo of
+                Nothing ->
+                    Element.el
+                        [ Element.Font.italic
+                        , Element.centerY
+                        ]
+                        (Element.text "Fetching info...")
 
-                    Just userStakingInfo ->
-                        Element.column
-                            [ Element.spacing 25
-                            , Element.alignTop
-                            ]
-                            [ maybeGetLiquidityMessageElement dProfile userStakingInfo
-                            , unstakedRow dProfile userStakingInfo depositWithdrawUXModel
-                            , stakedRow dProfile userStakingInfo depositWithdrawUXModel
-                            , rewardsRow dProfile userStakingInfo now
-                            ]
+                Just userStakingInfo ->
+                    Element.column
+                        [ Element.spacing <|
+                            responsiveVal
+                                dProfile
+                                25
+                                15
+                        , Element.alignTop
+                        ]
+                        [ maybeGetLiquidityMessageElement
+                            dProfile
+                            userStakingInfo
+                        , unstakedRow
+                            dProfile
+                            userStakingInfo
+                            depositWithdrawUXModel
+                        , stakedRow
+                            dProfile
+                            userStakingInfo
+                            depositWithdrawUXModel
+                        , rewardsRow
+                            dProfile
+                            userStakingInfo
+                            now
+                        ]
 
 
 apyElement : DisplayProfile -> Maybe Float -> Element Msg
@@ -105,7 +180,11 @@ apyElement dProfile maybeApy =
     Element.el
         [ Element.alignTop
         , Element.alignRight
-        , Element.Font.size 30
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                30
+                15
         ]
     <|
         case maybeApy of
@@ -138,9 +217,18 @@ apyElement dProfile maybeApy =
 
 maybeGetLiquidityMessageElement : DisplayProfile -> UserStakingInfo -> Element Msg
 maybeGetLiquidityMessageElement dProfile stakingInfo =
-    if TokenValue.isZero stakingInfo.staked && TokenValue.isZero stakingInfo.unstaked && TokenValue.isZero stakingInfo.claimableRewards then
+    if
+        TokenValue.isZero stakingInfo.staked
+            && TokenValue.isZero stakingInfo.unstaked
+            && TokenValue.isZero stakingInfo.claimableRewards
+    then
         Element.row
             [ Element.centerX
+            , Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    20
+                    15
             ]
             [ Element.newTabLink
                 [ Element.Font.color Theme.blue ]
@@ -165,8 +253,15 @@ unstakedRow dProfile userStakingInfo depositOrWithdrawUXModel =
                 _ ->
                     Nothing
     in
-    mainRow dProfile
-        [ rowLabel dProfile "Unstaked Balance"
+    mainRow
+        dProfile
+        [ rowLabel
+            dProfile
+          <|
+            responsiveVal
+                dProfile
+                "Unstaked Balance"
+                "Unstaked ETHFRY"
         , unstakedRowUX dProfile userStakingInfo maybeDepositAmountUXModel
         ]
 
@@ -188,17 +283,27 @@ unstakedRowUX dProfile stakingInfo maybeDepositAmountUXModel =
     in
     Element.row
         rowStyles
-        [ balanceOutputOrInput dProfile
+        [ balanceOutputOrInput
+            dProfile
             False
             stakingInfo.unstaked
             maybeDepositAmountUXModel
-            "ETHFRY"
+          <|
+            responsiveVal
+                dProfile
+                "ETHFRY"
+                ""
         , case maybeDepositAmountUXModel of
             Just depositAmountUX ->
-                activeDepositUXButtons dProfile depositAmountUX stakingInfo.unstaked
+                activeDepositUXButtons
+                    dProfile
+                    depositAmountUX
+                    stakingInfo.unstaked
 
             Nothing ->
-                inactiveUnstackedRowButtons dProfile stakingInfo
+                inactiveUnstackedRowButtons
+                    dProfile
+                    stakingInfo
         ]
 
 
@@ -213,9 +318,19 @@ stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
                 _ ->
                     Nothing
     in
-    mainRow dProfile
-        [ rowLabel dProfile "Currently Staking"
-        , stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel
+    mainRow
+        dProfile
+        [ rowLabel
+            dProfile
+          <|
+            responsiveVal
+                dProfile
+                "Currently Staking"
+                "Staked ETHFRY"
+        , stakedRowUX
+            dProfile
+            stakingInfo
+            maybeWithdrawAmountUXModel
         ]
 
 
@@ -236,33 +351,54 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
     in
     Element.row
         rowStyles
-        [ balanceOutputOrInput dProfile
+        [ balanceOutputOrInput
+            dProfile
             False
             stakingInfo.staked
             maybeWithdrawAmountUXModel
-            "ETHFRY"
+          <|
+            responsiveVal
+                dProfile
+                "ETHFRY"
+                ""
         , case maybeWithdrawAmountUXModel of
             Just withdrawAmountUX ->
-                activeWithdrawUXButtons dProfile withdrawAmountUX stakingInfo.staked
+                activeWithdrawUXButtons
+                    dProfile
+                    withdrawAmountUX
+                    stakingInfo.staked
 
             Nothing ->
-                stakedRowUXButtons dProfile stakingInfo.staked
+                stakedRowUXButtons
+                    dProfile
+                    stakingInfo.staked
         ]
 
 
 stakedRowUXButtons : DisplayProfile -> TokenValue -> Element Msg
 stakedRowUXButtons dProfile staked =
     buttonsRow
-        [ maybeStartWithdrawButton dProfile staked
-        , maybeExitButton dProfile staked
+        dProfile
+        [ maybeStartWithdrawButton
+            dProfile
+            staked
+        , maybeExitButton
+            dProfile
+            staked
         ]
 
 
 rewardsRow : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
 rewardsRow dProfile stakingInfo now =
-    mainRow dProfile
-        [ rowLabel dProfile "Available Rewards"
-        , rewardsRowUX dProfile stakingInfo now
+    mainRow
+        dProfile
+        [ rowLabel
+            dProfile
+            "Available Rewards"
+        , rewardsRowUX
+            dProfile
+            stakingInfo
+            now
         ]
 
 
@@ -270,7 +406,8 @@ rewardsRowUX : DisplayProfile -> UserStakingInfo -> Time.Posix -> Element Msg
 rewardsRowUX dProfile stakingInfo now =
     Element.row
         (rowUXStyles dProfile False)
-        [ balanceOutputOrInput dProfile
+        [ balanceOutputOrInput
+            dProfile
             True
             (calcAvailableRewards
                 stakingInfo
@@ -288,7 +425,11 @@ rewardsRowUX dProfile stakingInfo now =
 
 rowUXStyles : DisplayProfile -> Bool -> List (Element.Attribute Msg)
 rowUXStyles dProfile isInput =
-    [ Element.spacing 30
+    [ Element.spacing <|
+        responsiveVal
+            dProfile
+            30
+            15
     , Element.width Element.fill
     , Element.padding 5
     , Element.height <| Element.px 50
@@ -311,7 +452,11 @@ balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
     in
     Element.row
         [ Element.spacing 10
-        , Element.Font.size 26
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                26
+                16
         ]
         [ case maybeAmountUXModel of
             Just amountUXModel ->
@@ -381,6 +526,7 @@ activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
                     makeWithdrawButton Nothing Nothing
     in
     buttonsRow
+        dProfile
         [ withdrawButton
         , uxBackButton
         ]
@@ -404,14 +550,21 @@ activeDepositUXButtons dProfile amountUXModel unstakedBalance =
                     makeDepositButton Nothing Nothing
     in
     buttonsRow
+        dProfile
         [ depositButton
         , uxBackButton
         ]
 
 
-buttonsRow : List (Element Msg) -> Element Msg
-buttonsRow =
-    Element.row [ Element.spacing 10 ]
+buttonsRow : DisplayProfile -> List (Element Msg) -> Element Msg
+buttonsRow dProfile =
+    Element.row
+        [ Element.spacing <|
+            responsiveVal
+                dProfile
+                10
+                5
+        ]
 
 
 maybeStartWithdrawButton : DisplayProfile -> TokenValue -> Element Msg
@@ -457,21 +610,45 @@ mainRow dProfile =
         , Element.Border.rounded 5
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.1
-        , Element.width <| Element.px 420
+        , Element.width <|
+            responsiveVal
+                dProfile
+                (Element.px 420)
+                Element.fill
 
         -- , Element.height <| Element.px 40
-        , Element.Font.size <| responsiveVal dProfile 30 24
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                30
+                24
         ]
 
 
 rowLabel : DisplayProfile -> String -> Element Msg
 rowLabel dProfile text =
     Element.el
-        [ Element.width <| Element.px <| responsiveVal dProfile 280 240
-        , Element.Font.size 40
-        , Element.Font.medium
+        [ Element.width <|
+            responsiveVal
+                dProfile
+                (Element.px 280)
+                Element.fill
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                40
+                20
+        , Element.Font.semiBold
         ]
         (Element.text text)
+
+
+commonImageAttributes : List (Attribute msg)
+commonImageAttributes =
+    [ Element.centerX
+    , Element.centerY
+    , Element.width <| Element.px <| 40
+    ]
 
 
 unlockButton : Element Msg
@@ -483,10 +660,7 @@ unlockButton =
         )
     <|
         Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
+            commonImageAttributes
             Images.unlock
 
 
@@ -499,10 +673,7 @@ makeDepositButton maybeHoverText maybeOnClick =
         )
     <|
         Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
+            commonImageAttributes
             Images.stakingDeposit
 
 
@@ -512,10 +683,7 @@ makeWithdrawButton maybeHoverText maybeOnClick =
         (actionButtonStyles maybeHoverText maybeOnClick)
     <|
         Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
+            commonImageAttributes
             Images.stakingWithdraw
 
 
@@ -528,10 +696,7 @@ exitButton dProfile =
         )
     <|
         Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
+            commonImageAttributes
             Images.stakingExit
 
 
@@ -544,10 +709,7 @@ claimRewardsButton =
         )
     <|
         Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
+            commonImageAttributes
             Images.stakingClaimReward
 
 
@@ -560,10 +722,7 @@ uxBackButton =
         )
     <|
         Images.toElement
-            [ Element.centerX
-            , Element.centerY
-            , Element.width <| Element.px <| 40
-            ]
+            commonImageAttributes
             Images.back
 
 
