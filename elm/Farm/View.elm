@@ -516,7 +516,10 @@ balanceOutputOrInput :
 balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
     let
         amountElWidth =
-            150
+            responsiveVal
+                dProfile
+                150
+                75
     in
     Element.row
         [ Element.spacing <|
@@ -535,10 +538,7 @@ balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
                 let
                     inputStyles =
                         [ Element.width <|
-                            responsiveVal
-                                dProfile
-                                (Element.px amountElWidth)
-                                Element.fill
+                            Element.px amountElWidth
                         , Element.Background.color <| Element.rgba 1 1 1 0.3
                         , Element.padding 0
                         , Element.Border.width 0
@@ -563,10 +563,7 @@ balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
             Nothing ->
                 Element.el
                     [ Element.width <|
-                        responsiveVal
-                            dProfile
-                            (Element.px amountElWidth)
-                            Element.fill
+                        Element.px amountElWidth
                     , Element.clip
                     ]
                     (Element.text <|
@@ -578,7 +575,7 @@ balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
                 responsiveVal
                     dProfile
                     (Element.px 100)
-                    Element.fill
+                    (Element.fillPortion 1)
             , Element.Font.color
                 (if isRed then
                     Element.rgb 1 0 0
