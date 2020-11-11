@@ -16,8 +16,9 @@ import Element.Input
 import ElementMarkdown
 import Eth.Types exposing (Address)
 import Eth.Utils
+import Farm.View exposing (commonImageAttributes)
 import FormatFloat
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Html.Events
 import Images
@@ -36,7 +37,8 @@ import Wallet exposing (Wallet)
 view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
 view dProfile maybeUserInfo model =
     Element.el
-        [ responsiveVal dProfile
+        [ responsiveVal
+            dProfile
             (Element.paddingXY 100 50)
             (Element.paddingXY 20 20)
         , Element.width Element.fill
@@ -50,10 +52,20 @@ view dProfile maybeUserInfo model =
             Just polls ->
                 Element.column
                     [ Element.width Element.fill
-                    , Element.spacing 50
+                    , Element.spacing <|
+                        responsiveVal
+                            dProfile
+                            50
+                            15
                     ]
                     [ titleText dProfile "Foundry Polls"
-                    , viewPolls dProfile maybeUserInfo polls model.validatedResponses model.fryBalances model.mouseoverState
+                    , viewPolls
+                        dProfile
+                        maybeUserInfo
+                        polls
+                        model.validatedResponses
+                        model.fryBalances
+                        model.mouseoverState
                     ]
 
 
@@ -61,23 +73,46 @@ titleText : DisplayProfile -> String -> Element Msg
 titleText dProfile title =
     Element.el
         [ Element.Font.bold
-        , Element.Font.size <| responsiveVal dProfile 50 36
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                50
+                18
         ]
     <|
         Element.text title
 
 
-viewPolls : DisplayProfile -> Maybe UserInfo -> List Poll -> ValidatedResponseTracker -> AddressDict (Maybe TokenValue) -> MouseoverState -> Element Msg
+viewPolls :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> List Poll
+    -> ValidatedResponseTracker
+    -> AddressDict (Maybe TokenValue)
+    -> MouseoverState
+    -> Element Msg
 viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances mouseoverState =
     Element.column
-        [ Element.spacing 20 ]
+        [ Element.spacing <|
+            responsiveVal
+                dProfile
+                20
+                10
+        ]
         (List.map
             (viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState)
             (List.reverse polls)
         )
 
 
-viewPoll : DisplayProfile -> Maybe UserInfo -> ValidatedResponseTracker -> AddressDict (Maybe TokenValue) -> MouseoverState -> Poll -> Element Msg
+viewPoll :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> ValidatedResponseTracker
+    -> AddressDict (Maybe TokenValue)
+    -> MouseoverState
+    -> Poll
+    -> Element Msg
 viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState poll =
     let
         validatedResponsesForPoll =
@@ -131,13 +166,27 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState po
                     TokenValue.zero
     in
     Element.column
-        [ Element.spacing 10
-        , Element.padding 10
+        [ Element.spacing <|
+            responsiveVal
+                dProfile
+                10
+                5
+        , Element.padding <|
+            responsiveVal
+                dProfile
+                10
+                7
         , Element.Background.color <| Element.rgba 1 1 1 0.1
         , Element.Border.rounded 10
+        , Element.width Element.fill
         ]
         [ Element.el
-            [ Element.Font.size <| responsiveVal dProfile 26 22 ]
+            [ Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    26
+                    12
+            ]
             (ElementMarkdown.renderString [] poll.question
                 |> Result.Extra.extract
                     (\errStr ->
@@ -148,18 +197,40 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState po
                     )
             )
         , Element.el
-            [ Element.padding 10
+            [ Element.padding <|
+                responsiveVal
+                    dProfile
+                    10
+                    5
             , Element.width Element.fill
             ]
-            (viewOptions dProfile maybeUserInfo poll talliedFryForOptions totalFryVoted mouseoverState)
+            (viewOptions
+                dProfile
+                maybeUserInfo
+                poll
+                talliedFryForOptions
+                totalFryVoted
+                mouseoverState
+            )
         ]
 
 
-viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Dict Int ( TokenValue, AddressDict TokenValue ) -> TokenValue -> MouseoverState -> Element Msg
+viewOptions :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> Poll
+    -> Dict Int ( TokenValue, AddressDict TokenValue )
+    -> TokenValue
+    -> MouseoverState
+    -> Element Msg
 viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted mouseoverState =
     Element.column
-        [ Element.spacing 10
-        , Element.width <| Element.px 1000
+        [ Element.spacing <|
+            responsiveVal
+                dProfile
+                10
+                5
+        , Element.width Element.fill
         ]
         (poll.options
             |> List.map
@@ -190,9 +261,34 @@ viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted mouseoverStat
         )
 
 
-viewOption : DisplayProfile -> Maybe UserInfo -> Poll -> PollOption -> ( TokenValue, Float ) -> ( TokenValue, AddressDict TokenValue ) -> MouseoverState -> Element Msg
+viewOption :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> Poll
+    -> PollOption
+    -> ( TokenValue, Float )
+    -> ( TokenValue, AddressDict TokenValue )
+    -> MouseoverState
+    -> Element Msg
 viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) ( totalVotesInSupport, detailedSupportDict ) mouseoverState =
     let
+        commonImageAttributes =
+            [ Element.alignRight
+            , Element.height <|
+                Element.px <|
+                    responsiveVal
+                        dProfile
+                        40
+                        30
+            , Element.width <|
+                Element.px <|
+                    responsiveVal
+                        dProfile
+                        40
+                        30
+            , Element.pointer
+            ]
+
         wholeOptionClick =
             case maybeUserInfo of
                 Nothing ->
@@ -239,83 +335,110 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                     in
                     if userSupportsOption then
                         Images.toElement
-                            [ Element.alignRight
-                            , Element.height <| Element.px 40
-                            , Element.width <| Element.px 40
-                            , Element.pointer
-
-                            -- , Element.Events.onClick <|
-                            --     OptionClicked
-                            --         (Just userInfo)
-                            --         poll
-                            --         Nothing
-                            ]
+                            commonImageAttributes
                             Images.fryIcon
 
                     else
                         Images.toElement
-                            [ Element.alignRight
-                            , Element.height <| Element.px 40
-                            , Element.width <| Element.px 40
-                            , Element.pointer
-
-                            -- , Element.Events.onClick <|
-                            --     OptionClicked
-                            --         (Just userInfo)
-                            --         poll
-                            --         (Just pollOption.id)
-                            , Element.mouseOver
-                                [ Element.alpha 1 ]
-                            , Element.inFront <|
-                                Images.toElement
-                                    [ Element.width Element.fill
-                                    , Element.height Element.fill
-                                    , Element.alpha 0
-                                    , Element.mouseOver
+                            (commonImageAttributes
+                                ++ [ Element.mouseOver
                                         [ Element.alpha 1 ]
-                                    ]
-                                    Images.pollChoiceMouseover
-                            ]
+                                   , Element.inFront <|
+                                        Images.toElement
+                                            [ Element.width Element.fill
+                                            , Element.height Element.fill
+                                            , Element.alpha 0
+                                            , Element.mouseOver
+                                                [ Element.alpha 1 ]
+                                            ]
+                                            Images.pollChoiceMouseover
+                                   ]
+                            )
                             Images.pollChoiceEmpty
     in
-    Element.row
-        [ Element.width Element.fill
-        , Element.spacing 10
-        ]
-        [ Element.row
-            [ Element.width Element.fill
-            , Element.spacing 15
-            , Element.pointer
-            , wholeOptionClick
-            ]
-          <|
-            [ voteButtonElementOrNone
-            , Element.paragraph
-                [ Element.Font.size <| responsiveVal dProfile 18 24
-                , Element.alignLeft
+    case dProfile of
+        Desktop ->
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacing 10
                 ]
-                [ Element.text pollOption.name ]
-            ]
-        , Element.row
-            [ Element.width Element.fill
-            , Element.spacing 5
-            ]
-            [ Element.el
-                [ Element.alignLeft
-                , Element.width <| Element.px <| maxBarWidth + 5
+                [ Element.row
+                    [ Element.width Element.fill
+                    , Element.spacing 15
+                    , Element.pointer
+                    , wholeOptionClick
+                    ]
+                  <|
+                    [ voteButtonElementOrNone
+                    , Element.paragraph
+                        [ Element.Font.size 18
+                        , Element.alignLeft
+                        ]
+                        [ Element.text pollOption.name ]
+                    ]
+                , Element.row
+                    [ Element.width Element.fill
+                    , Element.spacing 5
+                    ]
+                    [ Element.el
+                        [ Element.alignLeft
+                        , Element.width <|
+                            Element.px <|
+                                maxBarWidth
+                                    + 5
+                        ]
+                      <|
+                        voteBarBreakdown
+                            dProfile
+                            maybeUserInfo
+                            ( poll.id, pollOption.id )
+                            totalVotes
+                            totalVotesInSupport
+                            detailedSupportDict
+                            mouseoverState
+                    , Element.el
+                        [ Element.width <|
+                            Element.px 50
+                        ]
+                        (Element.text <|
+                            (FormatFloat.formatFloat 1 (supportFloat * 100)
+                                ++ "%"
+                            )
+                        )
+                    , viewFryAmount totalVotesInSupport
+                    ]
                 ]
-              <|
-                voteBarBreakdown dProfile maybeUserInfo ( poll.id, pollOption.id ) totalVotes totalVotesInSupport detailedSupportDict mouseoverState
-            , Element.el
-                [ Element.width <| Element.px 50 ]
-                (Element.text <|
-                    (FormatFloat.formatFloat 1 (supportFloat * 100)
-                        ++ "%"
-                    )
-                )
-            , viewFryAmount totalVotesInSupport
-            ]
-        ]
+
+        Mobile ->
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacing 5
+                ]
+                [ Element.row
+                    [ Element.width Element.fill
+                    , Element.spacing 5
+                    , Element.pointer
+                    , wholeOptionClick
+                    ]
+                  <|
+                    [ voteButtonElementOrNone
+                    , Element.paragraph
+                        [ Element.Font.size 10
+                        , Element.alignLeft
+                        ]
+                        [ Element.text pollOption.name ]
+                    , Element.el
+                        [ Element.width <|
+                            Element.px 50
+                        ]
+                        (Element.text <|
+                            (FormatFloat.formatFloat 1 (supportFloat * 100)
+                                ++ "%"
+                            )
+                        )
+                    , viewFryAmount totalVotesInSupport
+                    ]
+                ]
 
 
 maxBarWidth : Int
@@ -332,7 +455,15 @@ type alias VoteBarBlock =
     }
 
 
-voteBarBreakdown : DisplayProfile -> Maybe UserInfo -> ( Int, Int ) -> TokenValue -> TokenValue -> AddressDict TokenValue -> MouseoverState -> Element Msg
+voteBarBreakdown :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> ( Int, Int )
+    -> TokenValue
+    -> TokenValue
+    -> AddressDict TokenValue
+    -> MouseoverState
+    -> Element Msg
 voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes totalVotesInSupport detailedSupportDict mouseoverState =
     let
         votesToBarWidth tokens =
@@ -458,7 +589,11 @@ voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes tota
                                                           <|
                                                             Element.text <|
                                                                 Eth.Utils.addressToChecksumString block.address
-                                                        , Element.el [ Element.width Element.fill, Element.height <| Element.px 2 ] Element.none
+                                                        , Element.el
+                                                            [ Element.width Element.fill
+                                                            , Element.height <| Element.px 2
+                                                            ]
+                                                            Element.none
                                                         ]
                                                 ]
 

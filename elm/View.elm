@@ -17,7 +17,7 @@ import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
 import Farm.View as Farm
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -122,20 +122,39 @@ body model =
         ]
 
 
-header : EH.DisplayProfile -> UserTx.Tracker Msg -> Bool -> Maybe UserInfo -> Maybe PhaceIconId -> Element Msg
+header :
+    EH.DisplayProfile
+    -> UserTx.Tracker Msg
+    -> Bool
+    -> Maybe UserInfo
+    -> Maybe PhaceIconId
+    -> Element Msg
 header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
-        , Element.padding (20 |> changeForMobile 10 dProfile)
-        , Element.spacing (10 |> changeForMobile 5 dProfile)
+        , Element.padding <|
+            responsiveVal
+                dProfile
+                20
+                10
+        , Element.spacing <|
+            responsiveVal
+                dProfile
+                10
+                5
         , Element.Border.glow
             (EH.black |> EH.withAlpha 0.5)
             5
         ]
         [ case dProfile of
             Mobile ->
-                Element.el [ Element.alignTop, Element.alignLeft ] <| logoBlock dProfile
+                Element.el
+                    [ Element.alignTop
+                    , Element.alignLeft
+                    ]
+                <|
+                    logoBlock dProfile
 
             Desktop ->
                 logoBlock dProfile
@@ -162,19 +181,36 @@ logoBlock : EH.DisplayProfile -> Element Msg
 logoBlock dProfile =
     Element.row
         [ Element.height Element.fill
-        , Element.padding 10
-        , Element.spacing 20
+        , Element.padding <|
+            responsiveVal
+                dProfile
+                10
+                7
+        , Element.spacing <|
+            responsiveVal
+                dProfile
+                20
+                10
         ]
         [ Images.toElement
             [ Element.centerY
-            , Element.width <| Element.px 60
+            , Element.width <|
+                Element.px <|
+                    responsiveVal
+                        dProfile
+                        60
+                        30
             ]
             Images.fryIcon
         , Element.column
             [ Element.spacing 5 ]
             [ Element.el
                 [ Element.Font.color EH.white
-                , Element.Font.size 35
+                , Element.Font.size <|
+                    responsiveVal
+                        dProfile
+                        35
+                        20
                 , Element.Font.bold
                 , Element.centerY
                 ]
@@ -186,7 +222,11 @@ logoBlock dProfile =
                 , Element.paddingXY 10 3
                 , Element.Border.rounded 4
                 , Element.Font.color EH.white
-                , Element.Font.size 18
+                , Element.Font.size <|
+                    responsiveVal
+                        dProfile
+                        18
+                        10
                 ]
                 { url = "https://foundrydao.com"
                 , label =
@@ -200,31 +240,69 @@ connectButtonOrPhace : DisplayProfile -> Maybe UserInfo -> Maybe PhaceIconId -> 
 connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
     case maybeUserInfo of
         Nothing ->
-            web3ConnectButton dProfile [] MsgUp
+            web3ConnectButton
+                dProfile
+                ([]
+                    ++ (case dProfile of
+                            Desktop ->
+                                []
+
+                            Mobile ->
+                                [ Element.Font.size 10
+                                , Element.padding 5
+                                ]
+                       )
+                )
+                MsgUp
 
         Just userInfo ->
             phaceElement
                 False
                 userInfo.address
                 (showAddressInfo == Just UserPhace)
+                dProfile
                 (MsgUp <| ShowOrHideAddress UserPhace)
                 Types.NoOp
 
 
-userNoticeEls : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
+userNoticeEls :
+    EH.DisplayProfile
+    -> List UserNotice
+    -> List (Element Msg)
 userNoticeEls dProfile notices =
     if notices == [] then
         []
 
     else
         [ Element.column
-            [ Element.moveLeft (20 |> EH.changeForMobile 5 dProfile)
-            , Element.moveUp (20 |> EH.changeForMobile 5 dProfile)
-            , Element.spacing (10 |> EH.changeForMobile 5 dProfile)
+            [ Element.moveLeft <|
+                EH.responsiveVal
+                    dProfile
+                    20
+                    5
+            , Element.moveUp <|
+                EH.responsiveVal
+                    dProfile
+                    20
+                    5
+            , Element.spacing <|
+                EH.responsiveVal
+                    dProfile
+                    10
+                    5
             , Element.alignRight
             , Element.alignBottom
-            , Element.width <| Element.px (300 |> EH.changeForMobile 150 dProfile)
-            , Element.Font.size (15 |> EH.changeForMobile 10 dProfile)
+            , Element.width <|
+                Element.px <|
+                    EH.responsiveVal
+                        dProfile
+                        300
+                        150
+            , Element.Font.size <|
+                EH.responsiveVal
+                    dProfile
+                    15
+                    10
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -232,13 +310,30 @@ userNoticeEls dProfile notices =
                 |> List.map (userNotice dProfile)
             )
         , Element.column
-            [ Element.moveRight (20 |> EH.changeForMobile 5 dProfile)
+            [ Element.moveRight <|
+                EH.responsiveVal
+                    dProfile
+                    20
+                    5
             , Element.moveDown 100
-            , Element.spacing (10 |> EH.changeForMobile 5 dProfile)
+            , Element.spacing <|
+                EH.responsiveVal
+                    dProfile
+                    10
+                    5
             , Element.alignLeft
             , Element.alignTop
-            , Element.width <| Element.px (300 |> EH.changeForMobile 150 dProfile)
-            , Element.Font.size (15 |> EH.changeForMobile 10 dProfile)
+            , Element.width <|
+                Element.px <|
+                    EH.responsiveVal
+                        dProfile
+                        300
+                        150
+            , Element.Font.size <|
+                EH.responsiveVal
+                    dProfile
+                    15
+                    10
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -248,7 +343,10 @@ userNoticeEls dProfile notices =
         ]
 
 
-userNotice : EH.DisplayProfile -> ( Int, UserNotice ) -> Element Msg
+userNotice :
+    EH.DisplayProfile
+    -> ( Int, UserNotice )
+    -> Element Msg
 userNotice dProfile ( id, notice ) =
     let
         color =
@@ -284,8 +382,16 @@ userNotice dProfile ( id, notice ) =
     in
     Element.el
         [ Element.Background.color color
-        , Element.Border.rounded (10 |> EH.changeForMobile 5 dProfile)
-        , Element.padding (8 |> EH.changeForMobile 3 dProfile)
+        , Element.Border.rounded <|
+            EH.responsiveVal
+                dProfile
+                10
+                5
+        , Element.padding <|
+            EH.responsiveVal
+                dProfile
+                8
+                3
         , Element.width Element.fill
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.15
@@ -408,9 +514,21 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         , Element.Border.width 2
                         , Element.Border.color Theme.blue
                         , Element.Background.color <| Element.rgb 0.2 0.2 0.2
-                        , Element.padding (10 |> changeForMobile 5 dProfile)
-                        , Element.spacing (10 |> changeForMobile 5 dProfile)
-                        , Element.Font.size (20 |> changeForMobile 12 dProfile)
+                        , Element.padding <|
+                            responsiveVal
+                                dProfile
+                                10
+                                5
+                        , Element.spacing <|
+                            responsiveVal
+                                dProfile
+                                10
+                                5
+                        , Element.Font.size <|
+                            responsiveVal
+                                dProfile
+                                20
+                                12
                         , Element.pointer
                         , EH.onClickNoPropagation <|
                             if showExpanded then
@@ -445,7 +563,11 @@ trackedTxsColumn trackedTxs =
                     case trackedTx.status of
                         UserTx.Signed txHash signedTxStatus ->
                             Just <|
-                                viewTrackedTxRow trackedTxId trackedTx.txInfo txHash signedTxStatus
+                                viewTrackedTxRow
+                                    trackedTxId
+                                    trackedTx.txInfo
+                                    txHash
+                                    signedTxStatus
 
                         _ ->
                             Nothing
@@ -562,7 +684,6 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
         [ titleEl
         , Element.el [ Element.alignRight ] <| statusEl
         ]
-
 
 
 signedTxStatusToColor : UserTx.SignedTxStatus -> Element.Color

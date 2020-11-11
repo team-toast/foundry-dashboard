@@ -11,7 +11,7 @@ import Element.Input
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Time as TimeHelpers
 import Phace
 import Routing exposing (Route)
@@ -43,26 +43,52 @@ web3ConnectButton dProfile attrs msgMapper =
         (msgMapper ConnectToWeb3)
 
 
-phaceElement : Bool -> Address -> Bool -> msg -> msg -> Element msg
-phaceElement addressHangToRight fromAddress showAddress onClick noOpMsg =
+phaceElement : Bool -> Address -> Bool -> DisplayProfile -> msg -> msg -> Element msg
+phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg =
     let
-        addressOutputEl () =
-            -- delay processing because addressToChecksumString is expensive!
-            Element.el
-                [ Element.alignBottom
-                , if addressHangToRight then
-                    Element.alignLeft
+        phaceWidth =
+            responsiveVal dProfile 100 30
 
-                  else
-                    Element.alignRight
-                , Element.Background.color EH.white
-                , Element.Font.size 12
-                , EH.moveToFront
-                , Element.Border.width 2
-                , Element.Border.color EH.black
-                , EH.onClickNoPropagation noOpMsg
-                ]
-                (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+        phaceHeight =
+            responsiveVal dProfile 100 30
+
+        addressOutputEl () =
+            case dProfile of
+                Desktop ->
+                    -- delay processing because addressToChecksumString is expensive!
+                    Element.el
+                        [ Element.alignBottom
+                        , if addressHangToRight then
+                            Element.alignLeft
+
+                          else
+                            Element.alignRight
+                        , Element.Background.color EH.white
+                        , Element.Font.size 12
+                        , EH.moveToFront
+                        , Element.Border.width 2
+                        , Element.Border.color EH.black
+                        , EH.onClickNoPropagation noOpMsg
+                        ]
+                        (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+
+                Mobile ->
+                    -- delay processing because addressToChecksumString is expensive!
+                    Element.el
+                        [ Element.alignBottom
+                        , if addressHangToRight then
+                            Element.alignLeft
+
+                          else
+                            Element.alignRight
+                        , Element.Background.color EH.white
+                        , Element.Font.size 6
+                        , EH.moveToFront
+                        , Element.Border.width 2
+                        , Element.Border.color EH.black
+                        , EH.onClickNoPropagation noOpMsg
+                        ]
+                        (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
     Element.el
         (if showAddress then
@@ -157,8 +183,16 @@ posixToString t =
 
 subheaderAttributes : DisplayProfile -> List (Attribute msg)
 subheaderAttributes dProfile =
-    [ Element.paddingXY 0 (20 |> changeForMobile 10 dProfile)
-    , Element.Font.size (50 |> changeForMobile 30 dProfile)
+    [ Element.paddingXY 0 <|
+        responsiveVal
+            dProfile
+            20
+            10
+    , Element.Font.size <|
+        responsiveVal
+            dProfile
+            50
+            30
     , Element.Font.color defaultTheme.headerTextColor
     ]
 
@@ -206,9 +240,23 @@ renderContentOrError content =
 daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
 daiAmountInput dProfile attributes currentInput onChange =
     Element.Input.text
-        [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
-        , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
-        , Element.Font.size (20 |> changeForMobile 14 dProfile)
+        [ Element.width <|
+            Element.px <|
+                responsiveVal
+                    dProfile
+                    100
+                    60
+        , Element.height <|
+            Element.px <|
+                responsiveVal
+                    dProfile
+                    40
+                    35
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                20
+                14
         , Element.Background.color <| Element.rgba 1 1 1 0.4
         ]
         { onChange = onChange
