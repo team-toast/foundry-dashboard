@@ -181,8 +181,16 @@ logoBlock : EH.DisplayProfile -> Element Msg
 logoBlock dProfile =
     Element.row
         [ Element.height Element.fill
-        , Element.padding 10
-        , Element.spacing 20
+        , Element.padding <|
+            responsiveVal
+                dProfile
+                10
+                7
+        , Element.spacing <|
+            responsiveVal
+                dProfile
+                20
+                10
         ]
         [ Images.toElement
             [ Element.centerY
@@ -191,7 +199,7 @@ logoBlock dProfile =
                     responsiveVal
                         dProfile
                         60
-                        20
+                        30
             ]
             Images.fryIcon
         , Element.column
@@ -202,7 +210,7 @@ logoBlock dProfile =
                     responsiveVal
                         dProfile
                         35
-                        15
+                        20
                 , Element.Font.bold
                 , Element.centerY
                 ]
@@ -218,7 +226,7 @@ logoBlock dProfile =
                     responsiveVal
                         dProfile
                         18
-                        8
+                        10
                 ]
                 { url = "https://foundrydao.com"
                 , label =
