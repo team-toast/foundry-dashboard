@@ -152,7 +152,9 @@ balancesElement dProfile now wallet maybeUserStakingInfo depositWithdrawUXModel 
         Nothing ->
             Common.View.web3ConnectButton
                 dProfile
-                [ Element.centerY ]
+                [ Element.centerY
+                , Element.centerX
+                ]
                 MsgUp
 
         Just userInfo ->

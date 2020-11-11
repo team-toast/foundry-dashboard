@@ -240,7 +240,20 @@ connectButtonOrPhace : DisplayProfile -> Maybe UserInfo -> Maybe PhaceIconId -> 
 connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
     case maybeUserInfo of
         Nothing ->
-            web3ConnectButton dProfile [] MsgUp
+            web3ConnectButton
+                dProfile
+                ([]
+                    ++ (case dProfile of
+                            Desktop ->
+                                []
+
+                            Mobile ->
+                                [ Element.Font.size 10
+                                , Element.padding 5
+                                ]
+                       )
+                )
+                MsgUp
 
         Just userInfo ->
             phaceElement

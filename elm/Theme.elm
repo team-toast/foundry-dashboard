@@ -211,7 +211,8 @@ inverseBlueButton dProfile attributes text msg =
 
 redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
 redButton dProfile attributes text msg =
-    EH.button dProfile
+    EH.button
+        dProfile
         attributes
         ( Element.rgba 1 0 0 1
         , Element.rgba 1 0 0 0.8
