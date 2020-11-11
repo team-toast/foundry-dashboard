@@ -277,6 +277,6 @@ doClaimRewards =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 1000 UpdateNow
-        , Time.every 1000 (always RefetchStakingInfoOrApy)
+        [ Time.every 50 UpdateNow
+        , Time.every 10000 (always RefetchStakingInfoOrApy)
         ]
