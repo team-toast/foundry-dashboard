@@ -147,34 +147,57 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
             (EH.black |> EH.withAlpha 0.5)
             5
         ]
-        [ case dProfile of
+        (case dProfile of
+            Desktop ->
+                [ logoBlock dProfile
+                , (Maybe.map
+                    (Element.el
+                        [ Element.alignTop
+                        , Element.alignRight
+                        ]
+                    )
+                   <|
+                    maybeTxTracker dProfile trackedTxsExpanded trackedTxs
+                  )
+                    |> Maybe.withDefault Element.none
+                , Element.el
+                    [ Element.centerY
+                    , Element.alignRight
+                    ]
+                  <|
+                    connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                ]
+
             Mobile ->
-                Element.el
+                [ Element.column
                     [ Element.alignTop
                     , Element.alignLeft
                     ]
-                <|
-                    logoBlock dProfile
-
-            Desktop ->
-                logoBlock dProfile
-        , (Maybe.map
-            (Element.el
-                [ Element.alignTop
-                , Element.alignRight
+                    [ Element.el
+                        [ Element.alignTop
+                        , Element.alignLeft
+                        ]
+                      <|
+                        logoBlock dProfile
+                    , (Maybe.map
+                        (Element.el
+                            [ Element.alignTop
+                            , Element.alignRight
+                            ]
+                        )
+                       <|
+                        maybeTxTracker dProfile trackedTxsExpanded trackedTxs
+                      )
+                        |> Maybe.withDefault Element.none
+                    ]
+                , Element.el
+                    [ Element.centerY
+                    , Element.alignRight
+                    ]
+                  <|
+                    connectButtonOrPhace dProfile maybeUserInfo showAddressId
                 ]
-            )
-           <|
-            maybeTxTracker dProfile trackedTxsExpanded trackedTxs
-          )
-            |> Maybe.withDefault Element.none
-        , Element.el
-            [ Element.centerY
-            , Element.alignRight
-            ]
-          <|
-            connectButtonOrPhace dProfile maybeUserInfo showAddressId
-        ]
+        )
 
 
 logoBlock : EH.DisplayProfile -> Element Msg
