@@ -148,14 +148,17 @@ logoBlock dProfile =
         ]
         [ Images.toElement
             [ Element.centerY
-            , Element.width <| Element.px 60
+            , Element.width <|
+                Element.px <|
+                    responsiveVal dProfile 60 20
             ]
             Images.fryIcon
         , Element.column
             [ Element.spacing 5 ]
             [ Element.el
                 [ Element.Font.color EH.white
-                , Element.Font.size 35
+                , Element.Font.size <|
+                    responsiveVal dProfile 35 15
                 , Element.Font.bold
                 , Element.centerY
                 ]
@@ -167,7 +170,8 @@ logoBlock dProfile =
                 , Element.paddingXY 10 3
                 , Element.Border.rounded 4
                 , Element.Font.color EH.white
-                , Element.Font.size 18
+                , Element.Font.size <|
+                    responsiveVal dProfile 18 8
                 ]
                 { url = "https://foundrydao.com"
                 , label =
@@ -188,6 +192,7 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
                 False
                 userInfo.address
                 (showAddressInfo == Just UserPhace)
+                dProfile
                 (MsgUp <| ShowOrHideAddress UserPhace)
                 Types.NoOp
 

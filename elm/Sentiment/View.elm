@@ -61,7 +61,7 @@ titleText : DisplayProfile -> String -> Element Msg
 titleText dProfile title =
     Element.el
         [ Element.Font.bold
-        , Element.Font.size <| responsiveVal dProfile 50 36
+        , Element.Font.size <| responsiveVal dProfile 50 18
         ]
     <|
         Element.text title
@@ -137,7 +137,7 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState po
         , Element.Border.rounded 10
         ]
         [ Element.el
-            [ Element.Font.size <| responsiveVal dProfile 26 22 ]
+            [ Element.Font.size <| responsiveVal dProfile 26 12 ]
             (ElementMarkdown.renderString [] poll.question
                 |> Result.Extra.extract
                     (\errStr ->
@@ -159,7 +159,7 @@ viewOptions : DisplayProfile -> Maybe UserInfo -> Poll -> Dict Int ( TokenValue,
 viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted mouseoverState =
     Element.column
         [ Element.spacing 10
-        , Element.width <| Element.px 1000
+        , Element.width <| Element.px (changeForMobile 200 dProfile 1000)
         ]
         (poll.options
             |> List.map
@@ -240,8 +240,8 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                     if userSupportsOption then
                         Images.toElement
                             [ Element.alignRight
-                            , Element.height <| Element.px 40
-                            , Element.width <| Element.px 40
+                            , Element.height <| Element.px (changeForMobile 20 dProfile 40)
+                            , Element.width <| Element.px (changeForMobile 20 dProfile 40)
                             , Element.pointer
 
                             -- , Element.Events.onClick <|
@@ -255,8 +255,8 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                     else
                         Images.toElement
                             [ Element.alignRight
-                            , Element.height <| Element.px 40
-                            , Element.width <| Element.px 40
+                            , Element.height <| Element.px (changeForMobile 20 dProfile 40)
+                            , Element.width <| Element.px (changeForMobile 20 dProfile 40)
                             , Element.pointer
 
                             -- , Element.Events.onClick <|
@@ -291,7 +291,7 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
           <|
             [ voteButtonElementOrNone
             , Element.paragraph
-                [ Element.Font.size <| responsiveVal dProfile 18 24
+                [ Element.Font.size <| responsiveVal dProfile 18 10
                 , Element.alignLeft
                 ]
                 [ Element.text pollOption.name ]
