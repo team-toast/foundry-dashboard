@@ -86,6 +86,7 @@ init flags url key =
     , userNotices = walletNotices
     , trackedTxs = []
     , trackedTxsExpanded = False
+    , nonRepeatingGTagsSent = []
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -272,12 +273,6 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        -- TxBroadcast trackedTxId broadcastResult ->
-        --     case broadcastResult of
-        --         Err errStr ->
-        --             wut
-        --         Ok tx ->
-        --             wut
         TxMined trackedTxId mineResult ->
             let
                 newTrackedTxs =
@@ -457,6 +452,33 @@ handleMsgUp msgUp prevModel =
             ( prevModel |> addUserNotice userNotice
             , Cmd.none
             )
+
+        GTag gtag ->
+            ( prevModel
+            , gTagOut (encodeGTag gtag)
+            )
+
+        NonRepeatingGTag gtag ->
+            let
+                alreadySent =
+                    prevModel.nonRepeatingGTagsSent
+                        |> List.any
+                            (\event ->
+                                event == gtag.event
+                            )
+            in
+            if alreadySent then
+                ( prevModel, Cmd.none )
+
+            else
+                ( { prevModel
+                    | nonRepeatingGTagsSent =
+                        prevModel.nonRepeatingGTagsSent
+                            |> List.append
+                                [ gtag.event ]
+                  }
+                , gTagOut (encodeGTag gtag)
+                )
 
         Common.Msg.NoOp ->
             ( prevModel, Cmd.none )
@@ -707,6 +729,15 @@ runMsgDown msg prevModel =
                 |> withMsgUps updateResult.msgUps
 
 
+encodeGTag : GTagData -> Json.Decode.Value
+encodeGTag gtag =
+    Json.Encode.object
+        [ ( "event", Json.Encode.string gtag.event )
+        , ( "category", Json.Encode.string gtag.category )
+        , ( "label", Json.Encode.string gtag.label )
+        , ( "value", Json.Encode.int gtag.value )
+        ]
+
 submodelSubscriptions : Submodel -> Sub Msg
 submodelSubscriptions submodel =
     case submodel of
@@ -760,3 +791,6 @@ port txOut : Json.Decode.Value -> Cmd msg
 
 
 port txIn : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port gTagOut : Json.Decode.Value -> Cmd msg

@@ -1,21 +1,31 @@
 module Common.Types exposing (..)
 
-import Time
 import Dict exposing (Dict)
 import Eth.Net
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, Hex, TxHash)
 import Json.Decode
 import Json.Encode
+import Time
 import TokenValue exposing (TokenValue)
 
 
 type alias UserInfo =
     { network : Eth.Net.NetworkId
     , address : Address
+
     -- , balance : Maybe TokenValue
     -- , unlockStatus : UnlockStatus
     }
+
+
+type alias GTagData =
+    { event : String
+    , category : String
+    , label : String
+    , value : Int
+    }
+
 
 
 -- type UnlockStatus
@@ -24,23 +34,21 @@ type alias UserInfo =
 --     | Locked
 --     | Unlocking
 --     | Unlocked
-
-
 -- withBalance : TokenValue -> UserInfo -> UserInfo
 -- withBalance balance userInfo =
 --     { userInfo
 --         | balance = Just balance
 --     }
-
-
 -- withUnlockStatus : UnlockStatus -> UserInfo -> UserInfo
 -- withUnlockStatus unlockStatus userInfo =
 --     { userInfo
 --         | unlockStatus = unlockStatus
 --     }
 
+
 type PhaceIconId
     = UserPhace
+
 
 
 -- type alias TrackedTx =
@@ -48,18 +56,12 @@ type PhaceIconId
 --     , txInfo : TxInfo
 --     , status : TxStatus
 --     }
-
-
 -- type TxInfo
 --     = None -- unused for now
-
-
 -- type TxStatus
 --     = Mining
 --     | Failed FailReason
 --     | Mined
-
-
 -- type FailReason
 --     = MinedButExecutionFailed
 

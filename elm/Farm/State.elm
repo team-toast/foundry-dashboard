@@ -102,7 +102,16 @@ update msg prevModel =
                 prevModel
                 Cmd.none
                 [ doDepositChainCmd amount ]
-                []
+                [ Common.Msg.GTag <|
+                    GTagData
+                        "Deposit Liquidity"
+                        "conversion"
+                        ""
+                        (TokenValue.mul amount 100
+                            |> TokenValue.toFloatWithWarning
+                            |> floor
+                        )
+                ]
 
         DoWithdraw amount ->
             UpdateResult

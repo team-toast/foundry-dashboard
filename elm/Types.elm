@@ -47,6 +47,7 @@ type alias Model =
     , userNotices : List UserNotice
     , trackedTxs : UserTx.Tracker Msg
     , trackedTxsExpanded : Bool
+    , nonRepeatingGTagsSent : List String
     }
 
 
