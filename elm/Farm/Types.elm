@@ -33,7 +33,7 @@ type Msg
     | DoExit
     | StartWithdraw TokenValue
     | DoWithdraw TokenValue
-    | WithdrawOrDepositSigned (Result String TxHash)
+    | DepositOrWithdrawSigned DepositOrWithdraw TokenValue (Result String TxHash)
     | StakingInfoFetched (Result Http.Error (UserStakingInfo, Float))
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
