@@ -3,6 +3,7 @@ module Config exposing (..)
 import BigInt exposing (BigInt)
 import Eth.Types exposing (Address)
 import Eth.Utils
+import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
 
@@ -92,3 +93,8 @@ stakingScriptsAddress =
 urlToLiquidityPool : String
 urlToLiquidityPool =
     "https://info.uniswap.org/pair/0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+
+
+forbiddenJurisdictionCodes : Set String
+forbiddenJurisdictionCodes =
+    Set.fromList [ "US" ]

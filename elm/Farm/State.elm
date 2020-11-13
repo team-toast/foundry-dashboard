@@ -1,11 +1,15 @@
-module Farm.State exposing (..)
+port module Farm.State exposing (..)
 
-import Common.Msg exposing (MsgDown, MsgUp)
+import Common.Msg exposing (MsgDown, MsgUp, gTag)
 import Common.Types exposing (..)
+import Config exposing (forbiddenJurisdictionCodes)
 import Contracts.Staking as StakingContract
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Farm.Types exposing (..)
+import Json.Decode
+import Result.Extra
+import Set
 import Time
 import TokenValue exposing (TokenValue)
 import UserNotice as UN
@@ -20,6 +24,7 @@ init wallet now =
       , depositWithdrawUXModel = Nothing
       , apy = Nothing
       , now = now
+      , jurisdictionCheckStatus = WaitingForClick
       }
     , fetchStakingInfoOrApyCmd wallet
     )
@@ -188,6 +193,120 @@ update msg prevModel =
                             | apy = Just apy
                         }
 
+        VerifyJurisdictionClicked ->
+            UpdateResult
+                { prevModel
+                    | jurisdictionCheckStatus = Checking
+                }
+                (beginLocationCheck ())
+                []
+                [ gTag
+                    "3a - verify jurisdiction clicked"
+                    "funnel"
+                    ""
+                    0
+                ]
+
+        LocationCheckResult decodeResult ->
+            let
+                jurisdictionCheckStatus =
+                    locationCheckResultToJurisdictionStatus decodeResult
+            in
+            UpdateResult
+                { prevModel
+                    | jurisdictionCheckStatus = jurisdictionCheckStatus
+                }
+                Cmd.none
+                []
+                (case jurisdictionCheckStatus of
+                    WaitingForClick ->
+                        []
+
+                    Checking ->
+                        []
+
+                    Checked ForbiddenJurisdictions ->
+                        [ gTag
+                            "jurisdiction not allowed"
+                            "funnel abort"
+                            ""
+                            0
+                        ]
+
+                    Checked _ ->
+                        [ gTag
+                            "3b - jurisdiction verified"
+                            "funnel"
+                            ""
+                            0
+                        ]
+
+                    Error error ->
+                        [ gTag
+                            "failed jursidiction check"
+                            "funnel abort"
+                            error
+                            0
+                        ]
+                )
+
+
+locationCheckResultToJurisdictionStatus : Result Json.Decode.Error (Result String LocationInfo) -> JurisdictionCheckStatus
+locationCheckResultToJurisdictionStatus decodeResult =
+    decodeResult
+        |> Result.map
+            (\checkResult ->
+                checkResult
+                    |> Result.map
+                        (\locationInfo ->
+                            Checked <|
+                                countryCodeToJurisdiction locationInfo.ipCode locationInfo.geoCode
+                        )
+                    |> Result.mapError
+                        (\e ->
+                            Error <|
+                                "Location check failed: "
+                                    ++ e
+                        )
+                    |> Result.Extra.merge
+            )
+        |> Result.mapError
+            (\e -> Error <| "Location check response decode error: " ++ Json.Decode.errorToString e)
+        |> Result.Extra.merge
+
+
+countryCodeToJurisdiction : String -> String -> Jurisdiction
+countryCodeToJurisdiction ipCode geoCode =
+    let
+        allowedJurisdiction =
+            Set.fromList [ ipCode, geoCode ]
+                |> Set.intersect forbiddenJurisdictionCodes
+                |> Set.isEmpty
+    in
+    if allowedJurisdiction then
+        JurisdictionsWeArentIntimidatedIntoExcluding
+
+    else
+        ForbiddenJurisdictions
+
+
+locationCheckDecoder : Json.Decode.Decoder (Result String LocationInfo)
+locationCheckDecoder =
+    Json.Decode.oneOf
+        [ Json.Decode.field "errorMessage" Json.Decode.string
+            |> Json.Decode.map Err
+        , locationInfoDecoder
+            |> Json.Decode.map Ok
+        ]
+
+
+locationInfoDecoder : Json.Decode.Decoder LocationInfo
+locationInfoDecoder =
+    Json.Decode.map2
+        LocationInfo
+        (Json.Decode.field "ipCountry" Json.Decode.string)
+        (Json.Decode.field "geoCountry" Json.Decode.string)
+
 
 runMsgDown : MsgDown -> Model -> UpdateResult
 runMsgDown msg prevModel =
@@ -299,3 +418,9 @@ subscriptions model =
         [ Time.every 50 UpdateNow
         , Time.every 10000 (always RefetchStakingInfoOrApy)
         ]
+
+
+port beginLocationCheck : () -> Cmd msg
+
+
+port locationCheckResult : (Json.Decode.Value -> msg) -> Sub msg

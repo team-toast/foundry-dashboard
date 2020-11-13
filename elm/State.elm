@@ -738,6 +738,7 @@ encodeGTag gtag =
         , ( "value", Json.Encode.int gtag.value )
         ]
 
+
 submodelSubscriptions : Submodel -> Sub Msg
 submodelSubscriptions submodel =
     case submodel of

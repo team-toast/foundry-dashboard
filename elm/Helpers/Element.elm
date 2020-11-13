@@ -139,6 +139,26 @@ white =
     Element.rgb 1 1 1
 
 
+lightGray =
+    Element.rgb255 233 237 242
+
+
+softRed =
+    Element.rgb255 255 0 110
+
+
+red =
+    Element.rgb255 226 1 79
+
+
+grayTextColor =
+    Element.rgba255 1 31 52 0.75
+
+
+green =
+    Element.rgb255 0 162 149
+
+
 withAlpha : Float -> Element.Color -> Element.Color
 withAlpha a color =
     let
@@ -531,3 +551,71 @@ visibility flag =
 
             else
                 "hidden"
+
+
+redButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
+redButton dProfile attributes text msg =
+    button dProfile
+        attributes
+        ( Element.rgba 1 0 0 1
+        , Element.rgba 1 0 0 0.8
+        , Element.rgba 1 0 0 0.6
+        )
+        white
+        text
+        msg
+
+
+commonButtonAttributes : DisplayProfile -> List (Attribute msg)
+commonButtonAttributes dProfile =
+    [ Element.Border.rounded 4
+    , responsiveVal dProfile
+        (Element.paddingXY 25 17)
+        (Element.paddingXY 10 5)
+    , Element.Font.size
+        (responsiveVal dProfile 18 10)
+    , Element.Font.semiBold
+    , Element.Background.color lightGray
+    , Element.Font.center
+    , noSelectText
+    ]
+
+
+disabledButton : DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg
+disabledButton dProfile attributes text maybeTipText =
+    Element.el
+        (attributes
+            ++ commonButtonAttributes dProfile
+            ++ [ Element.above <|
+                    maybeErrorElement
+                        [ Element.moveUp 5 ]
+                        maybeTipText
+               ]
+        )
+        (Element.text text)
+
+
+maybeErrorElement : List (Attribute msg) -> Maybe String -> Element msg
+maybeErrorElement attributes maybeError =
+    case maybeError of
+        Nothing ->
+            Element.none
+
+        Just errorString ->
+            Element.el
+                ([ Element.Border.rounded 5
+                 , Element.Border.color softRed
+                 , Element.Border.width 1
+                 , Element.Background.color <| Element.rgb 1 0.4 0.4
+                 , Element.padding 5
+                 , Element.centerX
+                 , Element.centerY
+                 , Element.width (Element.shrink |> Element.maximum 200)
+                 , Element.Font.size 14
+                 ]
+                    ++ attributes
+                )
+                (Element.paragraph
+                    []
+                    [ Element.text errorString ]
+                )

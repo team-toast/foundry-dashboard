@@ -12,7 +12,7 @@ import Element.Input
 import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
 import FormatFloat
-import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile, redButton, responsiveVal)
 import Images
 import Maybe.Extra
 import Theme
@@ -49,7 +49,7 @@ view dProfile model =
                     15
             ]
             [ titleEl dProfile
-            , bodyEl dProfile model
+            , bodyEl dProfile model.jurisdictionCheckStatus model
             ]
 
 
@@ -76,9 +76,10 @@ titleEl dProfile =
 
 bodyEl :
     DisplayProfile
+    -> JurisdictionCheckStatus
     -> Model
     -> Element Msg
-bodyEl dProfile model =
+bodyEl dProfile jurisdictionCheckStatus model =
     let
         mainEl =
             case dProfile of
@@ -91,6 +92,7 @@ bodyEl dProfile model =
         balancesEl =
             balancesElement
                 dProfile
+                jurisdictionCheckStatus
                 model.now
                 model.wallet
                 model.userStakingInfo
@@ -142,12 +144,13 @@ bodyEl dProfile model =
 
 balancesElement :
     DisplayProfile
+    -> JurisdictionCheckStatus
     -> Time.Posix
     -> Wallet
     -> Maybe UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-balancesElement dProfile now wallet maybeUserStakingInfo depositWithdrawUXModel =
+balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
     case Wallet.userInfo wallet of
         Nothing ->
             Common.View.web3ConnectButton
@@ -181,6 +184,7 @@ balancesElement dProfile now wallet maybeUserStakingInfo depositWithdrawUXModel 
                             userStakingInfo
                         , unstakedRow
                             dProfile
+                            jurisdictionCheckStatus
                             userStakingInfo
                             depositWithdrawUXModel
                         , stakedRow
@@ -286,10 +290,11 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
 
 unstakedRow :
     DisplayProfile
+    -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-unstakedRow dProfile userStakingInfo depositOrWithdrawUXModel =
+unstakedRow dProfile jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -304,16 +309,21 @@ unstakedRow dProfile userStakingInfo depositOrWithdrawUXModel =
         [ rowLabel
             dProfile
             "Unstaked Balance"
-        , unstakedRowUX dProfile userStakingInfo maybeDepositAmountUXModel
+        , unstakedRowUX
+            dProfile
+            jurisdictionCheckStatus
+            userStakingInfo
+            maybeDepositAmountUXModel
         ]
 
 
 unstakedRowUX :
     DisplayProfile
+    -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-unstakedRowUX dProfile stakingInfo maybeDepositAmountUXModel =
+unstakedRowUX dProfile jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
     let
         rowStyles =
             let
@@ -335,17 +345,24 @@ unstakedRowUX dProfile stakingInfo maybeDepositAmountUXModel =
             stakingInfo.unstaked
             maybeDepositAmountUXModel
             "ETHFRY"
-        , case maybeDepositAmountUXModel of
-            Just depositAmountUX ->
-                activeDepositUXButtons
-                    dProfile
-                    depositAmountUX
-                    stakingInfo.unstaked
+        , case jurisdictionCheckStatus of
+            Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+                case maybeDepositAmountUXModel of
+                    Just depositAmountUX ->
+                        activeDepositUXButtons
+                            dProfile
+                            depositAmountUX
+                            stakingInfo.unstaked
 
-            Nothing ->
-                inactiveUnstackedRowButtons
+                    Nothing ->
+                        inactiveUnstackedRowButtons
+                            dProfile
+                            stakingInfo
+
+            _ ->
+                verifyJurisdictionButtonOrResult
                     dProfile
-                    stakingInfo
+                    jurisdictionCheckStatus
         ]
 
 
@@ -922,3 +939,59 @@ actionButtonStyles dProfile maybeHoverText maybeOnClick =
                 Nothing ->
                     [ Element.Background.color <| Element.rgb 0.7 0.7 0.7 ]
            )
+
+
+msgInsteadOfButton :
+    DisplayProfile
+    -> String
+    -> Element.Color
+    -> Element Msg
+msgInsteadOfButton dProfile text color =
+    Element.el
+        [ Element.centerX
+        , Element.Font.size <| responsiveVal dProfile 22 14
+        , Element.Font.italic
+        , Element.Font.color color
+        ]
+        (Element.text text)
+
+
+verifyJurisdictionButtonOrResult :
+    DisplayProfile
+    -> JurisdictionCheckStatus
+    -> Element Msg
+verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
+    case jurisdictionCheckStatus of
+        WaitingForClick ->
+            EH.redButton
+                dProfile
+                [ Element.width Element.fill ]
+                [ "Confirm you are not a US citizen" ]
+                VerifyJurisdictionClicked
+
+        Checking ->
+            EH.disabledButton
+                dProfile
+                [ Element.width Element.fill ]
+                "Verifying Jurisdiction..."
+                Nothing
+
+        Error errStr ->
+            Element.column
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+                [ msgInsteadOfButton dProfile "Error verifying jurisdiction." EH.red
+                , Element.paragraph
+                    [ Element.Font.color EH.grayTextColor ]
+                    [ Element.text errStr ]
+                , Element.paragraph
+                    [ Element.Font.color EH.grayTextColor ]
+                    [ Element.text "There may be more info in the console." ]
+                ]
+
+        Checked ForbiddenJurisdictions ->
+            msgInsteadOfButton dProfile "Sorry, US citizens and residents are excluded." EH.red
+
+        Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+            msgInsteadOfButton dProfile "Jurisdiction Verified." EH.green

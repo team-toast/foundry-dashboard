@@ -21,3 +21,13 @@ type MsgUp
 
 type MsgDown
     = UpdateWallet Wallet
+
+
+gTag : String -> String -> String -> Int -> MsgUp
+gTag event category label value =
+    GTag <|
+        GTagData
+            event
+            category
+            label
+            value

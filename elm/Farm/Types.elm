@@ -1,13 +1,14 @@
 module Farm.Types exposing (..)
 
-import UserTx exposing (TxInfo)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Eth.Types exposing (Address, TxHash)
 import Helpers.Time as TimeHelpers
 import Http
+import Json.Decode
 import Time
 import TokenValue exposing (TokenValue)
+import UserTx exposing (TxInfo)
 import Wallet exposing (Wallet)
 
 
@@ -17,6 +18,7 @@ type alias Model =
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , now : Time.Posix
+    , jurisdictionCheckStatus : JurisdictionCheckStatus
     }
 
 
@@ -34,9 +36,11 @@ type Msg
     | StartWithdraw TokenValue
     | DoWithdraw TokenValue
     | DepositOrWithdrawSigned DepositOrWithdraw TokenValue (Result String TxHash)
-    | StakingInfoFetched (Result Http.Error (UserStakingInfo, Float))
+    | StakingInfoFetched (Result Http.Error ( UserStakingInfo, Float ))
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
+    | VerifyJurisdictionClicked
+    | LocationCheckResult (Result Json.Decode.Error (Result String LocationInfo))
 
 
 type alias UpdateResult =
@@ -68,6 +72,24 @@ type alias AmountUXModel =
 type DepositOrWithdraw
     = Deposit
     | Withdraw
+
+
+type Jurisdiction
+    = ForbiddenJurisdictions
+    | JurisdictionsWeArentIntimidatedIntoExcluding
+
+
+type JurisdictionCheckStatus
+    = WaitingForClick
+    | Checking
+    | Checked Jurisdiction
+    | Error String
+
+
+type alias LocationInfo =
+    { ipCode : String
+    , geoCode : String
+    }
 
 
 calcAvailableRewards : UserStakingInfo -> Time.Posix -> TokenValue
