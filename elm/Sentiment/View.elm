@@ -185,7 +185,7 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState po
                 responsiveVal
                     dProfile
                     26
-                    12
+                    14
             ]
             (ElementMarkdown.renderString [] poll.question
                 |> Result.Extra.extract
@@ -229,7 +229,7 @@ viewOptions dProfile maybeUserInfo poll talliedVotes totalFryVoted mouseoverStat
             responsiveVal
                 dProfile
                 10
-                5
+                10
         , Element.width Element.fill
         ]
         (poll.options
@@ -345,12 +345,22 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                                         [ Element.alpha 1 ]
                                    , Element.inFront <|
                                         Images.toElement
-                                            [ Element.width Element.fill
-                                            , Element.height Element.fill
-                                            , Element.alpha 0
-                                            , Element.mouseOver
+                                            ([ Element.width Element.fill
+                                             , Element.height Element.fill
+                                             , Element.alpha 0
+                                             , Element.mouseOver
                                                 [ Element.alpha 1 ]
-                                            ]
+                                             ]
+                                                ++ (case dProfile of
+                                                        Desktop ->
+                                                            []
+
+                                                        Mobile ->
+                                                            [ Element.width <|
+                                                                Element.fillPortion 1
+                                                            ]
+                                                   )
+                                            )
                                             Images.pollChoiceMouseover
                                    ]
                             )
@@ -384,8 +394,9 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                         [ Element.alignLeft
                         , Element.width <|
                             Element.px <|
-                                maxBarWidth
+                                (maxBarWidth dProfile
                                     + 5
+                                )
                         ]
                       <|
                         voteBarBreakdown
@@ -405,45 +416,123 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                                 ++ "%"
                             )
                         )
-                    , viewFryAmount totalVotesInSupport
+                    , viewFryAmount
+                        dProfile
+                        totalVotesInSupport
                     ]
                 ]
 
         Mobile ->
-            Element.row
-                [ Element.width Element.fill
-                , Element.spacing 5
-                ]
-                [ Element.row
+            Element.row [ Element.width Element.fill ]
+                [ voteButtonElementOrNone
+                , Element.paragraph
+                    [ Element.width Element.fill
+                    , Element.Font.size 12
+                    , Element.alignLeft
+                    ]
+                    [ Element.text pollOption.name ]
+                , Element.row
                     [ Element.width Element.fill
                     , Element.spacing 5
-                    , Element.pointer
-                    , wholeOptionClick
                     ]
-                  <|
-                    [ voteButtonElementOrNone
-                    , Element.paragraph
-                        [ Element.Font.size 10
-                        , Element.alignLeft
-                        ]
-                        [ Element.text pollOption.name ]
+                    [ voteBarBreakdown
+                        dProfile
+                        maybeUserInfo
+                        ( poll.id, pollOption.id )
+                        totalVotes
+                        totalVotesInSupport
+                        detailedSupportDict
+                        mouseoverState
+                    , viewFryAmount
+                        dProfile
+                        totalVotesInSupport
                     , Element.el
                         [ Element.width <|
-                            Element.px 50
+                            Element.fillPortion 1
+                        , Element.Font.size 12
+                        , Element.alignRight
+                        , Element.moveRight 10
                         ]
                         (Element.text <|
                             (FormatFloat.formatFloat 1 (supportFloat * 100)
                                 ++ "%"
                             )
                         )
-                    , viewFryAmount totalVotesInSupport
                     ]
                 ]
 
 
-maxBarWidth : Int
-maxBarWidth =
-    200
+
+-- Element.column
+--     [ Element.width
+--         Element.fill
+--     ]
+--     [ Element.row
+--         [ Element.width Element.fill
+--         , Element.spacing 5
+--         ]
+--         [ Element.row
+--             [ Element.width <| Element.fillPortion 5
+--             , Element.spacing 5
+--             , Element.pointer
+--             , wholeOptionClick
+--             ]
+--           <|
+--             [ voteButtonElementOrNone
+--             , Element.paragraph
+--                 [ Element.Font.size 10
+--                 , Element.alignLeft
+--                 ]
+--                 [ Element.text pollOption.name ]
+--             ]
+--         , Element.el
+--             [ Element.width <|
+--                 Element.fillPortion 1
+--             , Element.Font.size 12
+--             , Element.alignRight
+--             , Element.moveRight 10
+--             ]
+--             (Element.text <|
+--                 (FormatFloat.formatFloat 1 (supportFloat * 100)
+--                     ++ "%"
+--                 )
+--             )
+--         ]
+--     , Element.row
+--         [ Element.width Element.fill
+--         , Element.spacing 5
+--         ]
+--         [ Element.el
+--             [ Element.alignLeft
+--             , Element.width <|
+--                 Element.px <|
+--                     maxBarWidth
+--                         + 5
+--             ]
+--           <|
+--             voteBarBreakdown
+--                 dProfile
+--                 maybeUserInfo
+--                 ( poll.id, pollOption.id )
+--                 totalVotes
+--                 totalVotesInSupport
+--                 detailedSupportDict
+--                 mouseoverState
+--         , viewFryAmount
+--             dProfile
+--             totalVotesInSupport
+--         ]
+--     ]
+
+
+maxBarWidth : DisplayProfile -> Int
+maxBarWidth dProfile =
+    case dProfile of
+        Desktop ->
+            200
+
+        Mobile ->
+            100
 
 
 type alias VoteBarBlock =
@@ -476,7 +565,7 @@ voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes tota
                         TokenValue.getRatioWithWarning tokens totalVotes
             in
             ratio
-                * (maxBarWidth |> toFloat)
+                * (maxBarWidth dProfile |> toFloat)
                 |> floor
 
         fullBarWidth =
@@ -525,8 +614,17 @@ voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes tota
                     []
     in
     Element.row
-        [ Element.height <| Element.px 30
-        , Element.width <| Element.px fullBarWidth
+        [ Element.height <|
+            Element.px <|
+                responsiveVal
+                    dProfile
+                    30
+                    15
+        , Element.width <|
+            responsiveVal
+                dProfile
+                (Element.px fullBarWidth)
+                Element.fill
         , Element.Background.color Theme.lightGray
         , Element.Border.glow
             (Element.rgba 1 1 1 0.2)
@@ -612,16 +710,25 @@ voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes tota
         )
 
 
-viewFryAmount : TokenValue -> Element Msg
-viewFryAmount amount =
+viewFryAmount : DisplayProfile -> TokenValue -> Element Msg
+viewFryAmount dProfile amount =
     Element.row
-        [ Element.moveRight 20
-        , Element.spacing 8
-        , Element.centerY
-        ]
+        ([ Element.spacing <|
+            responsiveVal dProfile 8 6
+         , Element.centerY
+         ]
+            ++ (case dProfile of
+                    Desktop ->
+                        []
+
+                    Mobile ->
+                        [ Element.Font.size 12 ]
+               )
+        )
         [ Images.toElement
-            [ Element.alignTop
-            ]
+            (commonImageAttributes
+                dProfile
+            )
             Images.fryIcon
         , Element.text <|
             TokenValue.toConciseString amount
