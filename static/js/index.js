@@ -1,6 +1,9 @@
 var elm_ethereum_ports = require('elm-ethereum-ports');
 var networkChangeNotifier = require('./networkChangeNotifier');
 var ethereumJsUtil = require('ethereumjs-utils');
+require('@metamask/legacy-web3');
+ 
+const { web3 } = window;
 
 import { Elm } from '../../elm/App'
 
