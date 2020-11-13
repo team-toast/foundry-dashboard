@@ -4,6 +4,7 @@ import Common.Msg exposing (MsgDown, MsgUp)
 import Common.Types exposing (..)
 import Contracts.Staking as StakingContract
 import Eth.Types exposing (Address)
+import Eth.Utils
 import Farm.Types exposing (..)
 import Time
 import TokenValue exposing (TokenValue)
@@ -105,7 +106,7 @@ update msg prevModel =
                 [ Common.Msg.GTag <|
                     GTagData
                         "Deposit Liquidity"
-                        "conversion"
+                        "funnel"
                         ""
                         (TokenValue.mul amount 100
                             |> TokenValue.toFloatWithWarning
@@ -120,13 +121,31 @@ update msg prevModel =
                 [ doWithdrawChainCmd amount ]
                 []
 
-        WithdrawOrDepositSigned signResult ->
+        DepositOrWithdrawSigned depositOrWithdraw amount signResult ->
             case signResult of
-                Ok _ ->
-                    justModelUpdate
+                Ok txHash ->
+                    UpdateResult
                         { prevModel
                             | depositWithdrawUXModel = Nothing
                         }
+                        Cmd.none
+                        []
+                        (case depositOrWithdraw of
+                            Deposit ->
+                                [ Common.Msg.GTag <|
+                                    GTagData
+                                        "Deposit Liquidity Signed"
+                                        "conversion"
+                                        (Eth.Utils.txHashToString txHash)
+                                        (TokenValue.mul amount 100
+                                            |> TokenValue.toFloatWithWarning
+                                            |> floor
+                                        )
+                                ]
+
+                            Withdraw ->
+                                []
+                        )
 
                 _ ->
                     justModelUpdate prevModel
@@ -234,7 +253,7 @@ doDepositChainCmd : TokenValue -> UserTx.Initiator Msg
 doDepositChainCmd amount =
     { notifiers =
         { onMine = Just <| always RefetchStakingInfoOrApy
-        , onSign = Just WithdrawOrDepositSigned
+        , onSign = Just <| DepositOrWithdrawSigned Deposit amount
         }
     , send = StakingContract.stake amount
     , txInfo = UserTx.StakingDeposit amount
@@ -245,7 +264,7 @@ doWithdrawChainCmd : TokenValue -> UserTx.Initiator Msg
 doWithdrawChainCmd amount =
     { notifiers =
         { onMine = Just <| always RefetchStakingInfoOrApy
-        , onSign = Just <| WithdrawOrDepositSigned
+        , onSign = Just <| DepositOrWithdrawSigned Withdraw amount
         }
     , send = StakingContract.withdraw amount
     , txInfo = UserTx.StakingWithdraw amount
