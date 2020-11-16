@@ -1,9 +1,11 @@
 require("babel-core/register");
 require("babel-polyfill");
-require("jquery");
+var $ = require("jquery");
 
-var commonModule = (function() {
-    var pub ={};
+
+
+var commonModule = (function () {
+    var pub = {};
 
     class Result {
         constructor(value, error) {
@@ -19,7 +21,7 @@ var commonModule = (function() {
         flatMap(fn) {
             if (this.isError()) return Result.Error(this.__error);
             const r = fn(this.__value);
-    
+
             return r.isError() ?
                 Result.Error(r.__error) :
                 Result.of(r.__value);
