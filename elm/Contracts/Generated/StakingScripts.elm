@@ -4,9 +4,9 @@ module Contracts.Generated.StakingScripts exposing
     , getDataDecoder
     )
 
+import BigInt exposing (BigInt)
 import Eth.Abi.Decode as D exposing (abiDecode, andMap, data, toElmDecoder, topic)
 import Eth.Abi.Encode as E exposing (Encoding(..), abiEncode)
-import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
@@ -58,5 +58,3 @@ getDataDecoder =
         |> andMap D.uint
         |> andMap D.uint
         |> toElmDecoder
-
-

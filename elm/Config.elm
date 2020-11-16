@@ -98,3 +98,8 @@ urlToLiquidityPool =
 forbiddenJurisdictionCodes : Set String
 forbiddenJurisdictionCodes =
     Set.fromList [ "US" ]
+
+
+farmingPeriodEnds : Int
+farmingPeriodEnds =
+    1607702381

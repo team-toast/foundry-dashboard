@@ -13,6 +13,7 @@ import Eth.Types exposing (Address)
 import Farm.Types exposing (..)
 import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile, redButton, responsiveVal)
+import Helpers.Time as TimeHelpers
 import Images
 import Maybe.Extra
 import Theme
@@ -49,6 +50,7 @@ view dProfile model =
                     15
             ]
             [ titleEl dProfile
+            , subTitleEl dProfile model.now
             , bodyEl dProfile model.jurisdictionCheckStatus model
             ]
 
@@ -72,6 +74,30 @@ titleEl dProfile =
         ]
     <|
         Element.text "Farming for Fryers!"
+
+
+subTitleEl : DisplayProfile -> Time.Posix -> Element Msg
+subTitleEl dProfile now =
+    Element.el
+        [ Element.Font.size <|
+            responsiveVal
+                dProfile
+                30
+                16
+        , Element.Font.color EH.white
+        , Element.Font.medium
+        , Element.Font.italic
+        , Element.centerX
+        ]
+    <|
+        Element.text
+            ("Farming ends in "
+                ++ TimeHelpers.toDetailIntervalString
+                    (TimeHelpers.sub
+                        (TimeHelpers.secondsToPosix Config.farmingPeriodEnds)
+                        now
+                    )
+            )
 
 
 bodyEl :

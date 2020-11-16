@@ -167,6 +167,22 @@ toConciseIntervalString t =
         String.fromInt hri.sec ++ "s"
 
 
+toDetailIntervalString : Time.Posix -> String
+toDetailIntervalString t =
+    let
+        hri =
+            toHumanReadableInterval t
+    in
+    String.fromInt hri.days
+        ++ "d "
+        ++ String.fromInt hri.hours
+        ++ "h "
+        ++ String.fromInt hri.min
+        ++ "m "
+        ++ String.fromInt hri.sec
+        ++ "s"
+
+
 oneSecond : Time.Posix
 oneSecond =
     secondsToPosix 1
