@@ -51,7 +51,8 @@ view dProfile model =
             ]
             [ titleEl dProfile
             , subTitleEl dProfile model.now
-            , bodyEl dProfile model.jurisdictionCheckStatus model
+            , bodyEl dProfile model
+            , verifyJurisdictionErrorEl dProfile model.jurisdictionCheckStatus
             ]
 
 
@@ -76,7 +77,10 @@ titleEl dProfile =
         Element.text "Farming for Fryers!"
 
 
-subTitleEl : DisplayProfile -> Time.Posix -> Element Msg
+subTitleEl :
+    DisplayProfile
+    -> Time.Posix
+    -> Element Msg
 subTitleEl dProfile now =
     Element.el
         [ Element.Font.size <|
@@ -102,10 +106,9 @@ subTitleEl dProfile now =
 
 bodyEl :
     DisplayProfile
-    -> JurisdictionCheckStatus
     -> Model
     -> Element Msg
-bodyEl dProfile jurisdictionCheckStatus model =
+bodyEl dProfile model =
     let
         mainEl =
             case dProfile of
@@ -118,7 +121,7 @@ bodyEl dProfile jurisdictionCheckStatus model =
         balancesEl =
             balancesElement
                 dProfile
-                jurisdictionCheckStatus
+                model.jurisdictionCheckStatus
                 model.now
                 model.wallet
                 model.userStakingInfo
@@ -1027,3 +1030,28 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
 
         Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
             msgInsteadOfButton dProfile "Jurisdiction Verified." EH.green
+
+
+verifyJurisdictionErrorEl :
+    DisplayProfile
+    -> JurisdictionCheckStatus
+    -> Element Msg
+verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus =
+    case jurisdictionCheckStatus of
+        Error errStr ->
+            Element.column
+                [ Element.spacing 20
+                , Element.width Element.fill
+                ]
+                [ Element.paragraph
+                    [ Element.Font.color EH.white
+                    ]
+                    [ Element.text errStr ]
+                , Element.paragraph
+                    [ Element.Font.color EH.white
+                    ]
+                    [ Element.text "There may be more info in the console." ]
+                ]
+
+        _ ->
+            Element.none
