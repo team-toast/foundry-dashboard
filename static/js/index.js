@@ -3,6 +3,10 @@ var networkChangeNotifier = require('./networkChangeNotifier');
 var ethereumJsUtil = require('ethereumjs-utils');
 var locationCheck = require('./dualLocationCheck.js');
 
+require('@metamask/legacy-web3');
+
+const { web3 } = window;
+
 import { Elm } from '../../elm/App'
 
 const basePath = new URL(document.baseURI).pathname;
