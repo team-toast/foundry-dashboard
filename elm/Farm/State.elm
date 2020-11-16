@@ -417,6 +417,8 @@ subscriptions model =
     Sub.batch
         [ Time.every 50 UpdateNow
         , Time.every 10000 (always RefetchStakingInfoOrApy)
+        , locationCheckResult
+            (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
         ]
 
 

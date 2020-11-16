@@ -1,6 +1,7 @@
 var elm_ethereum_ports = require('elm-ethereum-ports');
 var networkChangeNotifier = require('./networkChangeNotifier');
 var ethereumJsUtil = require('ethereumjs-utils');
+var locationCheck = require('./dualLocationCheck.js');
 
 import { Elm } from '../../elm/App'
 
@@ -27,7 +28,7 @@ function startDapp() {
             window.app = Elm.App.init({
                 node: document.getElementById('elm'),
                 flags: {
-                    basePath : basePath,
+                    basePath: basePath,
                     networkId: id,
                     width: window.innerWidth,
                     height: window.innerHeight,
@@ -36,6 +37,7 @@ function startDapp() {
             });
 
             gtagPortStuff(app);
+            locationCheckPortStuff(app);
             web3PortStuff(app, web3);
 
         });
@@ -43,7 +45,7 @@ function startDapp() {
         window.app = Elm.App.init({
             node: document.getElementById('elm'),
             flags: {
-                basePath : basePath,
+                basePath: basePath,
                 networkId: 0, // 0 indicates no network set by provider
                 width: window.innerWidth,
                 height: window.innerHeight,
@@ -52,6 +54,7 @@ function startDapp() {
         });
 
         gtagPortStuff(app);
+        locationCheckPortStuff(app);
 
         console.log("Web3 wallet not detected.");
     }
@@ -66,8 +69,8 @@ function web3PortStuff(app, web3) {
         }
     });
 
-    app.ports.web3Sign.subscribe(function(data) {
-        web3.personal.sign(data.data, data.address, function(err, res) {
+    app.ports.web3Sign.subscribe(function (data) {
+        web3.personal.sign(data.data, data.address, function (err, res) {
             var response = {
                 address: data.address,
                 pollId: data.pollId,
@@ -78,7 +81,7 @@ function web3PortStuff(app, web3) {
         });
     });
 
-    app.ports.web3ValidateSig.subscribe(function(data) {
+    app.ports.web3ValidateSig.subscribe(function (data) {
         const id = data.id;
         const signedResponse = data.data;
         const sig = data.sig;
@@ -99,8 +102,8 @@ function web3PortStuff(app, web3) {
 
         const success = (recoveredAddress == givenAddress);
         var successObject = {
-            id : id, 
-            success : success
+            id: id,
+            success: success
         };
 
         app.ports.web3ValidateSigResult.send(successObject);
@@ -138,4 +141,11 @@ function connectAndPrepareRemainingWeb3Ports(app, web3) {
         ethereum.enable();
         window.web3Connected = true;
     }
+}
+
+function locationCheckPortStuff(app) {
+    app.ports.beginLocationCheck.subscribe(function (data) {
+        console.log(locationCheck);
+        locationCheck.dualLocationCheckWithCallback(app.ports.locationCheckResult.send);
+    });
 }

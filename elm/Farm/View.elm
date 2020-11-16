@@ -339,31 +339,36 @@ unstakedRowUX dProfile jurisdictionCheckStatus stakingInfo maybeDepositAmountUXM
     in
     Element.row
         rowStyles
-        [ balanceOutputOrInput
-            dProfile
-            False
-            stakingInfo.unstaked
-            maybeDepositAmountUXModel
-            "ETHFRY"
-        , case jurisdictionCheckStatus of
+        (case jurisdictionCheckStatus of
             Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
-                case maybeDepositAmountUXModel of
-                    Just depositAmountUX ->
-                        activeDepositUXButtons
-                            dProfile
-                            depositAmountUX
-                            stakingInfo.unstaked
+                [ balanceOutputOrInput
+                    dProfile
+                    False
+                    stakingInfo.unstaked
+                    maybeDepositAmountUXModel
+                    "ETHFRY"
+                ]
+                    ++ (case maybeDepositAmountUXModel of
+                            Just depositAmountUX ->
+                                [ activeDepositUXButtons
+                                    dProfile
+                                    depositAmountUX
+                                    stakingInfo.unstaked
+                                ]
 
-                    Nothing ->
-                        inactiveUnstackedRowButtons
-                            dProfile
-                            stakingInfo
+                            Nothing ->
+                                [ inactiveUnstackedRowButtons
+                                    dProfile
+                                    stakingInfo
+                                ]
+                       )
 
             _ ->
-                verifyJurisdictionButtonOrResult
+                [ verifyJurisdictionButtonOrResult
                     dProfile
                     jurisdictionCheckStatus
-        ]
+                ]
+        )
 
 
 stakedRow :
@@ -949,7 +954,7 @@ msgInsteadOfButton :
 msgInsteadOfButton dProfile text color =
     Element.el
         [ Element.centerX
-        , Element.Font.size <| responsiveVal dProfile 22 14
+        , Element.Font.size <| responsiveVal dProfile 18 12
         , Element.Font.italic
         , Element.Font.color color
         ]
@@ -982,12 +987,13 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                 , Element.width Element.fill
                 ]
                 [ msgInsteadOfButton dProfile "Error verifying jurisdiction." EH.red
-                , Element.paragraph
-                    [ Element.Font.color EH.grayTextColor ]
-                    [ Element.text errStr ]
-                , Element.paragraph
-                    [ Element.Font.color EH.grayTextColor ]
-                    [ Element.text "There may be more info in the console." ]
+
+                -- , Element.paragraph
+                --     [ Element.Font.color EH.grayTextColor ]
+                --     [ Element.text errStr ]
+                -- , Element.paragraph
+                --     [ Element.Font.color EH.grayTextColor ]
+                --     [ Element.text "There may be more info in the console." ]
                 ]
 
         Checked ForbiddenJurisdictions ->
