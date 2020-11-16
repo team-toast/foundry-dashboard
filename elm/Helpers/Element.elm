@@ -233,13 +233,13 @@ button dProfile attributes ( bgColor, bgHoverColor, bgPressedColor ) textColor l
          , responsiveVal
             dProfile
             (Element.paddingXY 25 17)
-            (Element.padding 10)
+            (Element.padding 8)
          , Element.Font.color textColor
          , Element.Font.size <|
             responsiveVal
                 dProfile
                 18
-                16
+                14
          , Element.Font.semiBold
          , Element.Background.color bgColor
          , Element.mouseDown [ Element.Background.color bgPressedColor ]
