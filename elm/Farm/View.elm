@@ -52,6 +52,7 @@ view dProfile model =
             [ titleEl dProfile
             , subTitleEl dProfile model.now
             , bodyEl dProfile model
+            , verifyJurisdictionErrorEl dProfile model.jurisdictionCheckStatus
             ]
 
 
@@ -166,7 +167,6 @@ bodyEl dProfile model =
             EH.Mobile ->
                 [ apyEl
                 , balancesEl
-                , verifyJurisdictionErrorEl dProfile model.jurisdictionCheckStatus
                 ]
         )
 
@@ -1040,23 +1040,15 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus =
     case jurisdictionCheckStatus of
         Error errStr ->
             Element.column
-                [ Element.spacing 10
+                [ Element.spacing 20
                 , Element.width Element.fill
                 ]
                 [ Element.paragraph
-                    [ Element.Font.color <|
-                        responsiveVal
-                            dProfile
-                            EH.grayTextColor
-                            EH.white
+                    [ Element.Font.color EH.white
                     ]
                     [ Element.text errStr ]
                 , Element.paragraph
-                    [ Element.Font.color <|
-                        responsiveVal
-                            dProfile
-                            EH.grayTextColor
-                            EH.white
+                    [ Element.Font.color EH.white
                     ]
                     [ Element.text "There may be more info in the console." ]
                 ]

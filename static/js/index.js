@@ -4,7 +4,6 @@ var ethereumJsUtil = require('ethereumjs-utils');
 var locationCheck = require('./dualLocationCheck.js');
 
 require('@metamask/legacy-web3');
-require('jquery');
 
 const { web3 } = window;
 
