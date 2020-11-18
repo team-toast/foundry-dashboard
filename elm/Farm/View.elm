@@ -277,14 +277,15 @@ apyElement dProfile maybeApy =
                     , Element.Background.color <| Element.rgba 1 1 1 0.3
                     , Element.Border.rounded 5
                     , Element.Border.glow EH.lightGray 1
-
-                    --, Element.Border.color <| Element.rgba 0 0 0 0.1
                     ]
-                    [ Element.text "Current APY: "
+                    [ Element.el
+                        [ Element.Font.color EH.white ]
+                      <|
+                        Element.text "Current APY: "
                     , Element.el
                         [ Element.centerX
-                        , Element.Font.color EH.lightGray
-                        , Element.Font.medium
+                        , Element.Font.color EH.black
+                        , Element.Font.semiBold
                         ]
                       <|
                         Element.text <|
@@ -311,6 +312,8 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
                     20
                     15
             , Element.Background.color <| Element.rgba 1 1 1 0.9
+            , Element.padding 10
+            , Element.Border.rounded 5
             ]
             [ Element.newTabLink
                 [ Element.Font.color Theme.blue ]
@@ -451,7 +454,9 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
                         _ ->
                             False
             in
-            rowUXStyles dProfile isInput
+            rowUXStyles
+                dProfile
+                isInput
     in
     Element.row
         rowStyles
@@ -522,7 +527,7 @@ rewardsRowUX dProfile stakingInfo now =
         )
         [ balanceOutputOrInput
             dProfile
-            EH.white
+            EH.black
             (calcAvailableRewards
                 stakingInfo
                 now
@@ -556,6 +561,7 @@ rowUXStyles dProfile isInput =
                 dProfile
                 50
                 30
+    , Element.Font.color EH.white
     ]
         ++ (if isInput then
                 [ Element.Border.rounded 5
@@ -583,16 +589,11 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                 75
     in
     Element.row
-        [ Element.spacing <|
-            responsiveVal
-                dProfile
-                10
-                6
-        , Element.Font.size <|
-            responsiveVal
-                dProfile
-                26
-                16
+        [ Element.spacing <| responsiveVal dProfile 10 6
+        , Element.Font.size <| responsiveVal dProfile 26 16
+        , Element.Background.color <| Element.rgba 1 1 1 0.2
+        , Element.Font.color EH.black
+        , Element.padding 5
         ]
         [ case maybeAmountUXModel of
             Just amountUXModel ->
@@ -640,9 +641,12 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
             , Element.Font.color
                 color
             , Element.Font.semiBold
+            , Element.alignRight
             ]
           <|
-            Element.text tokenLabel
+            Element.row
+                [ Element.alignRight ]
+                [ Element.text tokenLabel ]
         ]
 
 
@@ -718,11 +722,7 @@ buttonsRow :
     -> Element Msg
 buttonsRow dProfile =
     Element.row
-        [ Element.spacing <|
-            responsiveVal
-                dProfile
-                10
-                5
+        [ Element.spacing <| responsiveVal dProfile 10 5
         ]
 
 
@@ -784,16 +784,12 @@ mainRow dProfile =
         , Element.padding 10
         , Element.Border.rounded 5
         , Element.Border.glow EH.lightGray 1
+        , Element.Font.size <| responsiveVal dProfile 30 24
         , Element.width <|
             responsiveVal
                 dProfile
                 (Element.px 420)
                 Element.fill
-        , Element.Font.size <|
-            responsiveVal
-                dProfile
-                30
-                24
         ]
 
 
@@ -813,7 +809,8 @@ rowLabel dProfile text =
                 dProfile
                 40
                 20
-        , Element.Font.semiBold
+        , Element.Font.regular
+        , Element.Font.color EH.white
         ]
         (Element.text text)
 
@@ -1014,7 +1011,9 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
         Checking ->
             EH.disabledButton
                 dProfile
-                [ Element.width Element.fill ]
+                [ Element.width Element.fill
+                , Element.Font.color EH.black
+                ]
                 "Verifying Jurisdiction..."
                 Nothing
 
@@ -1056,8 +1055,6 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
                         dProfile
                         20
                         10
-
-                 --, Element.width Element.fill
                  , Element.Font.size <|
                     responsiveVal
                         dProfile
