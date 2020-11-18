@@ -1060,13 +1060,11 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
                  ]
                     ++ attributes
                 )
-                [ Element.paragraph
+                [ Element.el
                     []
-                    [ Element.text errStr
-                    ]
-                , Element.paragraph
-                    []
-                    [ Element.text "There may be more info in the console." ]
+                  <|
+                    Element.text errStr
+                , Element.text "There may be more info in the console."
                 ]
 
         _ ->
