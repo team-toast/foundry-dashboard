@@ -96,11 +96,17 @@ viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances mouseoverS
         [ Element.spacing <|
             responsiveVal
                 dProfile
-                20
-                10
+                30
+                30
         ]
         (List.map
-            (viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState)
+            (viewPoll
+                dProfile
+                maybeUserInfo
+                validatedResponses
+                fryBalances
+                mouseoverState
+            )
             (List.reverse polls)
         )
 
@@ -120,7 +126,10 @@ viewPoll dProfile maybeUserInfo validatedResponses fryBalances mouseoverState po
                 |> Dict.get poll.id
                 |> Maybe.withDefault AddressDict.empty
 
-        foldFunc : ( Address, ValidatedResponse ) -> Dict Int ( TokenValue, AddressDict TokenValue ) -> Dict Int ( TokenValue, AddressDict TokenValue )
+        foldFunc :
+            ( Address, ValidatedResponse )
+            -> Dict Int ( TokenValue, AddressDict TokenValue )
+            -> Dict Int ( TokenValue, AddressDict TokenValue )
         foldFunc ( address, validatedResponse ) accTallyData =
             case validatedResponse.maybePollOptionId of
                 Nothing ->
