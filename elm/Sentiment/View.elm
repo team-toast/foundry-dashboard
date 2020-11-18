@@ -446,7 +446,7 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                     ]
                 , Element.row
                     [ Element.width Element.fill
-                    , Element.spacing 5
+                    , Element.spacing 10
                     , Element.moveRight 40
                     ]
                     [ Element.el
@@ -492,7 +492,7 @@ maxBarWidth dProfile =
             200
 
         Mobile ->
-            175
+            125
 
 
 type alias VoteBarBlock =
