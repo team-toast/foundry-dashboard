@@ -48,11 +48,15 @@ view dProfile model =
                     dProfile
                     40
                     15
+            , Element.height Element.fill
             ]
             [ titleEl dProfile
             , subTitleEl dProfile model.now
             , bodyEl dProfile model
-            , verifyJurisdictionErrorEl dProfile model.jurisdictionCheckStatus
+            , verifyJurisdictionErrorEl
+                dProfile
+                model.jurisdictionCheckStatus
+                [ Element.Font.color EH.white ]
             ]
 
 
@@ -1035,21 +1039,33 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
 verifyJurisdictionErrorEl :
     DisplayProfile
     -> JurisdictionCheckStatus
+    -> List (Attribute Msg)
     -> Element Msg
-verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus =
+verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
     case jurisdictionCheckStatus of
         Error errStr ->
             Element.column
-                [ Element.spacing 20
-                , Element.width Element.fill
-                ]
+                ([ Element.spacing <|
+                    responsiveVal
+                        dProfile
+                        20
+                        10
+
+                 --, Element.width Element.fill
+                 , Element.Font.size <|
+                    responsiveVal
+                        dProfile
+                        16
+                        10
+                 ]
+                    ++ attributes
+                )
                 [ Element.paragraph
-                    [ Element.Font.color EH.white
+                    []
+                    [ Element.text errStr
                     ]
-                    [ Element.text errStr ]
                 , Element.paragraph
-                    [ Element.Font.color EH.white
-                    ]
+                    []
                     [ Element.text "There may be more info in the console." ]
                 ]
 
