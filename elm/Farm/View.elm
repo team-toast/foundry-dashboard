@@ -48,11 +48,15 @@ view dProfile model =
                     dProfile
                     40
                     15
+            , Element.height Element.fill
             ]
             [ titleEl dProfile
             , subTitleEl dProfile model.now
             , bodyEl dProfile model
-            , verifyJurisdictionErrorEl dProfile model.jurisdictionCheckStatus
+            , verifyJurisdictionErrorEl
+                dProfile
+                model.jurisdictionCheckStatus
+                [ Element.Font.color EH.white ]
             ]
 
 
@@ -69,7 +73,7 @@ titleEl dProfile =
         , Element.Font.color EH.white
         , responsiveVal
             dProfile
-            Element.Font.medium
+            Element.Font.bold
             Element.Font.semiBold
         , Element.centerX
         ]
@@ -134,8 +138,9 @@ bodyEl dProfile model =
     in
     mainEl
         [ Element.centerX
-        , Element.Background.color <| Element.rgb 0.6 0.6 1
+        , Element.Background.color <| Element.rgba 1 1 1 0.1
         , Element.Border.rounded 10
+        , Element.Border.glow EH.white 2
         , Element.height <|
             Element.px <|
                 responsiveVal
@@ -269,16 +274,18 @@ apyElement dProfile maybeApy =
                 mainEl
                     [ Element.spacing 5
                     , Element.padding 5
-                    , Element.Background.color <| Element.rgba 0 0 0 0.15
+                    , Element.Background.color <| Element.rgba 1 1 1 0.3
                     , Element.Border.rounded 5
-                    , Element.Border.width 1
-                    , Element.Border.color <| Element.rgba 0 0 0 0.1
+                    , Element.Border.glow EH.lightGray 1
                     ]
-                    [ Element.text "Current APY: "
+                    [ Element.el
+                        [ Element.Font.color EH.white ]
+                      <|
+                        Element.text "Current APY: "
                     , Element.el
                         [ Element.centerX
-                        , Element.Font.color <| Theme.darkBlue
-                        , Element.Font.medium
+                        , Element.Font.color EH.black
+                        , Element.Font.semiBold
                         ]
                       <|
                         Element.text <|
@@ -304,6 +311,9 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
                     dProfile
                     20
                     15
+            , Element.Background.color <| Element.rgba 1 1 1 0.9
+            , Element.padding 10
+            , Element.Border.rounded 5
             ]
             [ Element.newTabLink
                 [ Element.Font.color Theme.blue ]
@@ -372,7 +382,7 @@ unstakedRowUX dProfile jurisdictionCheckStatus stakingInfo maybeDepositAmountUXM
             Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
                 [ balanceOutputOrInput
                     dProfile
-                    False
+                    EH.black
                     stakingInfo.unstaked
                     maybeDepositAmountUXModel
                     "ETHFRY"
@@ -444,13 +454,15 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
                         _ ->
                             False
             in
-            rowUXStyles dProfile isInput
+            rowUXStyles
+                dProfile
+                isInput
     in
     Element.row
         rowStyles
         [ balanceOutputOrInput
             dProfile
-            False
+            EH.black
             stakingInfo.staked
             maybeWithdrawAmountUXModel
             "ETHFRY"
@@ -509,10 +521,13 @@ rewardsRowUX :
     -> Element Msg
 rewardsRowUX dProfile stakingInfo now =
     Element.row
-        (rowUXStyles dProfile False)
+        (rowUXStyles
+            dProfile
+            False
+        )
         [ balanceOutputOrInput
             dProfile
-            True
+            EH.black
             (calcAvailableRewards
                 stakingInfo
                 now
@@ -546,6 +561,7 @@ rowUXStyles dProfile isInput =
                 dProfile
                 50
                 30
+    , Element.Font.color EH.white
     ]
         ++ (if isInput then
                 [ Element.Border.rounded 5
@@ -559,12 +575,12 @@ rowUXStyles dProfile isInput =
 
 balanceOutputOrInput :
     DisplayProfile
-    -> Bool
+    -> Element.Color
     -> TokenValue
     -> Maybe AmountUXModel
     -> String
     -> Element Msg
-balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
+balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
     let
         amountElWidth =
             responsiveVal
@@ -573,16 +589,11 @@ balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
                 75
     in
     Element.row
-        [ Element.spacing <|
-            responsiveVal
-                dProfile
-                10
-                6
-        , Element.Font.size <|
-            responsiveVal
-                dProfile
-                26
-                16
+        [ Element.spacing <| responsiveVal dProfile 10 6
+        , Element.Font.size <| responsiveVal dProfile 26 16
+        , Element.Background.color <| Element.rgba 1 1 1 0.2
+        , Element.Font.color EH.black
+        , Element.padding 5
         ]
         [ case maybeAmountUXModel of
             Just amountUXModel ->
@@ -628,16 +639,14 @@ balanceOutputOrInput dProfile isRed balance maybeAmountUXModel tokenLabel =
                     (Element.px 100)
                     (Element.fillPortion 1)
             , Element.Font.color
-                (if isRed then
-                    Element.rgb 1 0 0
-
-                 else
-                    EH.black
-                )
+                color
             , Element.Font.semiBold
+            , Element.alignRight
             ]
           <|
-            Element.text tokenLabel
+            Element.row
+                [ Element.alignRight ]
+                [ Element.text tokenLabel ]
         ]
 
 
@@ -713,11 +722,7 @@ buttonsRow :
     -> Element Msg
 buttonsRow dProfile =
     Element.row
-        [ Element.spacing <|
-            responsiveVal
-                dProfile
-                10
-                5
+        [ Element.spacing <| responsiveVal dProfile 10 5
         ]
 
 
@@ -775,21 +780,16 @@ mainRow :
 mainRow dProfile =
     Element.column
         [ Element.spacing 5
-        , Element.Background.color <| Element.rgba 1 1 1 0.1
+        , Element.Background.color <| Element.rgba 1 1 1 0.15
         , Element.padding 10
         , Element.Border.rounded 5
-        , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.1
+        , Element.Border.glow EH.lightGray 1
+        , Element.Font.size <| responsiveVal dProfile 30 24
         , Element.width <|
             responsiveVal
                 dProfile
                 (Element.px 420)
                 Element.fill
-        , Element.Font.size <|
-            responsiveVal
-                dProfile
-                30
-                24
         ]
 
 
@@ -809,7 +809,8 @@ rowLabel dProfile text =
                 dProfile
                 40
                 20
-        , Element.Font.semiBold
+        , Element.Font.regular
+        , Element.Font.color EH.white
         ]
         (Element.text text)
 
@@ -983,7 +984,11 @@ msgInsteadOfButton :
 msgInsteadOfButton dProfile text color =
     Element.el
         [ Element.centerX
-        , Element.Font.size <| responsiveVal dProfile 18 12
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                18
+                12
         , Element.Font.italic
         , Element.Font.color color
         ]
@@ -1006,7 +1011,9 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
         Checking ->
             EH.disabledButton
                 dProfile
-                [ Element.width Element.fill ]
+                [ Element.width Element.fill
+                , Element.Font.color EH.black
+                ]
                 "Verifying Jurisdiction..."
                 Nothing
 
@@ -1015,42 +1022,52 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                 [ Element.spacing 10
                 , Element.width Element.fill
                 ]
-                [ msgInsteadOfButton dProfile "Error verifying jurisdiction." EH.red
-
-                -- , Element.paragraph
-                --     [ Element.Font.color EH.grayTextColor ]
-                --     [ Element.text errStr ]
-                -- , Element.paragraph
-                --     [ Element.Font.color EH.grayTextColor ]
-                --     [ Element.text "There may be more info in the console." ]
+                [ msgInsteadOfButton
+                    dProfile
+                    "Error verifying jurisdiction."
+                    EH.red
                 ]
 
         Checked ForbiddenJurisdictions ->
-            msgInsteadOfButton dProfile "Sorry, US citizens and residents are excluded." EH.red
+            msgInsteadOfButton
+                dProfile
+                "Sorry, US citizens and residents are excluded."
+                EH.red
 
         Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
-            msgInsteadOfButton dProfile "Jurisdiction Verified." EH.green
+            msgInsteadOfButton
+                dProfile
+                "Jurisdiction Verified."
+                EH.green
 
 
 verifyJurisdictionErrorEl :
     DisplayProfile
     -> JurisdictionCheckStatus
+    -> List (Attribute Msg)
     -> Element Msg
-verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus =
+verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
     case jurisdictionCheckStatus of
         Error errStr ->
             Element.column
-                [ Element.spacing 20
-                , Element.width Element.fill
-                ]
-                [ Element.paragraph
-                    [ Element.Font.color EH.white
-                    ]
-                    [ Element.text errStr ]
-                , Element.paragraph
-                    [ Element.Font.color EH.white
-                    ]
-                    [ Element.text "There may be more info in the console." ]
+                ([ Element.spacing <|
+                    responsiveVal
+                        dProfile
+                        20
+                        10
+                 , Element.Font.size <|
+                    responsiveVal
+                        dProfile
+                        16
+                        10
+                 ]
+                    ++ attributes
+                )
+                [ Element.el
+                    []
+                  <|
+                    Element.text errStr
+                , Element.text "There may be more info in the console."
                 ]
 
         _ ->
