@@ -52,6 +52,7 @@ view dProfile model =
             ]
             [ titleEl dProfile
             , subTitleEl dProfile model.now
+            , farmVideoEl dProfile
             , bodyEl dProfile model
             , verifyJurisdictionErrorEl
                 dProfile
@@ -106,6 +107,30 @@ subTitleEl dProfile now =
                         now
                     )
             )
+
+
+farmVideoEl :
+    DisplayProfile
+    -> Element Msg
+farmVideoEl dProfile =
+    Element.el
+        [ Element.Font.size <|
+            responsiveVal
+                dProfile
+                24
+                12
+        , Element.Font.color EH.white
+        , Element.Font.medium
+        , Element.Font.italic
+        , Element.centerX
+        , Element.Font.underline
+        ]
+    <|
+        Element.newTabLink
+            []
+            { label = Element.text "Click here to learn how to farm $FRY!"
+            , url = "https://www.youtube.com/watch?v=AKfuuy7vUjA&ab_channel=FoundryDAO"
+            }
 
 
 bodyEl :
