@@ -2,6 +2,7 @@ module Farm.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import Config
 import Eth.Types exposing (Address, TxHash)
 import Helpers.Time as TimeHelpers
 import Http
@@ -121,3 +122,18 @@ validateInput input max =
                 else
                     Just val
             )
+
+
+calcTimeLeft :
+    Time.Posix
+    -> Int
+calcTimeLeft now =
+    let
+        timeLeft =
+            Time.posixToMillis (TimeHelpers.sub (TimeHelpers.secondsToPosix Config.farmingPeriodEnds) now)
+    in
+    if timeLeft <= 0 then
+        0
+
+    else
+        timeLeft

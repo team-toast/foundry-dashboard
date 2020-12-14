@@ -7,7 +7,9 @@ import Contracts.Staking as StakingContract
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Farm.Types exposing (..)
+import Html exposing (th)
 import Json.Decode
+import Maybe
 import Result.Extra
 import Set
 import Time
@@ -26,7 +28,7 @@ init wallet now =
       , now = now
       , jurisdictionCheckStatus = WaitingForClick
       }
-    , fetchStakingInfoOrApyCmd wallet
+    , fetchStakingInfoOrApyCmd now wallet
     )
 
 
@@ -44,8 +46,12 @@ update msg prevModel =
                 [ msgUp ]
 
         UpdateNow newNow ->
-            justModelUpdate
-                { prevModel | now = newNow }
+            if calcTimeLeft newNow <= 0 then
+                justModelUpdate prevModel
+
+            else
+                justModelUpdate
+                    { prevModel | now = newNow }
 
         AmountInputChanged newInput ->
             case prevModel.depositWithdrawUXModel of
@@ -156,11 +162,15 @@ update msg prevModel =
                     justModelUpdate prevModel
 
         RefetchStakingInfoOrApy ->
-            UpdateResult
-                prevModel
-                (fetchStakingInfoOrApyCmd prevModel.wallet)
-                []
-                []
+            if calcTimeLeft prevModel.now <= 0 then
+                justModelUpdate prevModel
+
+            else
+                UpdateResult
+                    prevModel
+                    (fetchStakingInfoOrApyCmd prevModel.now prevModel.wallet)
+                    []
+                    []
 
         StakingInfoFetched fetchResult ->
             case fetchResult of
@@ -179,19 +189,24 @@ update msg prevModel =
                         }
 
         ApyFetched fetchResult ->
-            case fetchResult of
-                Err httpErr ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
-                        []
-                        [ Common.Msg.AddUserNotice <| UN.web3FetchError "apy" httpErr ]
+            if calcTimeLeft prevModel.now <= 0 then
+                justModelUpdate prevModel
 
-                Ok apy ->
-                    justModelUpdate
-                        { prevModel
-                            | apy = Just apy
-                        }
+            else
+                case fetchResult of
+                    Err httpErr ->
+                        UpdateResult
+                            prevModel
+                            Cmd.none
+                            []
+                            [ Common.Msg.AddUserNotice <| UN.web3FetchError "apy" httpErr ]
+
+                    Ok apy ->
+                        justModelUpdate
+                            { prevModel
+                                | apy =
+                                    Just apy
+                            }
 
         VerifyJurisdictionClicked ->
             UpdateResult
@@ -334,8 +349,8 @@ runMsgDown msg prevModel =
                 []
 
 
-fetchStakingInfoOrApyCmd : Wallet -> Cmd Msg
-fetchStakingInfoOrApyCmd wallet =
+fetchStakingInfoOrApyCmd : Time.Posix -> Wallet -> Cmd Msg
+fetchStakingInfoOrApyCmd now wallet =
     case Wallet.userInfo wallet of
         Just userInfo ->
             fetchUserStakingInfoCmd userInfo.address
@@ -416,9 +431,9 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 50 UpdateNow
-        , Time.every 10000 (always RefetchStakingInfoOrApy)
         , locationCheckResult
             (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
+        , Time.every 10000 (always RefetchStakingInfoOrApy)
         ]
 
 

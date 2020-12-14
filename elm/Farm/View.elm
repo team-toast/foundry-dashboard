@@ -3,6 +3,7 @@ module Farm.View exposing (..)
 import Common.Types exposing (..)
 import Common.View
 import Config
+import Css exposing (calc)
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
@@ -99,14 +100,17 @@ subTitleEl dProfile now =
         , Element.centerX
         ]
     <|
-        Element.text
-            ("Farming ends in "
-                ++ TimeHelpers.toDetailIntervalString
-                    (TimeHelpers.sub
-                        (TimeHelpers.secondsToPosix Config.farmingPeriodEnds)
-                        now
-                    )
-            )
+        Element.text <|
+            if calcTimeLeft now <= 0 then
+                "Farming has ended!"
+
+            else
+                "Farming ends in "
+                    ++ TimeHelpers.toDetailIntervalString
+                        (TimeHelpers.sub
+                            (TimeHelpers.secondsToPosix Config.farmingPeriodEnds)
+                            now
+                        )
 
 
 farmVideoEl :
@@ -159,6 +163,7 @@ bodyEl dProfile model =
         apyEl =
             apyElement
                 dProfile
+                model.now
                 model.apy
     in
     mainEl
@@ -243,6 +248,7 @@ balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo
                             userStakingInfo
                         , unstakedRow
                             dProfile
+                            now
                             jurisdictionCheckStatus
                             userStakingInfo
                             depositWithdrawUXModel
@@ -252,16 +258,17 @@ balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo
                             depositWithdrawUXModel
                         , rewardsRow
                             dProfile
-                            userStakingInfo
                             now
+                            userStakingInfo
                         ]
 
 
 apyElement :
     DisplayProfile
+    -> Time.Posix
     -> Maybe Float
     -> Element Msg
-apyElement dProfile maybeApy =
+apyElement dProfile now maybeApy =
     Element.el
         ([ Element.alignTop
          , Element.alignRight
@@ -314,7 +321,13 @@ apyElement dProfile maybeApy =
                         ]
                       <|
                         Element.text <|
-                            FormatFloat.formatFloat 2 apy
+                            FormatFloat.formatFloat 2
+                                (if calcTimeLeft now <= 0 then
+                                    0
+
+                                 else
+                                    apy
+                                )
                                 ++ "%"
                     ]
 
@@ -354,11 +367,12 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
 
 unstakedRow :
     DisplayProfile
+    -> Time.Posix
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-unstakedRow dProfile jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
+unstakedRow dProfile now jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -373,21 +387,27 @@ unstakedRow dProfile jurisdictionCheckStatus userStakingInfo depositOrWithdrawUX
         [ rowLabel
             dProfile
             "Unstaked Balance"
-        , unstakedRowUX
-            dProfile
-            jurisdictionCheckStatus
-            userStakingInfo
-            maybeDepositAmountUXModel
+        , if calcTimeLeft now <= 0 then
+            Element.text "Farming has ended"
+
+          else
+            unstakedRowUX
+                dProfile
+                now
+                jurisdictionCheckStatus
+                userStakingInfo
+                maybeDepositAmountUXModel
         ]
 
 
 unstakedRowUX :
     DisplayProfile
+    -> Time.Posix
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-unstakedRowUX dProfile jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
+unstakedRowUX dProfile now jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
     let
         rowStyles =
             let
@@ -412,19 +432,26 @@ unstakedRowUX dProfile jurisdictionCheckStatus stakingInfo maybeDepositAmountUXM
                     maybeDepositAmountUXModel
                     "ETHFRY"
                 ]
-                    ++ (case maybeDepositAmountUXModel of
-                            Just depositAmountUX ->
-                                [ activeDepositUXButtons
-                                    dProfile
-                                    depositAmountUX
-                                    stakingInfo.unstaked
-                                ]
+                    ++ (if calcTimeLeft now > 0 then
+                            case maybeDepositAmountUXModel of
+                                Just depositAmountUX ->
+                                    [ activeDepositUXButtons
+                                        dProfile
+                                        depositAmountUX
+                                        stakingInfo.unstaked
+                                    ]
 
-                            Nothing ->
-                                [ inactiveUnstackedRowButtons
-                                    dProfile
-                                    stakingInfo
-                                ]
+                                Nothing ->
+                                    [ inactiveUnstackedRowButtons
+                                        dProfile
+                                        stakingInfo
+                                    ]
+
+                        else
+                            [ inactiveUnstackedRowButtons
+                                dProfile
+                                stakingInfo
+                            ]
                        )
 
             _ ->
@@ -523,10 +550,10 @@ stakedRowUXButtons dProfile staked =
 
 rewardsRow :
     DisplayProfile
-    -> UserStakingInfo
     -> Time.Posix
+    -> UserStakingInfo
     -> Element Msg
-rewardsRow dProfile stakingInfo now =
+rewardsRow dProfile now stakingInfo =
     mainRow
         dProfile
         [ rowLabel
@@ -534,17 +561,21 @@ rewardsRow dProfile stakingInfo now =
             "Available Rewards"
         , rewardsRowUX
             dProfile
-            stakingInfo
             now
+            stakingInfo
         ]
 
 
 rewardsRowUX :
     DisplayProfile
-    -> UserStakingInfo
     -> Time.Posix
+    -> UserStakingInfo
     -> Element Msg
-rewardsRowUX dProfile stakingInfo now =
+rewardsRowUX dProfile now stakingInfo =
+    let
+        availableRewards =
+            calcAvailableRewards stakingInfo now
+    in
     Element.row
         (rowUXStyles
             dProfile
@@ -553,13 +584,10 @@ rewardsRowUX dProfile stakingInfo now =
         [ balanceOutputOrInput
             dProfile
             EH.black
-            (calcAvailableRewards
-                stakingInfo
-                now
-            )
+            availableRewards
             Nothing
             "FRY"
-        , if TokenValue.isZero <| calcAvailableRewards stakingInfo now then
+        , if TokenValue.isZero <| availableRewards then
             Element.none
 
           else
