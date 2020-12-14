@@ -37,6 +37,7 @@ function startDapp() {
                     width: window.innerWidth,
                     height: window.innerHeight,
                     nowInMillis: Date.now(),
+                    cookieConsent: getCookieConsent(),
                 }
             });
 
@@ -54,6 +55,7 @@ function startDapp() {
                 width: window.innerWidth,
                 height: window.innerHeight,
                 nowInMillis: Date.now(),
+                cookieConsent: getCookieConsent(),
             }
         });
 
@@ -122,6 +124,17 @@ function gtagPortStuff(app) {
             'value': data.value
         });
     });
+
+    app.ports.consentToCookies.subscribe(function() {
+        setCookieConsent();
+    });
+}
+
+function getCookieConsent() {
+    return Boolean(window.localStorage.getItem('cookie-consent'))
+}
+function setCookieConsent() {
+    window.localStorage.setItem('cookie-consent', true)
 }
 
 function prepareWeb3PortsPreConnect(app, web3) {

@@ -87,6 +87,7 @@ init flags url key =
     , trackedTxs = []
     , trackedTxsExpanded = False
     , nonRepeatingGTagsSent = []
+    , cookieConsentGranted = flags.cookieConsent
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -393,6 +394,22 @@ update msg prevModel =
 
                 _ ->
                     ( prevModel, Cmd.none )
+
+        CookieConsentGranted ->
+            ( { prevModel
+                | cookieConsentGranted = True
+              }
+            , Cmd.batch
+                [ consentToCookies ()
+                , gTagOut <|
+                    encodeGTag <|
+                        GTagData
+                            "accept cookies"
+                            ""
+                            ""
+                            0
+                ]
+            )
 
         MsgUp msgUp ->
             prevModel |> handleMsgUp msgUp
@@ -795,3 +812,6 @@ port txIn : (Json.Decode.Value -> msg) -> Sub msg
 
 
 port gTagOut : Json.Decode.Value -> Cmd msg
+
+
+port consentToCookies : () -> Cmd msg

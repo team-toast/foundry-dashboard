@@ -30,6 +30,7 @@ type alias Flags =
     , width : Int
     , height : Int
     , nowInMillis : Int
+    , cookieConsent : Bool
     }
 
 
@@ -48,6 +49,7 @@ type alias Model =
     , trackedTxs : UserTx.Tracker Msg
     , trackedTxsExpanded : Bool
     , nonRepeatingGTagsSent : List String
+    , cookieConsentGranted : Bool
     }
 
 
@@ -79,5 +81,6 @@ type Msg
     | StatsMsg Stats.Msg
     | FarmMsg Farm.Msg
       -- | BalanceFetched Address (Result Http.Error TokenValue)
+    | CookieConsentGranted
     | MsgUp MsgUp
     | NoOp
