@@ -2,6 +2,7 @@ module Stats.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Config
+import Contracts.BucketSale.Wrappers as BucketSaleWrappers
 import Contracts.UniSwapGraph.Object exposing (..)
 import Contracts.UniSwapGraph.Object.Bundle as Bundle
 import Contracts.UniSwapGraph.Object.Token as Token
@@ -28,6 +29,7 @@ type alias Model =
     , currentFryPriceEth : Float
     , circSupply : Float
     , marketCap : Float
+    , fullyDiluted : Float
     }
 
 
@@ -37,6 +39,7 @@ type Msg
     | FetchedEthPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedDaiPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedFryPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
+    | Tick Time.Posix
 
 
 type alias Value =
@@ -117,27 +120,48 @@ fetchFryPrice =
 
 
 calcCircSupply :
-    Model
+    Int
     -> Float
-calcCircSupply model =
+calcCircSupply currentBucketId =
     (Config.bucketSaleTokensPerBucket
         |> TokenValue.toFloatWithWarning
     )
-        * (model.currentBucketId
+        * (currentBucketId
             |> toFloat
           )
+        + toFloat
+            (14553000
+                + 13645000
+                + 10000000
+                + 1800000
+            )
+        - (toFloat 1223583 * 0.588938)
 
 
 calcMarketCap :
-    Model
+    Float
     -> Float
-calcMarketCap model =
-    calcCircSupply model
-        * model.currentFryPriceEth
-        * model.currentEthPriceUsd
+    -> Int
+    -> Float
+calcMarketCap currentFryPriceEth currentEthPriceUsd currentBucketId =
+    calcCircSupply currentBucketId
+        * currentFryPriceEth
+        * currentEthPriceUsd
 
 
-getCurrentBucketId : Int -> Int
+calcFullyDilutedMarketCap :
+    Float
+    -> Float
+    -> Float
+calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
+    toFloat Config.fryTotalSupply
+        * currentFryPriceEth
+        * currentEthPriceUsd
+
+
+getCurrentBucketId :
+    Int
+    -> Int
 getCurrentBucketId now =
     (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix Config.saleStarted)
         |> TimeHelpers.posixToSeconds
@@ -147,7 +171,10 @@ getCurrentBucketId now =
            )
 
 
-getBucketRemainingTimeText : Int -> Int -> String
+getBucketRemainingTimeText :
+    Int
+    -> Int
+    -> String
 getBucketRemainingTimeText bucketId now =
     TimeHelpers.toHumanReadableString
         (TimeHelpers.sub
@@ -156,20 +183,27 @@ getBucketRemainingTimeText bucketId now =
         )
 
 
-getBucketStartTime : Int -> Time.Posix
+getBucketStartTime :
+    Int
+    -> Time.Posix
 getBucketStartTime bucketId =
     Time.millisToPosix
         (Config.saleStarted + (bucketId * Time.posixToMillis Config.bucketSaleBucketInterval))
 
 
-getBucketEndTime : Int -> Time.Posix
+getBucketEndTime :
+    Int
+    -> Time.Posix
 getBucketEndTime bucketId =
     TimeHelpers.add
         (getBucketStartTime bucketId)
         Config.bucketSaleBucketInterval
 
 
-calcEffectivePricePerToken : TokenValue -> Float -> TokenValue
+calcEffectivePricePerToken :
+    TokenValue
+    -> Float
+    -> TokenValue
 calcEffectivePricePerToken totalValueEntered tokenValue =
     let
         ve =
@@ -182,3 +216,12 @@ calcEffectivePricePerToken totalValueEntered tokenValue =
     in
     (ve * tokenValue / tpb)
         |> TokenValue.fromFloatWithWarning
+
+
+fetchTotalValueEnteredCmd :
+    Int
+    -> Cmd Msg
+fetchTotalValueEnteredCmd id =
+    BucketSaleWrappers.getTotalValueEnteredForBucket
+        id
+        (BucketValueEnteredFetched id)

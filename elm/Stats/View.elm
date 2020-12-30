@@ -30,44 +30,81 @@ view :
     -> Element Msg
 view dProfile maybeUserInfo model =
     Element.column
-        [ padding 20 ]
-        [ statsIcon model
-        , Element.row
-            [ Element.width Element.fill ]
-            [ Element.el
-                [ Element.Font.color EH.white
-                , Element.Font.size 30
-                ]
-              <|
-                Element.text " Foundry Addresses"
+        [ padding 20
+        , spacing 25
+        ]
+        [ statsIcon dProfile model
+        , viewAddresses dProfile
+        ]
+
+
+viewAddresses :
+    DisplayProfile
+    -> Element Msg
+viewAddresses dProfile =
+    Element.column
+        [ Element.Background.color <| Element.rgba 1 1 1 0.1
+        , Element.width Element.fill
+        , Element.Border.rounded 20
+        , Element.Font.color EH.lightGray
+        , Element.Border.glow EH.white 2
+        , Element.centerX
+        , Element.padding 10
+        , Element.spacing 10
+        ]
+        [ Element.el
+            [ Element.Font.size 30
             ]
-        , viewAddressAndLabel "FRY token" Config.fryContractAddress
-        , viewAddressAndLabel "Treasury" Config.treasuryForwarderAddress
-        , viewAddressAndLabel "Bucket sale" Config.bucketSaleAddress
-        , viewAddressAndLabel "Multisig" Config.teamToastMultiSigAddress
+          <|
+            Element.text "Foundry Addresses"
+        , viewAddressAndLabel dProfile "FRY token" Config.fryContractAddress
+        , viewAddressAndLabel dProfile "Treasury" Config.treasuryForwarderAddress
+        , viewAddressAndLabel dProfile "Bucket sale" Config.bucketSaleAddress
+        , viewAddressAndLabel dProfile "Multisig" Config.teamToastMultiSigAddress
         ]
 
 
 viewAddressAndLabel :
-    String
+    DisplayProfile
+    -> String
     -> Address
     -> Element Msg
-viewAddressAndLabel label address =
-    Element.row
+viewAddressAndLabel dProfile label address =
+    let
+        mainEl =
+            case dProfile of
+                Desktop ->
+                    Element.row
+
+                Mobile ->
+                    Element.column
+    in
+    mainEl
         [ padding 5
         , spacing 10
         , height (px 50)
         , Element.width Element.fill
         ]
         [ Element.el
-            [ Element.Font.color EH.white ]
+            [ Element.Font.color EH.white
+            , Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    22
+                    20
+            ]
           <|
             Element.text <|
                 label
                     ++ ": "
         , Element.el
             [ Element.Font.color EH.white
-            , Element.alignRight
+            , responsiveVal dProfile Element.alignRight Element.alignLeft
+            , Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    20
+                    12
             ]
           <|
             Element.newTabLink [ Element.Font.color Theme.lightBlue ]
@@ -78,111 +115,128 @@ viewAddressAndLabel label address =
 
 
 statsIcon :
-    Model
+    DisplayProfile
+    -> Model
     -> Element Msg
-statsIcon model =
+statsIcon dProfile model =
+    let
+        mainEl =
+            case dProfile of
+                Desktop ->
+                    Element.row
+
+                Mobile ->
+                    Element.column
+
+        defaultPadding =
+            Element.padding <| responsiveVal dProfile 10 5
+    in
     Element.column
-        [ Element.Background.color Theme.softRed
+        [ Element.Background.color <| Element.rgba 1 1 1 0.1
         , Element.width Element.fill
-        , Element.Border.rounded 50
+        , Element.Border.rounded 20
+        , Element.Font.color EH.lightGray
+        , Element.Border.glow EH.white 2
         ]
-        [ Element.row
-            [ Element.paddingEach
-                { left = 15
-                , top = 0
-                , right = 0
-                , bottom = 0
-                }
-            , Element.centerX
+        [ mainEl
+            [ Element.centerX
             ]
             [ Element.column
-                [ Element.padding 20 ]
+                [ defaultPadding ]
                 [ "BUCKET #"
-                    |> textLarge
+                    |> textLarge dProfile
                 , String.fromInt model.currentBucketId
-                    |> textLarge
+                    |> textLarge dProfile
                 ]
             , Element.column
-                [ Element.padding 20 ]
+                [ defaultPadding ]
                 [ "TIME LEFT"
-                    |> textLarge
+                    |> textLarge dProfile
                 , getBucketRemainingTimeText
                     model.currentBucketId
                     model.currentTime
-                    |> textLarge
+                    |> textLarge dProfile
                 ]
             , Element.column
-                []
-                [ Element.row
-                    []
-                    [ Element.column
-                        [ Element.padding 5 ]
-                        (columnItems
-                            "SALE"
-                            ("$ "
-                                ++ (calcEffectivePricePerToken
-                                        model.currentBucketTotalEntered
-                                        ((if model.currentDaiPriceEth == 0 then
-                                            1.01
+                [ defaultPadding ]
+                (columnItems
+                    dProfile
+                    "CURRENT BUCKET"
+                    ("$ "
+                        ++ (calcEffectivePricePerToken
+                                model.currentBucketTotalEntered
+                                ((if model.currentDaiPriceEth == 0 then
+                                    1.01
 
-                                          else
-                                            model.currentDaiPriceEth
-                                         )
-                                            * model.currentEthPriceUsd
-                                        )
-                                        |> TokenValue.toConciseString
-                                   )
-                            )
-                        )
-                    , Element.column
-                        [ Element.padding 5
-                        , Element.alignRight
-                        ]
-                        (columnItems
-                            "UNISWAP"
-                            ("$ "
-                                ++ (model.currentFryPriceEth
-                                        * model.currentEthPriceUsd
-                                        |> TokenValue.fromFloatWithWarning
-                                        |> TokenValue.toConciseString
-                                   )
-                            )
-                        )
-                    ]
-                ]
+                                  else
+                                    model.currentDaiPriceEth
+                                 )
+                                    * model.currentEthPriceUsd
+                                )
+                                |> TokenValue.toConciseString
+                           )
+                    )
+                )
             , Element.column
-                []
-                [ Element.row
-                    []
-                    [ Element.column
-                        [ Element.padding 5 ]
-                        (columnItems
-                            "MARKET CAP"
-                            ("$ "
-                                ++ (model.marketCap
-                                        |> TokenValue.fromFloatWithWarning
-                                        |> TokenValue.toConciseString
-                                   )
-                            )
-                        )
-                    ]
-                ]
+                [ defaultPadding ]
+                (columnItems
+                    dProfile
+                    "UNISWAP"
+                    ("$ "
+                        ++ (model.currentFryPriceEth
+                                * model.currentEthPriceUsd
+                                |> TokenValue.fromFloatWithWarning
+                                |> TokenValue.toConciseString
+                           )
+                    )
+                )
+            , Element.column
+                [ defaultPadding ]
+                (columnItems
+                    dProfile
+                    "MARKET CAP"
+                    ("$ "
+                        ++ (model.marketCap
+                                |> TokenValue.fromFloatWithWarning
+                                |> TokenValue.toConciseString
+                           )
+                    )
+                )
+            , Element.column
+                [ defaultPadding ]
+                (columnItems
+                    dProfile
+                    "FULLY DILUTED MARKET CAP"
+                    ("$ "
+                        ++ (model.fullyDiluted
+                                |> TokenValue.fromFloatWithWarning
+                                |> TokenValue.toConciseString
+                           )
+                    )
+                )
             ]
         ]
 
 
-textLarge : String -> Element Msg
-textLarge txt =
+textLarge :
+    DisplayProfile
+    -> String
+    -> Element Msg
+textLarge dProfile txt =
     Element.el
-        [ Element.Font.size 16
-        , Element.padding 5
+        [ Element.Font.size <| responsiveVal dProfile 16 14
+        , Element.padding <| responsiveVal dProfile 5 2
         ]
     <|
         Element.text txt
 
 
-columnItems : String -> String -> List (Element Msg)
-columnItems str1 str2 =
-    [ textLarge str1
-    , textLarge str2
+columnItems :
+    DisplayProfile
+    -> String
+    -> String
+    -> List (Element Msg)
+columnItems dProfile str1 str2 =
+    [ textLarge dProfile str1
+    , textLarge dProfile str2
     ]

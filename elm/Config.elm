@@ -118,3 +118,8 @@ saleStarted =
 bucketSaleBucketInterval : Time.Posix
 bucketSaleBucketInterval =
     Time.millisToPosix <| 1000 * 60 * 60 * 7
+
+
+fryTotalSupply : Int
+fryTotalSupply =
+    100000000

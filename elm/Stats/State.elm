@@ -5,6 +5,7 @@ import Eth.Types exposing (Address)
 import Http
 import Json.Decode exposing (Decoder)
 import Stats.Types exposing (..)
+import Time
 import TokenValue
 
 
@@ -20,6 +21,7 @@ init nowInMillis =
       , currentFryPriceEth = 0.0
       , circSupply = 0.0
       , marketCap = 0.0
+      , fullyDiluted = 0.0
       }
     , let
         getEthPrice =
@@ -72,8 +74,18 @@ update msg prevModel =
                     UpdateResult
                         { prevModel
                             | currentEthPriceUsd = v.ethPrice
-                            , circSupply = calcCircSupply prevModel
-                            , marketCap = calcMarketCap prevModel
+                            , circSupply =
+                                calcCircSupply
+                                    prevModel.currentBucketId
+                            , marketCap =
+                                calcMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    prevModel.currentBucketId
+                            , fullyDiluted =
+                                calcFullyDilutedMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
                         }
                         Cmd.none
                         []
@@ -103,8 +115,18 @@ update msg prevModel =
                     UpdateResult
                         { prevModel
                             | currentDaiPriceEth = v.ethPrice
-                            , circSupply = calcCircSupply prevModel
-                            , marketCap = calcMarketCap prevModel
+                            , circSupply =
+                                calcCircSupply
+                                    prevModel.currentBucketId
+                            , marketCap =
+                                calcMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    prevModel.currentBucketId
+                            , fullyDiluted =
+                                calcFullyDilutedMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
                         }
                         Cmd.none
                         []
@@ -134,8 +156,18 @@ update msg prevModel =
                     UpdateResult
                         { prevModel
                             | currentFryPriceEth = v.ethPrice
-                            , circSupply = calcCircSupply prevModel
-                            , marketCap = calcMarketCap prevModel
+                            , circSupply =
+                                calcCircSupply
+                                    prevModel.currentBucketId
+                            , marketCap =
+                                calcMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    prevModel.currentBucketId
+                            , fullyDiluted =
+                                calcFullyDilutedMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
                         }
                         Cmd.none
                         []
@@ -158,6 +190,30 @@ update msg prevModel =
                         Cmd.none
                         []
 
+        Tick i ->
+            let
+                getTotalValueEntered =
+                    fetchTotalValueEnteredCmd prevModel.currentBucketId
+
+                getEthPrice =
+                    fetchEthPrice
+
+                getDaiPrice =
+                    fetchDaiPrice
+
+                getFryPrice =
+                    fetchFryPrice
+            in
+            UpdateResult
+                { prevModel
+                    | currentTime = Time.posixToMillis i
+                    , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
+                }
+                (Cmd.batch
+                    [ getTotalValueEntered, getEthPrice, getDaiPrice, getFryPrice ]
+                )
+                []
+
 
 runMsgDown :
     MsgDown
@@ -173,4 +229,5 @@ subscriptions :
     Model
     -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ Time.every 5000 Tick ]
