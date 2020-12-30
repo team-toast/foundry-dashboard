@@ -41,7 +41,11 @@ import UserTx exposing (TxInfo)
 import Wallet
 
 
-init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init :
+    Flags
+    -> Url
+    -> Browser.Navigation.Key
+    -> ( Model, Cmd Msg )
 init flags url key =
     let
         route =
@@ -99,7 +103,10 @@ init flags url key =
             )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update :
+    Msg
+    -> Model
+    -> ( Model, Cmd Msg )
 update msg prevModel =
     case msg of
         LinkClicked urlRequest ->
@@ -425,7 +432,10 @@ update msg prevModel =
             ( prevModel, Cmd.none )
 
 
-handleMsgUp : MsgUp -> Model -> ( Model, Cmd Msg )
+handleMsgUp :
+    MsgUp
+    -> Model
+    -> ( Model, Cmd Msg )
 handleMsgUp msgUp prevModel =
     case msgUp of
         GotoRoute route ->
@@ -501,7 +511,10 @@ handleMsgUp msgUp prevModel =
             ( prevModel, Cmd.none )
 
 
-withMsgUp : MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withMsgUp :
+    MsgUp
+    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg )
 withMsgUp msgUp ( prevModel, prevCmd ) =
     handleMsgUp msgUp prevModel
         |> Tuple.mapSecond
@@ -510,7 +523,10 @@ withMsgUp msgUp ( prevModel, prevCmd ) =
             )
 
 
-handleMsgUps : List MsgUp -> Model -> ( Model, Cmd Msg )
+handleMsgUps :
+    List MsgUp
+    -> Model
+    -> ( Model, Cmd Msg )
 handleMsgUps msgUps prevModel =
     List.foldl
         withMsgUp
@@ -518,7 +534,10 @@ handleMsgUps msgUps prevModel =
         msgUps
 
 
-withMsgUps : List MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withMsgUps :
+    List MsgUp
+    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg )
 withMsgUps msgUps ( prevModel, prevCmd ) =
     handleMsgUps msgUps prevModel
         |> Tuple.mapSecond
@@ -527,7 +546,11 @@ withMsgUps msgUps ( prevModel, prevCmd ) =
             )
 
 
-initiateUserTxs : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> List (UserTx.Initiator Msg) -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
+initiateUserTxs :
+    TxSentry.TxSentry Msg
+    -> UserTx.Tracker Msg
+    -> List (UserTx.Initiator Msg)
+    -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
 initiateUserTxs txSentry prevTrackedTxs txInitiators =
     List.foldl
         (\initiator ( accTxSentry, accCmd, accTrackedTxs ) ->
@@ -544,7 +567,11 @@ initiateUserTxs txSentry prevTrackedTxs txInitiators =
         txInitiators
 
 
-initiateUserTx : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> UserTx.Initiator Msg -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
+initiateUserTx :
+    TxSentry.TxSentry Msg
+    -> UserTx.Tracker Msg
+    -> UserTx.Initiator Msg
+    -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
 initiateUserTx txSentry prevTrackedTxs txInitiator =
     let
         ( trackedTxId, newTrackedTxs ) =
@@ -564,7 +591,9 @@ initiateUserTx txSentry prevTrackedTxs txInitiator =
     )
 
 
-trackingNotifiers : Int -> UserTx.Notifiers Msg
+trackingNotifiers :
+    Int
+    -> UserTx.Notifiers Msg
 trackingNotifiers trackedTxId =
     { onSign = Just <| TxSigned trackedTxId
 
@@ -574,7 +603,11 @@ trackingNotifiers trackedTxId =
     }
 
 
-addTrackedTx : TxInfo -> UserTx.Notifiers Msg -> UserTx.Tracker Msg -> ( Int, UserTx.Tracker Msg )
+addTrackedTx :
+    TxInfo
+    -> UserTx.Notifiers Msg
+    -> UserTx.Tracker Msg
+    -> ( Int, UserTx.Tracker Msg )
 addTrackedTx userTx notifiers tracker =
     let
         newTrackedTx =
@@ -590,7 +623,10 @@ addTrackedTx userTx notifiers tracker =
     )
 
 
-updateFromPageRoute : Route -> Model -> ( Model, Cmd Msg )
+updateFromPageRoute :
+    Route
+    -> Model
+    -> ( Model, Cmd Msg )
 updateFromPageRoute route model =
     if model.route == route then
         ( model
@@ -601,7 +637,10 @@ updateFromPageRoute route model =
         gotoRoute route model
 
 
-gotoRoute : Route -> Model -> ( Model, Cmd Msg )
+gotoRoute :
+    Route
+    -> Model
+    -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
     case route of
         Routing.Home ->
@@ -632,7 +671,7 @@ gotoRoute route prevModel =
         Routing.Stats ->
             let
                 ( statsModel, statsCmd ) =
-                    Stats.init
+                    Stats.init <| Time.posixToMillis prevModel.now
             in
             ( { prevModel
                 | route = route
