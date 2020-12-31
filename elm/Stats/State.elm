@@ -1,6 +1,7 @@
 module Stats.State exposing (..)
 
 import Common.Msg exposing (..)
+import Config
 import Eth.Types exposing (Address)
 import Http
 import Json.Decode exposing (Decoder)
@@ -22,6 +23,8 @@ init nowInMillis =
       , circSupply = Nothing
       , marketCap = Nothing
       , fullyDiluted = Nothing
+      , teamTokens = Nothing
+      , permaFrostedTokens = Nothing
       }
     , let
         getEthPrice =
@@ -32,6 +35,9 @@ init nowInMillis =
 
         getFryPrice =
             fetchFryPrice
+
+        getTeamToast1 =
+            fetchAddressTokenBalance Config.teamToastAddress1
       in
       Cmd.batch [ getEthPrice, getDaiPrice, getFryPrice ]
     )
@@ -79,11 +85,13 @@ update msg prevModel =
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
+                                    prevModel.teamTokens
+                                    prevModel.permaFrostedTokens
                             , marketCap =
                                 calcMarketCap
                                     prevModel.currentFryPriceEth
                                     prevModel.currentEthPriceUsd
-                                    prevModel.currentBucketId
+                                    prevModel.circSupply
                             , fullyDiluted =
                                 calcFullyDilutedMarketCap
                                     prevModel.currentFryPriceEth
@@ -122,11 +130,13 @@ update msg prevModel =
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
+                                    prevModel.teamTokens
+                                    prevModel.permaFrostedTokens
                             , marketCap =
                                 calcMarketCap
                                     prevModel.currentFryPriceEth
                                     prevModel.currentEthPriceUsd
-                                    prevModel.currentBucketId
+                                    prevModel.circSupply
                             , fullyDiluted =
                                 calcFullyDilutedMarketCap
                                     prevModel.currentFryPriceEth
@@ -165,11 +175,13 @@ update msg prevModel =
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
+                                    prevModel.teamTokens
+                                    prevModel.permaFrostedTokens
                             , marketCap =
                                 calcMarketCap
                                     prevModel.currentFryPriceEth
                                     prevModel.currentEthPriceUsd
-                                    prevModel.currentBucketId
+                                    prevModel.circSupply
                             , fullyDiluted =
                                 calcFullyDilutedMarketCap
                                     prevModel.currentFryPriceEth

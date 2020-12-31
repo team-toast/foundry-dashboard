@@ -3,6 +3,7 @@ module Stats.Types exposing (..)
 import Common.Msg exposing (..)
 import Config
 import Contracts.BucketSale.Wrappers as BucketSaleWrappers
+import Contracts.ERC20Wrapper as ERC20
 import Contracts.UniSwapGraph.Object exposing (..)
 import Contracts.UniSwapGraph.Object.Bundle as Bundle
 import Contracts.UniSwapGraph.Object.Token as Token
@@ -30,6 +31,8 @@ type alias Model =
     , circSupply : Maybe Float
     , marketCap : Maybe Float
     , fullyDiluted : Maybe Float
+    , teamTokens : Maybe TokenValue
+    , permaFrostedTokens : Maybe TokenValue
     }
 
 
@@ -124,23 +127,39 @@ fetchFryPrice =
         |> Graphql.Http.send FetchedFryPrice
 
 
+fetchAddressTokenBalance :
+    Address
+    -> Address
+    -> TokenValue
+fetchAddressTokenBalance tokenAddress owner =
+    TokenValue.zero
+
+
 calcCircSupply :
     Maybe Int
+    -> Maybe TokenValue
+    -> Maybe TokenValue
     -> Maybe Float
-calcCircSupply currentBucketId =
+calcCircSupply currentBucketId totalTeamTokens totalPermaFrostedTokens =
     case currentBucketId of
         Just bucketId ->
-            Just <|
-                toFloat
-                    (Config.bucketSaleTokensPerBucket
-                        * bucketId
-                        + (14553000
-                            + 13645000
-                            + 10000000
-                            + 1800000
-                          )
-                    )
-                    - (toFloat 1223583 * 0.588938)
+            case totalTeamTokens of
+                Just ttt ->
+                    case totalPermaFrostedTokens of
+                        Just tpt ->
+                            Just <|
+                                toFloat
+                                    (Config.bucketSaleTokensPerBucket
+                                        * bucketId
+                                    )
+                                    + TokenValue.toFloatWithWarning ttt
+                                    - TokenValue.toFloatWithWarning tpt
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
 
         _ ->
             Nothing
@@ -149,21 +168,26 @@ calcCircSupply currentBucketId =
 calcMarketCap :
     Maybe Float
     -> Maybe Float
-    -> Maybe Int
     -> Maybe Float
-calcMarketCap currentFryPriceEth currentEthPriceUsd currentBucketId =
-    case currentBucketId of
-        Just bucketId ->
-            Just <|
-                (calcCircSupply currentBucketId
-                    |> Maybe.withDefault 0
-                )
-                    * (currentFryPriceEth
-                        |> Maybe.withDefault 0.0
-                      )
-                    * (currentEthPriceUsd
-                        |> Maybe.withDefault 0.0
-                      )
+    -> Maybe Float
+calcMarketCap currentFryPriceEth currentEthPriceUsd circSupply =
+    case circSupply of
+        Just cs ->
+            case currentFryPriceEth of
+                Just fry ->
+                    case currentEthPriceUsd of
+                        Just eth ->
+                            cs
+                                * toFloat Config.fryTotalSupply
+                                * fry
+                                * eth
+                                |> Just
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
 
         _ ->
             Nothing
@@ -174,14 +198,20 @@ calcFullyDilutedMarketCap :
     -> Maybe Float
     -> Maybe Float
 calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
-    Just <|
-        toFloat Config.fryTotalSupply
-            * (currentFryPriceEth
-                |> Maybe.withDefault 0.0
-              )
-            * (currentEthPriceUsd
-                |> Maybe.withDefault 0.0
-              )
+    case currentFryPriceEth of
+        Just fry ->
+            case currentEthPriceUsd of
+                Just eth ->
+                    Just <|
+                        toFloat Config.fryTotalSupply
+                            * fry
+                            * eth
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 getCurrentBucketId :

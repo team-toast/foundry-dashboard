@@ -123,3 +123,28 @@ bucketSaleBucketInterval =
 fryTotalSupply : Int
 fryTotalSupply =
     100000000
+
+
+teamToastAddress1 : Address
+teamToastAddress1 =
+    Eth.Utils.unsafeToAddress "0xe5dde1cc679184fc420e6f92e0bd8c81e41d25e1"
+
+
+teamToastAddress2 : Address
+teamToastAddress2 =
+    Eth.Utils.unsafeToAddress "0x91227d115d036a721f6455b4e201b2f74576da43"
+
+
+teamToastAddress3 : Address
+teamToastAddress3 =
+    Eth.Utils.unsafeToAddress "0x16af660a19567d273842c826b9b4f4992b5b4626"
+
+
+burnAddress : Address
+burnAddress =
+    Eth.Utils.unsafeToAddress "0x0000000000000000000000000000000000000001"
+
+
+balancerPermafrostPool : Address
+balancerPermafrostPool =
+    Eth.Utils.unsafeToAddress "0x5277a42ef95eca7637ffa9e69b65a12a089fe12b"
