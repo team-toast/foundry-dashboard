@@ -11,7 +11,7 @@ import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
 import Farm.Types as Farm
-import Helpers.Element as EH
+import ElementHelpers as EH
 import Home.Types as Home
 import Routing exposing (Route)
 import Sentiment.Types as Sentiment

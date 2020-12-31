@@ -18,7 +18,7 @@ import Eth.Types exposing (Address)
 import Eth.Utils
 import Farm.View exposing (commonImageAttributes)
 import FormatFloat
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Html.Events
 import Images
@@ -436,7 +436,7 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
             Element.column
                 [ Element.height Element.fill
                 , Element.width Element.fill
-                , Element.Border.glow EH.lightGray 1
+                , Element.Border.glow Theme.lightGray 1
                 , Element.Border.width 1
                 , Element.Border.rounded 5
                 , Element.spacing 2

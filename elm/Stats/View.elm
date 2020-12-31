@@ -13,7 +13,7 @@ import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Routing exposing (Route)
 import Stats.Types exposing (..)

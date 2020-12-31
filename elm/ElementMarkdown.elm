@@ -6,7 +6,7 @@ import Element.Border
 import Element.Font
 import Element.Input
 import Element.Region
-import Helpers.Element as EH
+import ElementHelpers as EH
 import Html
 import Html.Attributes
 import Markdown.Block

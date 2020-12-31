@@ -12,6 +12,11 @@ testMode =
     False
 
 
+displayProfileBreakpoint : Int
+displayProfileBreakpoint =
+    1150
+
+
 httpProviderUrl : String
 httpProviderUrl =
     if testMode then

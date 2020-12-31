@@ -12,7 +12,7 @@ import Element.Events
 import Element.Font
 import Element.Input
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
 import Routing exposing (Route)

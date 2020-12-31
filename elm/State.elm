@@ -19,7 +19,7 @@ import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
 import Farm.State as Farm
-import Helpers.Element as EH exposing (DisplayProfile(..))
+import ElementHelpers as EH exposing (DisplayProfile(..))
 import Helpers.Tuple as TupleHelpers
 import Home.State as Home
 import Json.Decode
@@ -78,7 +78,7 @@ init flags url key =
     , route = route
     , wallet = wallet
     , now = now
-    , dProfile = EH.screenWidthToDisplayProfile flags.width
+    , dProfile = EH.screenWidthToDisplayProfile Config.displayProfileBreakpoint flags.width
     , txSentry = txSentry
     , eventSentry = eventSentry
     , submodel = BlankInitialSubmodel
@@ -123,7 +123,7 @@ update msg prevModel =
         Resize width _ ->
             ( { prevModel
                 | dProfile =
-                    EH.screenWidthToDisplayProfile width
+                    EH.screenWidthToDisplayProfile Config.displayProfileBreakpoint width
               }
             , Cmd.none
             )
