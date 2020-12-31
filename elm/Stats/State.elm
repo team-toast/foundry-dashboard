@@ -14,14 +14,14 @@ init :
     -> ( Model, Cmd Msg )
 init nowInMillis =
     ( { currentTime = nowInMillis
-      , currentBucketId = getCurrentBucketId nowInMillis
-      , currentBucketTotalEntered = TokenValue.fromIntTokenValue 0
-      , currentEthPriceUsd = 0.0
-      , currentDaiPriceEth = 0.0
-      , currentFryPriceEth = 0.0
-      , circSupply = Just 0.0
-      , marketCap = Just 0.0
-      , fullyDiluted = Just 0.0
+      , currentBucketId = Nothing
+      , currentBucketTotalEntered = Nothing
+      , currentEthPriceUsd = Nothing
+      , currentDaiPriceEth = Nothing
+      , currentFryPriceEth = Nothing
+      , circSupply = Nothing
+      , marketCap = Nothing
+      , fullyDiluted = Nothing
       }
     , let
         getEthPrice =
@@ -73,7 +73,9 @@ update msg prevModel =
                     in
                     UpdateResult
                         { prevModel
-                            | currentEthPriceUsd = v.ethPrice
+                            | currentEthPriceUsd =
+                                Just
+                                    v.ethPrice
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
@@ -114,7 +116,9 @@ update msg prevModel =
                     in
                     UpdateResult
                         { prevModel
-                            | currentDaiPriceEth = v.ethPrice
+                            | currentDaiPriceEth =
+                                Just
+                                    v.ethPrice
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
@@ -155,7 +159,9 @@ update msg prevModel =
                     in
                     UpdateResult
                         { prevModel
-                            | currentFryPriceEth = v.ethPrice
+                            | currentFryPriceEth =
+                                Just
+                                    v.ethPrice
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
@@ -186,7 +192,11 @@ update msg prevModel =
 
                 Ok valueEntered ->
                     UpdateResult
-                        { prevModel | currentBucketTotalEntered = valueEntered }
+                        { prevModel
+                            | currentBucketTotalEntered =
+                                Just
+                                    valueEntered
+                        }
                         Cmd.none
                         []
 

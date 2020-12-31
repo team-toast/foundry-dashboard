@@ -100,9 +100,9 @@ farmingPeriodEnds =
     1607702381
 
 
-bucketSaleTokensPerBucket : TokenValue
+bucketSaleTokensPerBucket : Int
 bucketSaleTokensPerBucket =
-    TokenValue.fromIntTokenValue 30000
+    30000
 
 
 uniswapGraphQL : String

@@ -23,10 +23,10 @@ import TokenValue exposing (TokenValue)
 type alias Model =
     { currentTime : Int
     , currentBucketId : Maybe Int
-    , currentBucketTotalEntered : TokenValue
-    , currentEthPriceUsd : Float
-    , currentDaiPriceEth : Float
-    , currentFryPriceEth : Float
+    , currentBucketTotalEntered : Maybe TokenValue
+    , currentEthPriceUsd : Maybe Float
+    , currentDaiPriceEth : Maybe Float
+    , currentFryPriceEth : Maybe Float
     , circSupply : Maybe Float
     , marketCap : Maybe Float
     , fullyDiluted : Maybe Float
@@ -52,6 +52,11 @@ type alias UpdateResult =
     , cmd : Cmd Msg
     , msgUps : List MsgUp
     }
+
+
+loadingText : String
+loadingText =
+    "Loading..."
 
 
 justModelUpdate :
@@ -126,18 +131,15 @@ calcCircSupply currentBucketId =
     case currentBucketId of
         Just bucketId ->
             Just <|
-                (Config.bucketSaleTokensPerBucket
-                    |> TokenValue.toFloatWithWarning
-                )
-                    * (bucketId
-                        |> toFloat
-                      )
-                    + toFloat
-                        (14553000
+                toFloat
+                    (Config.bucketSaleTokensPerBucket
+                        * bucketId
+                        + (14553000
                             + 13645000
                             + 10000000
                             + 1800000
-                        )
+                          )
+                    )
                     - (toFloat 1223583 * 0.588938)
 
         _ ->
@@ -145,8 +147,8 @@ calcCircSupply currentBucketId =
 
 
 calcMarketCap :
-    Float
-    -> Float
+    Maybe Float
+    -> Maybe Float
     -> Maybe Int
     -> Maybe Float
 calcMarketCap currentFryPriceEth currentEthPriceUsd currentBucketId =
@@ -156,22 +158,30 @@ calcMarketCap currentFryPriceEth currentEthPriceUsd currentBucketId =
                 (calcCircSupply currentBucketId
                     |> Maybe.withDefault 0
                 )
-                    * currentFryPriceEth
-                    * currentEthPriceUsd
+                    * (currentFryPriceEth
+                        |> Maybe.withDefault 0.0
+                      )
+                    * (currentEthPriceUsd
+                        |> Maybe.withDefault 0.0
+                      )
 
         _ ->
             Nothing
 
 
 calcFullyDilutedMarketCap :
-    Float
-    -> Float
+    Maybe Float
+    -> Maybe Float
     -> Maybe Float
 calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
     Just <|
         toFloat Config.fryTotalSupply
-            * currentFryPriceEth
-            * currentEthPriceUsd
+            * (currentFryPriceEth
+                |> Maybe.withDefault 0.0
+              )
+            * (currentEthPriceUsd
+                |> Maybe.withDefault 0.0
+              )
 
 
 getCurrentBucketId :
@@ -201,7 +211,7 @@ getBucketRemainingTimeText bucketId now =
                 )
 
         _ ->
-            "Loading..."
+            loadingText
 
 
 getBucketStartTime :
@@ -222,21 +232,52 @@ getBucketEndTime bucketId =
 
 
 calcEffectivePricePerToken :
-    TokenValue
-    -> Float
-    -> TokenValue
-calcEffectivePricePerToken totalValueEntered tokenValue =
+    Maybe TokenValue
+    -> Maybe Float
+    -> Maybe Float
+    -> String
+calcEffectivePricePerToken totalValueEntered tokenValueEth ethValueUsd =
     let
-        ve =
-            totalValueEntered
-                |> TokenValue.toFloatWithWarning
-
         tpb =
-            Config.bucketSaleTokensPerBucket
-                |> TokenValue.toFloatWithWarning
+            toFloat <|
+                if Config.bucketSaleTokensPerBucket < 1 then
+                    1
+
+                else
+                    Config.bucketSaleTokensPerBucket
     in
-    (ve * tokenValue / tpb)
-        |> TokenValue.fromFloatWithWarning
+    case totalValueEntered of
+        Just tve ->
+            case maybeFloatMultiply tokenValueEth ethValueUsd of
+                Just val ->
+                    tve
+                        |> TokenValue.mulFloatWithWarning val
+                        |> TokenValue.divFloatWithWarning tpb
+                        |> TokenValue.toConciseString
+
+                _ ->
+                    loadingText
+
+        _ ->
+            loadingText
+
+
+maybeFloatMultiply :
+    Maybe Float
+    -> Maybe Float
+    -> Maybe Float
+maybeFloatMultiply val1 val2 =
+    case val1 of
+        Just v1 ->
+            case val2 of
+                Just v2 ->
+                    Just <| v1 * v2
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 fetchTotalValueEnteredCmd :
