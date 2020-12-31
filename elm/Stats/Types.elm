@@ -22,20 +22,20 @@ import TokenValue exposing (TokenValue)
 
 type alias Model =
     { currentTime : Int
-    , currentBucketId : Int
+    , currentBucketId : Maybe Int
     , currentBucketTotalEntered : TokenValue
     , currentEthPriceUsd : Float
     , currentDaiPriceEth : Float
     , currentFryPriceEth : Float
-    , circSupply : Float
-    , marketCap : Float
-    , fullyDiluted : Float
+    , circSupply : Maybe Float
+    , marketCap : Maybe Float
+    , fullyDiluted : Maybe Float
     }
 
 
 type Msg
     = MsgUp MsgUp
-    | BucketValueEnteredFetched Int (Result Http.Error TokenValue)
+    | BucketValueEnteredFetched (Maybe Int) (Result Http.Error TokenValue)
     | FetchedEthPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedDaiPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedFryPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
@@ -120,67 +120,88 @@ fetchFryPrice =
 
 
 calcCircSupply :
-    Int
-    -> Float
+    Maybe Int
+    -> Maybe Float
 calcCircSupply currentBucketId =
-    (Config.bucketSaleTokensPerBucket
-        |> TokenValue.toFloatWithWarning
-    )
-        * (currentBucketId
-            |> toFloat
-          )
-        + toFloat
-            (14553000
-                + 13645000
-                + 10000000
-                + 1800000
-            )
-        - (toFloat 1223583 * 0.588938)
+    case currentBucketId of
+        Just bucketId ->
+            Just <|
+                (Config.bucketSaleTokensPerBucket
+                    |> TokenValue.toFloatWithWarning
+                )
+                    * (bucketId
+                        |> toFloat
+                      )
+                    + toFloat
+                        (14553000
+                            + 13645000
+                            + 10000000
+                            + 1800000
+                        )
+                    - (toFloat 1223583 * 0.588938)
+
+        _ ->
+            Nothing
 
 
 calcMarketCap :
     Float
     -> Float
-    -> Int
-    -> Float
+    -> Maybe Int
+    -> Maybe Float
 calcMarketCap currentFryPriceEth currentEthPriceUsd currentBucketId =
-    calcCircSupply currentBucketId
-        * currentFryPriceEth
-        * currentEthPriceUsd
+    case currentBucketId of
+        Just bucketId ->
+            Just <|
+                (calcCircSupply currentBucketId
+                    |> Maybe.withDefault 0
+                )
+                    * currentFryPriceEth
+                    * currentEthPriceUsd
+
+        _ ->
+            Nothing
 
 
 calcFullyDilutedMarketCap :
     Float
     -> Float
-    -> Float
+    -> Maybe Float
 calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
-    toFloat Config.fryTotalSupply
-        * currentFryPriceEth
-        * currentEthPriceUsd
+    Just <|
+        toFloat Config.fryTotalSupply
+            * currentFryPriceEth
+            * currentEthPriceUsd
 
 
 getCurrentBucketId :
     Int
-    -> Int
+    -> Maybe Int
 getCurrentBucketId now =
-    (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix Config.saleStarted)
-        |> TimeHelpers.posixToSeconds
-    )
-        // (Config.bucketSaleBucketInterval
-                |> TimeHelpers.posixToSeconds
-           )
+    Just <|
+        (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix Config.saleStarted)
+            |> TimeHelpers.posixToSeconds
+        )
+            // (Config.bucketSaleBucketInterval
+                    |> TimeHelpers.posixToSeconds
+               )
 
 
 getBucketRemainingTimeText :
-    Int
+    Maybe Int
     -> Int
     -> String
 getBucketRemainingTimeText bucketId now =
-    TimeHelpers.toHumanReadableString
-        (TimeHelpers.sub
-            (getBucketEndTime bucketId)
-            (Time.millisToPosix now)
-        )
+    case bucketId of
+        Just id ->
+            TimeHelpers.toHumanReadableString
+                (TimeHelpers.sub
+                    (getBucketEndTime id)
+                    (Time.millisToPosix now)
+                )
+
+        _ ->
+            "Loading..."
 
 
 getBucketStartTime :
@@ -219,9 +240,16 @@ calcEffectivePricePerToken totalValueEntered tokenValue =
 
 
 fetchTotalValueEnteredCmd :
-    Int
+    Maybe Int
     -> Cmd Msg
-fetchTotalValueEnteredCmd id =
-    BucketSaleWrappers.getTotalValueEnteredForBucket
-        id
-        (BucketValueEnteredFetched id)
+fetchTotalValueEnteredCmd bucketId =
+    case bucketId of
+        Just id ->
+            BucketSaleWrappers.getTotalValueEnteredForBucket
+                id
+                (Just id
+                    |> BucketValueEnteredFetched
+                )
+
+        _ ->
+            Cmd.none

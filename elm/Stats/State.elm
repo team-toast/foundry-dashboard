@@ -19,9 +19,9 @@ init nowInMillis =
       , currentEthPriceUsd = 0.0
       , currentDaiPriceEth = 0.0
       , currentFryPriceEth = 0.0
-      , circSupply = 0.0
-      , marketCap = 0.0
-      , fullyDiluted = 0.0
+      , circSupply = Just 0.0
+      , marketCap = Just 0.0
+      , fullyDiluted = Just 0.0
       }
     , let
         getEthPrice =
