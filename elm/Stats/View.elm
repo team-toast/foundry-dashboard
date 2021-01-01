@@ -71,16 +71,7 @@ viewAddressAndLabel :
     -> Address
     -> Element Msg
 viewAddressAndLabel dProfile label address =
-    let
-        mainEl =
-            case dProfile of
-                Desktop ->
-                    Element.row
-
-                Mobile ->
-                    Element.column
-    in
-    mainEl
+    Element.column
         [ Element.padding 5
         , Element.spacing 10
         , Element.height (Element.px 50)
@@ -100,11 +91,10 @@ viewAddressAndLabel dProfile label address =
                     ++ ": "
         , Element.el
             [ Element.Font.color EH.white
-            , responsiveVal dProfile Element.alignRight Element.alignLeft
             , Element.Font.size <|
                 responsiveVal
                     dProfile
-                    20
+                    16
                     12
             ]
           <|
@@ -126,7 +116,7 @@ statsIcon dProfile model =
 
         rowBorderStyle =
             [ Element.Border.innerGlow EH.white 1
-            , Element.Border.rounded 10
+            , Element.Border.rounded 15
             , Element.centerX
             ]
 
