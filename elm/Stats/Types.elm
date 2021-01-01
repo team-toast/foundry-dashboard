@@ -1,5 +1,6 @@
 module Stats.Types exposing (..)
 
+import Array exposing (Array)
 import Common.Msg exposing (..)
 import Config
 import Contracts.BucketSale.Wrappers as BucketSaleWrappers
@@ -17,6 +18,7 @@ import Graphql.Operation exposing (RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Helpers.Time as TimeHelpers
 import Http
+import Maybe.Extra exposing (isNothing)
 import Time
 import TokenValue exposing (TokenValue)
 
@@ -31,8 +33,11 @@ type alias Model =
     , circSupply : Maybe Float
     , marketCap : Maybe Float
     , fullyDiluted : Maybe Float
-    , teamTokens : Maybe TokenValue
     , permaFrostedTokens : Maybe TokenValue
+    , teamTokenBalances : Array (Maybe TokenValue)
+    , balancerFryBalance : Maybe TokenValue
+    , permaFrostTotalSupply : Maybe TokenValue
+    , permaFrostBalanceLocked : Maybe TokenValue
     }
 
 
@@ -42,6 +47,10 @@ type Msg
     | FetchedEthPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedDaiPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedFryPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
+    | FetchedTeamTokens Int (Result Http.Error TokenValue)
+    | FetchedPermaFrostBalanceLocked (Result Http.Error TokenValue)
+    | FetchedPermaFrostTotalSupply (Result Http.Error TokenValue)
+    | FetchedBalancerFryBalance (Result Http.Error TokenValue)
     | Tick Time.Posix
 
 
@@ -127,39 +136,76 @@ fetchFryPrice =
         |> Graphql.Http.send FetchedFryPrice
 
 
-fetchAddressTokenBalance :
+fetchTeamTokenBalance :
     Address
     -> Address
-    -> TokenValue
-fetchAddressTokenBalance tokenAddress owner =
-    TokenValue.zero
+    -> Int
+    -> Cmd Msg
+fetchTeamTokenBalance tokenAddress owner index =
+    ERC20.getBalanceCmd
+        tokenAddress
+        owner
+        (FetchedTeamTokens index)
+
+
+fetchPermaFrostLockedTokenBalance : Cmd Msg
+fetchPermaFrostLockedTokenBalance =
+    ERC20.getBalanceCmd
+        Config.balancerPermafrostPool
+        Config.burnAddress
+        FetchedPermaFrostBalanceLocked
+
+
+fetchPermaFrostTotalSupply : Cmd Msg
+fetchPermaFrostTotalSupply =
+    ERC20.getTotalSupply
+        Config.balancerPermafrostPool
+        FetchedPermaFrostTotalSupply
+
+
+fetchBalancerPoolFryBalance : Cmd Msg
+fetchBalancerPoolFryBalance =
+    ERC20.getBalanceCmd
+        Config.fryContractAddress
+        Config.balancerPermafrostPool
+        FetchedBalancerFryBalance
 
 
 calcCircSupply :
     Maybe Int
-    -> Maybe TokenValue
+    -> Array (Maybe TokenValue)
     -> Maybe TokenValue
     -> Maybe Float
 calcCircSupply currentBucketId totalTeamTokens totalPermaFrostedTokens =
+    let
+        teamTokens =
+            totalTeamTokens |> Array.toList
+    in
     case currentBucketId of
         Just bucketId ->
-            case totalTeamTokens of
-                Just ttt ->
-                    case totalPermaFrostedTokens of
-                        Just tpt ->
-                            Just <|
-                                toFloat
-                                    (Config.bucketSaleTokensPerBucket
-                                        * bucketId
-                                    )
-                                    + TokenValue.toFloatWithWarning ttt
-                                    - TokenValue.toFloatWithWarning tpt
+            if List.any isNothing teamTokens then
+                Nothing
 
-                        _ ->
-                            Nothing
+            else
+                let
+                    ttt =
+                        teamTokens
+                            |> List.map (Maybe.withDefault TokenValue.zero)
+                            |> List.map TokenValue.toFloatWithWarning
+                            |> List.sum
+                in
+                case totalPermaFrostedTokens of
+                    Just tpt ->
+                        Just <|
+                            toFloat
+                                (Config.bucketSaleTokensPerBucket
+                                    * bucketId
+                                )
+                                + Debug.log "total team tokens: " ttt
+                                - TokenValue.toFloatWithWarning tpt
 
-                _ ->
-                    Nothing
+                    _ ->
+                        Nothing
 
         _ ->
             Nothing
@@ -178,7 +224,6 @@ calcMarketCap currentFryPriceEth currentEthPriceUsd circSupply =
                     case currentEthPriceUsd of
                         Just eth ->
                             cs
-                                * toFloat Config.fryTotalSupply
                                 * fry
                                 * eth
                                 |> Just
@@ -324,3 +369,41 @@ fetchTotalValueEnteredCmd bucketId =
 
         _ ->
             Cmd.none
+
+
+calcPermaFrostedTokens :
+    Maybe TokenValue
+    -> Maybe TokenValue
+    -> Maybe TokenValue
+    -> Maybe TokenValue
+calcPermaFrostedTokens balancerFryBalance permaFrostBalanceLocked permaFrostTotalSupply =
+    case balancerFryBalance of
+        Just fryBalance ->
+            case permaFrostBalanceLocked of
+                Just pfLocked ->
+                    case permaFrostTotalSupply of
+                        Just pfTotalSupply ->
+                            let
+                                fry =
+                                    TokenValue.toFloatWithWarning fryBalance
+
+                                totalSupply =
+                                    TokenValue.toFloatWithWarning pfTotalSupply
+
+                                locked =
+                                    TokenValue.toFloatWithWarning pfLocked
+                            in
+                            locked
+                                / totalSupply
+                                * fry
+                                |> TokenValue.fromFloatWithWarning
+                                |> Just
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing

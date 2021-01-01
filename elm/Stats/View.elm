@@ -174,7 +174,7 @@ statsIcon dProfile model =
                     ++ (maybeFloatMultiply
                             model.currentFryPriceEth
                             model.currentEthPriceUsd
-                            |> valueTextOrLoadingText
+                            |> floatTextOrLoadingText
                        )
                 ]
             , columnItem
@@ -183,7 +183,7 @@ statsIcon dProfile model =
                 [ "MARKET CAP"
                 , "$ "
                     ++ (model.marketCap
-                            |> valueTextOrLoadingText
+                            |> floatTextOrLoadingText
                        )
                 ]
             , columnItem
@@ -192,7 +192,7 @@ statsIcon dProfile model =
                 [ "FULLY DILUTED M/CAP"
                 , "$ "
                     ++ (model.fullyDiluted
-                            |> valueTextOrLoadingText
+                            |> floatTextOrLoadingText
                        )
                 ]
             , columnItem
@@ -201,15 +201,49 @@ statsIcon dProfile model =
                 [ "CIRCULATING SUPPLY"
                 , "$FRY "
                     ++ (model.circSupply
-                            |> valueTextOrLoadingText
+                            |> floatTextOrLoadingText
+                       )
+                ]
+            , columnItem
+                dProfile
+                [ defaultPadding ]
+                [ "TOTAL SUPPLY"
+                , "$FRY "
+                    ++ (Config.fryTotalSupply
+                            |> Just
+                            |> intTextOrLoadingText
+                       )
+                ]
+            , columnItem
+                dProfile
+                [ defaultPadding ]
+                [ "PERMAFROSTED"
+                , "$FRY "
+                    ++ (model.permaFrostedTokens
+                            |> tokenValueTextOrLoadingText
                        )
                 ]
             ]
         ]
 
 
-valueTextOrLoadingText : Maybe Float -> String
-valueTextOrLoadingText dilutedValue =
+tokenValueTextOrLoadingText :
+    Maybe TokenValue
+    -> String
+tokenValueTextOrLoadingText dilutedValue =
+    case dilutedValue of
+        Just val ->
+            val
+                |> TokenValue.toConciseString
+
+        _ ->
+            loadingText
+
+
+floatTextOrLoadingText :
+    Maybe Float
+    -> String
+floatTextOrLoadingText dilutedValue =
     case dilutedValue of
         Just val ->
             val
@@ -220,12 +254,16 @@ valueTextOrLoadingText dilutedValue =
             loadingText
 
 
-intTextOrLoadingText : Maybe Int -> String
+intTextOrLoadingText :
+    Maybe Int
+    -> String
 intTextOrLoadingText dilutedValue =
     case dilutedValue of
         Just val ->
             val
-                |> String.fromInt
+                |> toFloat
+                |> TokenValue.fromFloatWithWarning
+                |> TokenValue.toConciseString
 
         _ ->
             loadingText

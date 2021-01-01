@@ -1,10 +1,11 @@
 module Stats.State exposing (..)
 
+import Array
 import Common.Msg exposing (..)
 import Config
 import Eth.Types exposing (Address)
 import Http
-import Json.Decode exposing (Decoder)
+import Json.Decode exposing (Decoder, value)
 import Stats.Types exposing (..)
 import Time
 import TokenValue
@@ -23,8 +24,11 @@ init nowInMillis =
       , circSupply = Nothing
       , marketCap = Nothing
       , fullyDiluted = Nothing
-      , teamTokens = Nothing
       , permaFrostedTokens = Nothing
+      , teamTokenBalances = Array.initialize 3 (always Nothing)
+      , balancerFryBalance = Nothing
+      , permaFrostTotalSupply = Nothing
+      , permaFrostBalanceLocked = Nothing
       }
     , let
         getEthPrice =
@@ -37,9 +41,43 @@ init nowInMillis =
             fetchFryPrice
 
         getTeamToast1 =
-            fetchAddressTokenBalance Config.teamToastAddress1
+            fetchTeamTokenBalance
+                Config.fryContractAddress
+                Config.teamToastAddress1
+                0
+
+        getTeamToast2 =
+            fetchTeamTokenBalance
+                Config.fryContractAddress
+                Config.teamToastAddress2
+                1
+
+        getTeamToast3 =
+            fetchTeamTokenBalance
+                Config.fryContractAddress
+                Config.teamToastAddress3
+                2
+
+        getPermaFrostTokenBalance =
+            fetchPermaFrostLockedTokenBalance
+
+        getPermaFrostTotalSupply =
+            fetchPermaFrostTotalSupply
+
+        getBalancerFryBalance =
+            fetchBalancerPoolFryBalance
       in
-      Cmd.batch [ getEthPrice, getDaiPrice, getFryPrice ]
+      Cmd.batch
+        [ getEthPrice
+        , getDaiPrice
+        , getFryPrice
+        , getTeamToast1
+        , getTeamToast2
+        , getTeamToast3
+        , getPermaFrostTokenBalance
+        , getPermaFrostTotalSupply
+        , getBalancerFryBalance
+        ]
     )
 
 
@@ -85,7 +123,7 @@ update msg prevModel =
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
-                                    prevModel.teamTokens
+                                    prevModel.teamTokenBalances
                                     prevModel.permaFrostedTokens
                             , marketCap =
                                 calcMarketCap
@@ -130,7 +168,7 @@ update msg prevModel =
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
-                                    prevModel.teamTokens
+                                    prevModel.teamTokenBalances
                                     prevModel.permaFrostedTokens
                             , marketCap =
                                 calcMarketCap
@@ -175,7 +213,158 @@ update msg prevModel =
                             , circSupply =
                                 calcCircSupply
                                     prevModel.currentBucketId
-                                    prevModel.teamTokens
+                                    prevModel.teamTokenBalances
+                                    prevModel.permaFrostedTokens
+                            , marketCap =
+                                calcMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    prevModel.circSupply
+                            , fullyDiluted =
+                                calcFullyDilutedMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                        }
+                        Cmd.none
+                        []
+
+        FetchedTeamTokens index fetchResult ->
+            case fetchResult of
+                Err error ->
+                    -- let
+                    --     _ =
+                    --         Debug.log "GraphQL error" ( fetchResult, error )
+                    -- in
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+
+                Ok value ->
+                    UpdateResult
+                        { prevModel
+                            | teamTokenBalances = Array.set index (Just value) prevModel.teamTokenBalances
+                            , circSupply =
+                                calcCircSupply
+                                    prevModel.currentBucketId
+                                    prevModel.teamTokenBalances
+                                    prevModel.permaFrostedTokens
+                            , marketCap =
+                                calcMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    prevModel.circSupply
+                            , fullyDiluted =
+                                calcFullyDilutedMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                        }
+                        Cmd.none
+                        []
+
+        FetchedBalancerFryBalance fetchResult ->
+            case fetchResult of
+                Err error ->
+                    -- let
+                    --     _ =
+                    --         Debug.log "GraphQL error" ( fetchResult, error )
+                    -- in
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+
+                Ok value ->
+                    UpdateResult
+                        { prevModel
+                            | balancerFryBalance = Just value
+                            , permaFrostedTokens =
+                                calcPermaFrostedTokens
+                                    (Just value)
+                                    prevModel.permaFrostBalanceLocked
+                                    prevModel.permaFrostTotalSupply
+                            , circSupply =
+                                calcCircSupply
+                                    prevModel.currentBucketId
+                                    prevModel.teamTokenBalances
+                                    prevModel.permaFrostedTokens
+                            , marketCap =
+                                calcMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    prevModel.circSupply
+                            , fullyDiluted =
+                                calcFullyDilutedMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                        }
+                        Cmd.none
+                        []
+
+        FetchedPermaFrostBalanceLocked fetchResult ->
+            case fetchResult of
+                Err error ->
+                    -- let
+                    --     _ =
+                    --         Debug.log "GraphQL error" ( fetchResult, error )
+                    -- in
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+
+                Ok value ->
+                    UpdateResult
+                        { prevModel
+                            | permaFrostBalanceLocked = Just value
+                            , permaFrostedTokens =
+                                calcPermaFrostedTokens
+                                    prevModel.balancerFryBalance
+                                    (Just value)
+                                    prevModel.permaFrostTotalSupply
+                            , circSupply =
+                                calcCircSupply
+                                    prevModel.currentBucketId
+                                    prevModel.teamTokenBalances
+                                    prevModel.permaFrostedTokens
+                            , marketCap =
+                                calcMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    prevModel.circSupply
+                            , fullyDiluted =
+                                calcFullyDilutedMarketCap
+                                    prevModel.currentFryPriceEth
+                                    prevModel.currentEthPriceUsd
+                        }
+                        Cmd.none
+                        []
+
+        FetchedPermaFrostTotalSupply fetchResult ->
+            case fetchResult of
+                Err error ->
+                    -- let
+                    --     _ =
+                    --         Debug.log "GraphQL error" ( fetchResult, error )
+                    -- in
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+
+                Ok value ->
+                    UpdateResult
+                        { prevModel
+                            | permaFrostTotalSupply = Just value
+                            , permaFrostedTokens =
+                                calcPermaFrostedTokens
+                                    prevModel.balancerFryBalance
+                                    prevModel.permaFrostBalanceLocked
+                                    (Just value)
+                            , circSupply =
+                                calcCircSupply
+                                    prevModel.currentBucketId
+                                    prevModel.teamTokenBalances
                                     prevModel.permaFrostedTokens
                             , marketCap =
                                 calcMarketCap
@@ -225,6 +414,33 @@ update msg prevModel =
 
                 getFryPrice =
                     fetchFryPrice
+
+                getTeamToast1 =
+                    fetchTeamTokenBalance
+                        Config.fryContractAddress
+                        Config.teamToastAddress1
+                        0
+
+                getTeamToast2 =
+                    fetchTeamTokenBalance
+                        Config.fryContractAddress
+                        Config.teamToastAddress2
+                        1
+
+                getTeamToast3 =
+                    fetchTeamTokenBalance
+                        Config.fryContractAddress
+                        Config.teamToastAddress3
+                        2
+
+                getPermaFrostTokenBalance =
+                    fetchPermaFrostLockedTokenBalance
+
+                getPermaFrostTotalSupply =
+                    fetchPermaFrostTotalSupply
+
+                getBalancerFryBalance =
+                    fetchBalancerPoolFryBalance
             in
             UpdateResult
                 { prevModel
@@ -232,7 +448,17 @@ update msg prevModel =
                     , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
                 }
                 (Cmd.batch
-                    [ getTotalValueEntered, getEthPrice, getDaiPrice, getFryPrice ]
+                    [ getTotalValueEntered
+                    , getEthPrice
+                    , getDaiPrice
+                    , getFryPrice
+                    , getTeamToast1
+                    , getTeamToast2
+                    , getTeamToast3
+                    , getPermaFrostTokenBalance
+                    , getPermaFrostTotalSupply
+                    , getBalancerFryBalance
+                    ]
                 )
                 []
 
