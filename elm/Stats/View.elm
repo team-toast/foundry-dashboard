@@ -121,34 +121,25 @@ statsIcon :
     -> Element Msg
 statsIcon dProfile model =
     let
-        mainEl =
-            case dProfile of
-                Desktop ->
-                    Element.row
-
-                Mobile ->
-                    Element.column
-
         defaultPadding =
-            Element.padding <| responsiveVal dProfile 10 5
-    in
-    Element.column
-        [ Element.Background.color <| Element.rgba 1 1 1 0.1
-        , Element.width Element.fill
-        , Element.Border.rounded 20
-        , Element.Font.color EH.lightGray
-        , Element.Border.glow EH.white 2
-        ]
-        [ mainEl
-            [ Element.centerX
+            Element.padding <| responsiveVal dProfile 10 7
+
+        rowBorderStyle =
+            [ Element.Border.innerGlow EH.white 1
+            , Element.Border.rounded 10
+            , Element.centerX
             ]
-            [ columnItem
+
+        bucketNumberEl =
+            statsItem
                 dProfile
                 [ defaultPadding ]
                 [ "BUCKET #"
                 , intTextOrLoadingText model.currentBucketId
                 ]
-            , columnItem
+
+        timeLeftEl =
+            statsItem
                 dProfile
                 [ defaultPadding ]
                 [ "TIME LEFT"
@@ -156,20 +147,24 @@ statsIcon dProfile model =
                     model.currentBucketId
                     model.currentTime
                 ]
-            , columnItem
+
+        bucketPriceEl =
+            statsItem
                 dProfile
                 [ defaultPadding ]
-                [ "CURRENT BUCKET"
+                [ "BUCKET $"
                 , "$ "
                     ++ calcEffectivePricePerToken
                         model.currentBucketTotalEntered
                         model.currentDaiPriceEth
                         model.currentEthPriceUsd
                 ]
-            , columnItem
+
+        uniswapPriceEl =
+            statsItem
                 dProfile
                 [ defaultPadding ]
-                [ "UNISWAP"
+                [ "UNISWAP $"
                 , "$ "
                     ++ (maybeFloatMultiply
                             model.currentFryPriceEth
@@ -177,7 +172,37 @@ statsIcon dProfile model =
                             |> floatTextOrLoadingText
                        )
                 ]
-            , columnItem
+
+        circSupplyEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "CIRC SUPPLY"
+                , model.circSupply
+                    |> floatTextOrLoadingText
+                ]
+
+        permaFrostEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "PERMA-FROSTED"
+                , model.permaFrostedTokens
+                    |> tokenValueTextOrLoadingText
+                ]
+
+        totalSupplyEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "TOTAL SUPPLY"
+                , Config.fryTotalSupply
+                    |> Just
+                    |> intTextOrLoadingText
+                ]
+
+        marketCapEl =
+            statsItem
                 dProfile
                 [ defaultPadding ]
                 [ "MARKET CAP"
@@ -186,43 +211,47 @@ statsIcon dProfile model =
                             |> floatTextOrLoadingText
                        )
                 ]
-            , columnItem
+
+        fullyDilutedEl =
+            statsItem
                 dProfile
                 [ defaultPadding ]
-                [ "FULLY DILUTED M/CAP"
+                [ "FULLY DILUTED"
                 , "$ "
                     ++ (model.fullyDiluted
                             |> floatTextOrLoadingText
                        )
                 ]
-            , columnItem
-                dProfile
-                [ defaultPadding ]
-                [ "CIRCULATING SUPPLY"
-                , "$FRY "
-                    ++ (model.circSupply
-                            |> floatTextOrLoadingText
-                       )
-                ]
-            , columnItem
-                dProfile
-                [ defaultPadding ]
-                [ "TOTAL SUPPLY"
-                , "$FRY "
-                    ++ (Config.fryTotalSupply
-                            |> Just
-                            |> intTextOrLoadingText
-                       )
-                ]
-            , columnItem
-                dProfile
-                [ defaultPadding ]
-                [ "PERMAFROSTED"
-                , "$FRY "
-                    ++ (model.permaFrostedTokens
-                            |> tokenValueTextOrLoadingText
-                       )
-                ]
+    in
+    Element.column
+        [ Element.Background.color <| Element.rgba 1 1 1 0.1
+        , Element.width Element.fill
+        , Element.Border.rounded 20
+        , Element.Font.color EH.lightGray
+        , Element.Border.glow EH.white 2
+        , Element.padding 5
+        , Element.spacing 5
+        ]
+        [ Element.row
+            rowBorderStyle
+            [ bucketNumberEl
+            , timeLeftEl
+            ]
+        , Element.row
+            rowBorderStyle
+            [ bucketPriceEl
+            , uniswapPriceEl
+            ]
+        , Element.row
+            rowBorderStyle
+            [ marketCapEl
+            , fullyDilutedEl
+            ]
+        , Element.row
+            rowBorderStyle
+            [ circSupplyEl
+            , permaFrostEl
+            , totalSupplyEl
             ]
         ]
 
@@ -282,12 +311,12 @@ textLarge dProfile txt =
         Element.text txt
 
 
-columnItem :
+statsItem :
     DisplayProfile
     -> List (Attribute Msg)
     -> List String
     -> Element Msg
-columnItem dProfile attributes items =
+statsItem dProfile attributes items =
     items
         |> List.map (textLarge dProfile)
         |> Element.column

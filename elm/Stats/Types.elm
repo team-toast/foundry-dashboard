@@ -201,7 +201,7 @@ calcCircSupply currentBucketId totalTeamTokens totalPermaFrostedTokens =
                                 (Config.bucketSaleTokensPerBucket
                                     * bucketId
                                 )
-                                + Debug.log "total team tokens: " ttt
+                                + ttt
                                 - TokenValue.toFloatWithWarning tpt
 
                     _ ->
