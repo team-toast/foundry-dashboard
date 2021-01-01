@@ -5,7 +5,7 @@ import Common.View exposing (..)
 import Config
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Element, height, padding, px, spacing, width)
+import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -30,8 +30,9 @@ view :
     -> Element Msg
 view dProfile maybeUserInfo model =
     Element.column
-        [ padding 20
-        , spacing 25
+        [ Element.padding 20
+        , Element.spacing 25
+        , Element.centerX
         ]
         [ statsIcon dProfile model
         , viewAddresses dProfile
@@ -80,9 +81,9 @@ viewAddressAndLabel dProfile label address =
                     Element.column
     in
     mainEl
-        [ padding 5
-        , spacing 10
-        , height (px 50)
+        [ Element.padding 5
+        , Element.spacing 10
+        , Element.height (Element.px 50)
         , Element.width Element.fill
         ]
         [ Element.el
@@ -120,16 +121,107 @@ statsIcon :
     -> Element Msg
 statsIcon dProfile model =
     let
-        mainEl =
-            case dProfile of
-                Desktop ->
-                    Element.row
-
-                Mobile ->
-                    Element.column
-
         defaultPadding =
-            Element.padding <| responsiveVal dProfile 10 5
+            Element.padding <| responsiveVal dProfile 10 7
+
+        rowBorderStyle =
+            [ Element.Border.innerGlow EH.white 1
+            , Element.Border.rounded 10
+            , Element.centerX
+            ]
+
+        bucketNumberEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "BUCKET #"
+                , intTextOrLoadingText model.currentBucketId
+                ]
+
+        timeLeftEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "TIME LEFT"
+                , getBucketRemainingTimeText
+                    model.currentBucketId
+                    model.currentTime
+                ]
+
+        bucketPriceEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "BUCKET $"
+                , "$ "
+                    ++ calcEffectivePricePerToken
+                        model.currentBucketTotalEntered
+                        model.currentDaiPriceEth
+                        model.currentEthPriceUsd
+                ]
+
+        uniswapPriceEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "UNISWAP $"
+                , "$ "
+                    ++ (maybeFloatMultiply
+                            model.currentFryPriceEth
+                            model.currentEthPriceUsd
+                            |> floatTextOrLoadingText
+                       )
+                ]
+
+        circSupplyEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "CIRC SUPPLY"
+                , model.circSupply
+                    |> floatTextOrLoadingText
+                ]
+
+        permaFrostEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "PERMA-FROSTED"
+                , model.permaFrostedTokens
+                    |> tokenValueTextOrLoadingText
+                ]
+
+        totalSupplyEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "TOTAL SUPPLY"
+                , Config.fryTotalSupply
+                    |> Just
+                    |> intTextOrLoadingText
+                ]
+
+        marketCapEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "MARKET CAP"
+                , "$ "
+                    ++ (model.marketCap
+                            |> floatTextOrLoadingText
+                       )
+                ]
+
+        fullyDilutedEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "FULLY DILUTED"
+                , "$ "
+                    ++ (model.fullyDiluted
+                            |> floatTextOrLoadingText
+                       )
+                ]
     in
     Element.column
         [ Element.Background.color <| Element.rgba 1 1 1 0.1
@@ -137,85 +229,73 @@ statsIcon dProfile model =
         , Element.Border.rounded 20
         , Element.Font.color EH.lightGray
         , Element.Border.glow EH.white 2
+        , Element.padding 5
+        , Element.spacing 5
         ]
-        [ mainEl
-            [ Element.centerX
+        [ Element.row
+            rowBorderStyle
+            [ bucketNumberEl
+            , timeLeftEl
             ]
-            [ Element.column
-                [ defaultPadding ]
-                [ "BUCKET #"
-                    |> textLarge dProfile
-                , String.fromInt model.currentBucketId
-                    |> textLarge dProfile
-                ]
-            , Element.column
-                [ defaultPadding ]
-                [ "TIME LEFT"
-                    |> textLarge dProfile
-                , getBucketRemainingTimeText
-                    model.currentBucketId
-                    model.currentTime
-                    |> textLarge dProfile
-                ]
-            , Element.column
-                [ defaultPadding ]
-                (columnItems
-                    dProfile
-                    "CURRENT BUCKET"
-                    ("$ "
-                        ++ (calcEffectivePricePerToken
-                                model.currentBucketTotalEntered
-                                ((if model.currentDaiPriceEth == 0 then
-                                    1.01
+        , Element.row
+            rowBorderStyle
+            [ bucketPriceEl
+            , uniswapPriceEl
+            ]
+        , Element.row
+            rowBorderStyle
+            [ marketCapEl
+            , fullyDilutedEl
+            ]
+        , Element.row
+            rowBorderStyle
+            [ circSupplyEl
+            , permaFrostEl
+            , totalSupplyEl
+            ]
+        ]
 
-                                  else
-                                    model.currentDaiPriceEth
-                                 )
-                                    * model.currentEthPriceUsd
-                                )
-                                |> TokenValue.toConciseString
-                           )
-                    )
-                )
-            , Element.column
-                [ defaultPadding ]
-                (columnItems
-                    dProfile
-                    "UNISWAP"
-                    ("$ "
-                        ++ (model.currentFryPriceEth
-                                * model.currentEthPriceUsd
-                                |> TokenValue.fromFloatWithWarning
-                                |> TokenValue.toConciseString
-                           )
-                    )
-                )
-            , Element.column
-                [ defaultPadding ]
-                (columnItems
-                    dProfile
-                    "MARKET CAP"
-                    ("$ "
-                        ++ (model.marketCap
-                                |> TokenValue.fromFloatWithWarning
-                                |> TokenValue.toConciseString
-                           )
-                    )
-                )
-            , Element.column
-                [ defaultPadding ]
-                (columnItems
-                    dProfile
-                    "FULLY DILUTED MARKET CAP"
-                    ("$ "
-                        ++ (model.fullyDiluted
-                                |> TokenValue.fromFloatWithWarning
-                                |> TokenValue.toConciseString
-                           )
-                    )
-                )
-            ]
-        ]
+
+tokenValueTextOrLoadingText :
+    Maybe TokenValue
+    -> String
+tokenValueTextOrLoadingText dilutedValue =
+    case dilutedValue of
+        Just val ->
+            val
+                |> TokenValue.toConciseString
+
+        _ ->
+            loadingText
+
+
+floatTextOrLoadingText :
+    Maybe Float
+    -> String
+floatTextOrLoadingText dilutedValue =
+    case dilutedValue of
+        Just val ->
+            val
+                |> TokenValue.fromFloatWithWarning
+                |> TokenValue.toConciseString
+
+        _ ->
+            loadingText
+
+
+intTextOrLoadingText :
+    Maybe Int
+    -> String
+intTextOrLoadingText dilutedValue =
+    case dilutedValue of
+        Just val ->
+            val
+                |> toFloat
+                |> TokenValue.fromFloatWithWarning
+                |> TokenValue.toConciseString
+
+        _ ->
+            loadingText
 
 
 textLarge :
@@ -231,12 +311,13 @@ textLarge dProfile txt =
         Element.text txt
 
 
-columnItems :
+statsItem :
     DisplayProfile
-    -> String
-    -> String
-    -> List (Element Msg)
-columnItems dProfile str1 str2 =
-    [ textLarge dProfile str1
-    , textLarge dProfile str2
-    ]
+    -> List (Attribute Msg)
+    -> List String
+    -> Element Msg
+statsItem dProfile attributes items =
+    items
+        |> List.map (textLarge dProfile)
+        |> Element.column
+            attributes

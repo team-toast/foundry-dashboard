@@ -1,8 +1,10 @@
 module Stats.Types exposing (..)
 
+import Array exposing (Array)
 import Common.Msg exposing (..)
 import Config
 import Contracts.BucketSale.Wrappers as BucketSaleWrappers
+import Contracts.ERC20Wrapper as ERC20
 import Contracts.UniSwapGraph.Object exposing (..)
 import Contracts.UniSwapGraph.Object.Bundle as Bundle
 import Contracts.UniSwapGraph.Object.Token as Token
@@ -16,29 +18,39 @@ import Graphql.Operation exposing (RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Helpers.Time as TimeHelpers
 import Http
+import Maybe.Extra exposing (isNothing)
 import Time
 import TokenValue exposing (TokenValue)
 
 
 type alias Model =
     { currentTime : Int
-    , currentBucketId : Int
-    , currentBucketTotalEntered : TokenValue
-    , currentEthPriceUsd : Float
-    , currentDaiPriceEth : Float
-    , currentFryPriceEth : Float
-    , circSupply : Float
-    , marketCap : Float
-    , fullyDiluted : Float
+    , currentBucketId : Maybe Int
+    , currentBucketTotalEntered : Maybe TokenValue
+    , currentEthPriceUsd : Maybe Float
+    , currentDaiPriceEth : Maybe Float
+    , currentFryPriceEth : Maybe Float
+    , circSupply : Maybe Float
+    , marketCap : Maybe Float
+    , fullyDiluted : Maybe Float
+    , permaFrostedTokens : Maybe TokenValue
+    , teamTokenBalances : Array (Maybe TokenValue)
+    , balancerFryBalance : Maybe TokenValue
+    , permaFrostTotalSupply : Maybe TokenValue
+    , permaFrostBalanceLocked : Maybe TokenValue
     }
 
 
 type Msg
     = MsgUp MsgUp
-    | BucketValueEnteredFetched Int (Result Http.Error TokenValue)
+    | BucketValueEnteredFetched (Maybe Int) (Result Http.Error TokenValue)
     | FetchedEthPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedDaiPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
     | FetchedFryPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
+    | FetchedTeamTokens Int (Result Http.Error TokenValue)
+    | FetchedPermaFrostBalanceLocked (Result Http.Error TokenValue)
+    | FetchedPermaFrostTotalSupply (Result Http.Error TokenValue)
+    | FetchedBalancerFryBalance (Result Http.Error TokenValue)
     | Tick Time.Posix
 
 
@@ -52,6 +64,11 @@ type alias UpdateResult =
     , cmd : Cmd Msg
     , msgUps : List MsgUp
     }
+
+
+loadingText : String
+loadingText =
+    "Loading..."
 
 
 justModelUpdate :
@@ -119,68 +136,157 @@ fetchFryPrice =
         |> Graphql.Http.send FetchedFryPrice
 
 
+fetchTeamTokenBalance :
+    Address
+    -> Address
+    -> Int
+    -> Cmd Msg
+fetchTeamTokenBalance tokenAddress owner index =
+    ERC20.getBalanceCmd
+        tokenAddress
+        owner
+        (FetchedTeamTokens index)
+
+
+fetchPermaFrostLockedTokenBalance : Cmd Msg
+fetchPermaFrostLockedTokenBalance =
+    ERC20.getBalanceCmd
+        Config.balancerPermafrostPool
+        Config.burnAddress
+        FetchedPermaFrostBalanceLocked
+
+
+fetchPermaFrostTotalSupply : Cmd Msg
+fetchPermaFrostTotalSupply =
+    ERC20.getTotalSupply
+        Config.balancerPermafrostPool
+        FetchedPermaFrostTotalSupply
+
+
+fetchBalancerPoolFryBalance : Cmd Msg
+fetchBalancerPoolFryBalance =
+    ERC20.getBalanceCmd
+        Config.fryContractAddress
+        Config.balancerPermafrostPool
+        FetchedBalancerFryBalance
+
+
 calcCircSupply :
-    Int
-    -> Float
-calcCircSupply currentBucketId =
-    (Config.bucketSaleTokensPerBucket
-        |> TokenValue.toFloatWithWarning
-    )
-        * (currentBucketId
-            |> toFloat
-          )
-        + toFloat
-            (14553000
-                + 13645000
-                + 10000000
-                + 1800000
-            )
-        - (toFloat 1223583 * 0.588938)
+    Maybe Int
+    -> Array (Maybe TokenValue)
+    -> Maybe TokenValue
+    -> Maybe Float
+calcCircSupply currentBucketId totalTeamTokens totalPermaFrostedTokens =
+    let
+        teamTokens =
+            totalTeamTokens |> Array.toList
+    in
+    case currentBucketId of
+        Just bucketId ->
+            if List.any isNothing teamTokens then
+                Nothing
+
+            else
+                let
+                    ttt =
+                        teamTokens
+                            |> List.map (Maybe.withDefault TokenValue.zero)
+                            |> List.map TokenValue.toFloatWithWarning
+                            |> List.sum
+                in
+                case totalPermaFrostedTokens of
+                    Just tpt ->
+                        Just <|
+                            toFloat
+                                (Config.bucketSaleTokensPerBucket
+                                    * bucketId
+                                )
+                                + ttt
+                                - TokenValue.toFloatWithWarning tpt
+
+                    _ ->
+                        Nothing
+
+        _ ->
+            Nothing
 
 
 calcMarketCap :
-    Float
-    -> Float
-    -> Int
-    -> Float
-calcMarketCap currentFryPriceEth currentEthPriceUsd currentBucketId =
-    calcCircSupply currentBucketId
-        * currentFryPriceEth
-        * currentEthPriceUsd
+    Maybe Float
+    -> Maybe Float
+    -> Maybe Float
+    -> Maybe Float
+calcMarketCap currentFryPriceEth currentEthPriceUsd circSupply =
+    case circSupply of
+        Just cs ->
+            case currentFryPriceEth of
+                Just fry ->
+                    case currentEthPriceUsd of
+                        Just eth ->
+                            cs
+                                * fry
+                                * eth
+                                |> Just
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 calcFullyDilutedMarketCap :
-    Float
-    -> Float
-    -> Float
+    Maybe Float
+    -> Maybe Float
+    -> Maybe Float
 calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
-    toFloat Config.fryTotalSupply
-        * currentFryPriceEth
-        * currentEthPriceUsd
+    case currentFryPriceEth of
+        Just fry ->
+            case currentEthPriceUsd of
+                Just eth ->
+                    Just <|
+                        toFloat Config.fryTotalSupply
+                            * fry
+                            * eth
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 getCurrentBucketId :
     Int
-    -> Int
+    -> Maybe Int
 getCurrentBucketId now =
-    (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix Config.saleStarted)
-        |> TimeHelpers.posixToSeconds
-    )
-        // (Config.bucketSaleBucketInterval
-                |> TimeHelpers.posixToSeconds
-           )
+    Just <|
+        (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix Config.saleStarted)
+            |> TimeHelpers.posixToSeconds
+        )
+            // (Config.bucketSaleBucketInterval
+                    |> TimeHelpers.posixToSeconds
+               )
 
 
 getBucketRemainingTimeText :
-    Int
+    Maybe Int
     -> Int
     -> String
 getBucketRemainingTimeText bucketId now =
-    TimeHelpers.toHumanReadableString
-        (TimeHelpers.sub
-            (getBucketEndTime bucketId)
-            (Time.millisToPosix now)
-        )
+    case bucketId of
+        Just id ->
+            TimeHelpers.toHumanReadableString
+                (TimeHelpers.sub
+                    (getBucketEndTime id)
+                    (Time.millisToPosix now)
+                )
+
+        _ ->
+            loadingText
 
 
 getBucketStartTime :
@@ -201,27 +307,103 @@ getBucketEndTime bucketId =
 
 
 calcEffectivePricePerToken :
-    TokenValue
-    -> Float
-    -> TokenValue
-calcEffectivePricePerToken totalValueEntered tokenValue =
+    Maybe TokenValue
+    -> Maybe Float
+    -> Maybe Float
+    -> String
+calcEffectivePricePerToken totalValueEntered tokenValueEth ethValueUsd =
     let
-        ve =
-            totalValueEntered
-                |> TokenValue.toFloatWithWarning
-
         tpb =
-            Config.bucketSaleTokensPerBucket
-                |> TokenValue.toFloatWithWarning
+            toFloat <|
+                if Config.bucketSaleTokensPerBucket < 1 then
+                    1
+
+                else
+                    Config.bucketSaleTokensPerBucket
     in
-    (ve * tokenValue / tpb)
-        |> TokenValue.fromFloatWithWarning
+    case totalValueEntered of
+        Just tve ->
+            case maybeFloatMultiply tokenValueEth ethValueUsd of
+                Just val ->
+                    tve
+                        |> TokenValue.mulFloatWithWarning val
+                        |> TokenValue.divFloatWithWarning tpb
+                        |> TokenValue.toConciseString
+
+                _ ->
+                    loadingText
+
+        _ ->
+            loadingText
+
+
+maybeFloatMultiply :
+    Maybe Float
+    -> Maybe Float
+    -> Maybe Float
+maybeFloatMultiply val1 val2 =
+    case val1 of
+        Just v1 ->
+            case val2 of
+                Just v2 ->
+                    Just <| v1 * v2
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 fetchTotalValueEnteredCmd :
-    Int
+    Maybe Int
     -> Cmd Msg
-fetchTotalValueEnteredCmd id =
-    BucketSaleWrappers.getTotalValueEnteredForBucket
-        id
-        (BucketValueEnteredFetched id)
+fetchTotalValueEnteredCmd bucketId =
+    case bucketId of
+        Just id ->
+            BucketSaleWrappers.getTotalValueEnteredForBucket
+                id
+                (Just id
+                    |> BucketValueEnteredFetched
+                )
+
+        _ ->
+            Cmd.none
+
+
+calcPermaFrostedTokens :
+    Maybe TokenValue
+    -> Maybe TokenValue
+    -> Maybe TokenValue
+    -> Maybe TokenValue
+calcPermaFrostedTokens balancerFryBalance permaFrostBalanceLocked permaFrostTotalSupply =
+    case balancerFryBalance of
+        Just fryBalance ->
+            case permaFrostBalanceLocked of
+                Just pfLocked ->
+                    case permaFrostTotalSupply of
+                        Just pfTotalSupply ->
+                            let
+                                fry =
+                                    TokenValue.toFloatWithWarning fryBalance
+
+                                totalSupply =
+                                    TokenValue.toFloatWithWarning pfTotalSupply
+
+                                locked =
+                                    TokenValue.toFloatWithWarning pfLocked
+                            in
+                            locked
+                                / totalSupply
+                                * fry
+                                |> TokenValue.fromFloatWithWarning
+                                |> Just
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
