@@ -29,7 +29,16 @@ view :
     -> Model
     -> Element Msg
 view dProfile maybeUserInfo model =
-    Element.column
+    let
+        mainEl =
+            case dProfile of
+                Desktop ->
+                    Element.row
+
+                Mobile ->
+                    Element.column
+    in
+    mainEl
         [ Element.padding 20
         , Element.spacing 25
         , Element.centerX
@@ -52,6 +61,7 @@ viewAddresses dProfile =
         , Element.centerX
         , Element.padding 10
         , Element.spacing 10
+        , Element.height Element.fill
         ]
         [ Element.el
             [ Element.Font.size 30
@@ -212,6 +222,17 @@ statsIcon dProfile model =
                             |> floatTextOrLoadingText
                        )
                 ]
+
+        treasuryBalanceEl =
+            statsItem
+                dProfile
+                [ defaultPadding ]
+                [ "TREASURY BALANCE"
+                , "$ "
+                    ++ (model.treasuryBalance
+                            |> tokenValueTextOrLoadingText
+                       )
+                ]
     in
     Element.column
         [ Element.Background.color <| Element.rgba 1 1 1 0.1
@@ -243,6 +264,9 @@ statsIcon dProfile model =
             , permaFrostEl
             , totalSupplyEl
             ]
+        , Element.row
+            rowBorderStyle
+            [ treasuryBalanceEl ]
         ]
 
 
