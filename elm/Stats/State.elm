@@ -29,6 +29,7 @@ init nowInMillis =
       , balancerFryBalance = Nothing
       , permaFrostTotalSupply = Nothing
       , permaFrostBalanceLocked = Nothing
+      , treasuryBalance = Nothing
       }
     , let
         getEthPrice =
@@ -66,6 +67,9 @@ init nowInMillis =
 
         getBalancerFryBalance =
             fetchBalancerPoolFryBalance
+
+        getTreasuryBalance =
+            fetchTreasuryBalance
       in
       Cmd.batch
         [ getEthPrice
@@ -77,6 +81,7 @@ init nowInMillis =
         , getPermaFrostTokenBalance
         , getPermaFrostTotalSupply
         , getBalancerFryBalance
+        , getTreasuryBalance
         ]
     )
 
@@ -401,6 +406,26 @@ update msg prevModel =
                         Cmd.none
                         []
 
+        FetchedTreasuryBalance fetchResult ->
+            case fetchResult of
+                Err httpErr ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+
+                Ok valueFetched ->
+                    UpdateResult
+                        { prevModel
+                            | treasuryBalance =
+                                calcTreasuryBalance
+                                    prevModel.currentDaiPriceEth
+                                    prevModel.currentEthPriceUsd
+                                    (Just valueFetched)
+                        }
+                        Cmd.none
+                        []
+
         Tick i ->
             let
                 getTotalValueEntered =
@@ -441,6 +466,9 @@ update msg prevModel =
 
                 getBalancerFryBalance =
                     fetchBalancerPoolFryBalance
+
+                getTreasuryBalance =
+                    fetchTreasuryBalance
             in
             UpdateResult
                 { prevModel
@@ -458,6 +486,7 @@ update msg prevModel =
                     , getPermaFrostTokenBalance
                     , getPermaFrostTotalSupply
                     , getBalancerFryBalance
+                    , getTreasuryBalance
                     ]
                 )
                 []

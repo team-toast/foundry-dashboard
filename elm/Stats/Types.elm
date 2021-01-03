@@ -38,6 +38,7 @@ type alias Model =
     , balancerFryBalance : Maybe TokenValue
     , permaFrostTotalSupply : Maybe TokenValue
     , permaFrostBalanceLocked : Maybe TokenValue
+    , treasuryBalance : Maybe TokenValue
     }
 
 
@@ -51,6 +52,7 @@ type Msg
     | FetchedPermaFrostBalanceLocked (Result Http.Error TokenValue)
     | FetchedPermaFrostTotalSupply (Result Http.Error TokenValue)
     | FetchedBalancerFryBalance (Result Http.Error TokenValue)
+    | FetchedTreasuryBalance (Result Http.Error TokenValue)
     | Tick Time.Posix
 
 
@@ -169,6 +171,14 @@ fetchBalancerPoolFryBalance =
         Config.fryContractAddress
         Config.balancerPermafrostPool
         FetchedBalancerFryBalance
+
+
+fetchTreasuryBalance : Cmd Msg
+fetchTreasuryBalance =
+    ERC20.getBalanceCmd
+        Config.daiContractAddress
+        Config.treasuryForwarderAddress
+        FetchedTreasuryBalance
 
 
 calcCircSupply :
@@ -396,6 +406,35 @@ calcPermaFrostedTokens balancerFryBalance permaFrostBalanceLocked permaFrostTota
                             locked
                                 / totalSupply
                                 * fry
+                                |> TokenValue.fromFloatWithWarning
+                                |> Just
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+calcTreasuryBalance :
+    Maybe Float
+    -> Maybe Float
+    -> Maybe TokenValue
+    -> Maybe TokenValue
+calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
+    case daiPriceInEth of
+        Just daiInEth ->
+            case ethPriceInUsd of
+                Just ethInUsd ->
+                    case numberOfDaiTokens of
+                        Just daiTokenCount ->
+                            ((TokenValue.toFloatWithWarning <| daiTokenCount)
+                                * daiInEth
+                                * ethInUsd
+                            )
                                 |> TokenValue.fromFloatWithWarning
                                 |> Just
 
