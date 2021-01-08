@@ -103,7 +103,7 @@ calcAvailableRewards stakingInfo now =
                 |> (\msec -> msec / 1000)
 
         accrued =
-            TokenValue.mulFloatWithWarning stakingInfo.rewardRate secondsElapsed
+            TokenValue.mulFloatWithWarning secondsElapsed stakingInfo.rewardRate
     in
     TokenValue.add stakingInfo.claimableRewards accrued
 

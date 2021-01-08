@@ -65,11 +65,6 @@ treasuryForwarderAddress =
     Eth.Utils.unsafeToAddress "0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553"
 
 
-fryTokenAddress : Address
-fryTokenAddress =
-    Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
-
-
 bucketSaleAddress : Address
 bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
@@ -103,3 +98,53 @@ forbiddenJurisdictionCodes =
 farmingPeriodEnds : Int
 farmingPeriodEnds =
     1607702381
+
+
+bucketSaleTokensPerBucket : Int
+bucketSaleTokensPerBucket =
+    30000
+
+
+uniswapGraphQL : String
+uniswapGraphQL =
+    "https://cors-anywhere.herokuapp.com/https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2"
+
+
+saleStarted : Int
+saleStarted =
+    1592568000000
+
+
+bucketSaleBucketInterval : Time.Posix
+bucketSaleBucketInterval =
+    Time.millisToPosix <| 1000 * 60 * 60 * 7
+
+
+fryTotalSupply : Int
+fryTotalSupply =
+    100000000
+
+
+teamToastAddress1 : Address
+teamToastAddress1 =
+    Eth.Utils.unsafeToAddress "0xe5dde1cc679184fc420e6f92e0bd8c81e41d25e1"
+
+
+teamToastAddress2 : Address
+teamToastAddress2 =
+    Eth.Utils.unsafeToAddress "0x91227d115d036a721f6455b4e201b2f74576da43"
+
+
+teamToastAddress3 : Address
+teamToastAddress3 =
+    Eth.Utils.unsafeToAddress "0x16af660a19567d273842c826b9b4f4992b5b4626"
+
+
+burnAddress : Address
+burnAddress =
+    Eth.Utils.unsafeToAddress "0x0000000000000000000000000000000000000001"
+
+
+balancerPermafrostPool : Address
+balancerPermafrostPool =
+    Eth.Utils.unsafeToAddress "0x5277a42ef95eca7637ffa9e69b65a12a089fe12b"

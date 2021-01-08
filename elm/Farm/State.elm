@@ -119,7 +119,7 @@ update msg prevModel =
                         "Deposit Liquidity"
                         "funnel"
                         ""
-                        (TokenValue.mul amount 100
+                        (TokenValue.mul 100 amount
                             |> TokenValue.toFloatWithWarning
                             |> floor
                         )
@@ -148,7 +148,7 @@ update msg prevModel =
                                         "Deposit Liquidity Signed"
                                         "conversion"
                                         (Eth.Utils.txHashToString txHash)
-                                        (TokenValue.mul amount 100
+                                        (TokenValue.mul 100 amount
                                             |> TokenValue.toFloatWithWarning
                                             |> floor
                                         )

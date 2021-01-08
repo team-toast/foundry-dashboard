@@ -18,12 +18,16 @@ type TokenValue
     = TokenValue BigInt
 
 
-tokenValue : BigInt -> TokenValue
+tokenValue :
+    BigInt
+    -> TokenValue
 tokenValue evmValue =
     TokenValue evmValue
 
 
-fromIntTokenValue : Int -> TokenValue
+fromIntTokenValue :
+    Int
+    -> TokenValue
 fromIntTokenValue val =
     BigInt.fromInt val
         |> BigInt.mul
@@ -31,7 +35,9 @@ fromIntTokenValue val =
         |> tokenValue
 
 
-fromFloatWithWarning : Float -> TokenValue
+fromFloatWithWarning :
+    Float
+    -> TokenValue
 fromFloatWithWarning val =
     case userStringToEvmValue (Round.round tokenDecimals val) of
         Just bigint ->
@@ -45,7 +51,9 @@ fromFloatWithWarning val =
             tokenValue (BigInt.fromInt 0)
 
 
-fromString : String -> Maybe TokenValue
+fromString :
+    String
+    -> Maybe TokenValue
 fromString s =
     Maybe.map
         TokenValue
@@ -57,17 +65,23 @@ zero =
     TokenValue <| BigInt.fromInt 0
 
 
-isZero : TokenValue -> Bool
+isZero :
+    TokenValue
+    -> Bool
 isZero tv =
     getEvmValue tv == BigInt.fromInt 0
 
 
-getEvmValue : TokenValue -> BigInt
+getEvmValue :
+    TokenValue
+    -> BigInt
 getEvmValue (TokenValue tokens) =
     tokens
 
 
-toFloatWithWarning : TokenValue -> Float
+toFloatWithWarning :
+    TokenValue
+    -> Float
 toFloatWithWarning tokens =
     case tokens |> toFloatString Nothing |> String.toFloat of
         Just f ->
@@ -81,7 +95,10 @@ toFloatWithWarning tokens =
             0
 
 
-toFloatString : Maybe Int -> TokenValue -> String
+toFloatString :
+    Maybe Int
+    -> TokenValue
+    -> String
 toFloatString maxDigitsAfterDecimal tokens =
     (case maxDigitsAfterDecimal of
         Nothing ->
@@ -93,7 +110,9 @@ toFloatString maxDigitsAfterDecimal tokens =
         |> addZeroBeforeAnyStartingDecimal
 
 
-addZeroBeforeAnyStartingDecimal : String -> String
+addZeroBeforeAnyStartingDecimal :
+    String
+    -> String
 addZeroBeforeAnyStartingDecimal numStr =
     if String.startsWith "." numStr then
         "0" ++ numStr
@@ -102,20 +121,27 @@ addZeroBeforeAnyStartingDecimal numStr =
         numStr
 
 
-toConciseString : TokenValue -> String
+toConciseString :
+    TokenValue
+    -> String
 toConciseString tv =
     toFloatWithWarning tv
         |> autoFormatFloat
 
 
-negate : TokenValue -> TokenValue
+negate :
+    TokenValue
+    -> TokenValue
 negate t =
     getEvmValue t
         |> BigInt.negate
         |> tokenValue
 
 
-add : TokenValue -> TokenValue -> TokenValue
+add :
+    TokenValue
+    -> TokenValue
+    -> TokenValue
 add t1 t2 =
     BigInt.add
         (getEvmValue t1)
@@ -123,7 +149,10 @@ add t1 t2 =
         |> TokenValue
 
 
-sub : TokenValue -> TokenValue -> TokenValue
+sub :
+    TokenValue
+    -> TokenValue
+    -> TokenValue
 sub t1 t2 =
     BigInt.sub
         (getEvmValue t1)
@@ -131,43 +160,61 @@ sub t1 t2 =
         |> TokenValue
 
 
-mul : TokenValue -> Int -> TokenValue
-mul t i =
+mul :
+    Int
+    -> TokenValue
+    -> TokenValue
+mul i t =
     BigInt.mul
         (getEvmValue t)
         (BigInt.fromInt i)
         |> TokenValue
 
 
-mulFloatWithWarning : TokenValue -> Float -> TokenValue
-mulFloatWithWarning t f =
+mulFloatWithWarning :
+    Float
+    -> TokenValue
+    -> TokenValue
+mulFloatWithWarning f t =
     toFloatWithWarning t
         * f
         |> fromFloatWithWarning
 
 
-div : TokenValue -> Int -> TokenValue
-div t i =
+div :
+    Int
+    -> TokenValue
+    -> TokenValue
+div i t =
     BigInt.div
         (getEvmValue t)
         (BigInt.fromInt i)
         |> TokenValue
 
 
-getRatioWithWarning : TokenValue -> TokenValue -> Float
+getRatioWithWarning :
+    TokenValue
+    -> TokenValue
+    -> Float
 getRatioWithWarning t1 t2 =
     toFloatWithWarning t1
         / toFloatWithWarning t2
 
 
-divFloatWithWarning : TokenValue -> Float -> TokenValue
-divFloatWithWarning t f =
+divFloatWithWarning :
+    Float
+    -> TokenValue
+    -> TokenValue
+divFloatWithWarning f t =
     toFloatWithWarning t
         / f
         |> fromFloatWithWarning
 
 
-compare : TokenValue -> TokenValue -> Order
+compare :
+    TokenValue
+    -> TokenValue
+    -> Order
 compare t1 t2 =
     BigInt.compare
         (getEvmValue t1)
@@ -192,7 +239,9 @@ decoder =
 -- Internal
 
 
-userStringToEvmValue : String -> Maybe BigInt
+userStringToEvmValue :
+    String
+    -> Maybe BigInt
 userStringToEvmValue amountString =
     if amountString == "" then
         Nothing
@@ -220,7 +269,9 @@ userStringToEvmValue amountString =
                 )
 
 
-pullAnyFirstDecimalOffToRight : String -> ( String, Int )
+pullAnyFirstDecimalOffToRight :
+    String
+    -> ( String, Int )
 pullAnyFirstDecimalOffToRight numString =
     let
         maybeDecimalPosition =
@@ -242,7 +293,10 @@ pullAnyFirstDecimalOffToRight numString =
             ( newString, numDigitsMoved )
 
 
-evmValueToTruncatedUserFloatString : Int -> BigInt -> String
+evmValueToTruncatedUserFloatString :
+    Int
+    -> BigInt
+    -> String
 evmValueToTruncatedUserFloatString maxDigitsAfterDecimal evmValue =
     let
         untruncatedString =
@@ -263,7 +317,9 @@ evmValueToTruncatedUserFloatString maxDigitsAfterDecimal evmValue =
                 String.left (decimalPos + 1 + maxDigitsAfterDecimal) untruncatedString
 
 
-evmValueToUserFloatString : BigInt -> String
+evmValueToUserFloatString :
+    BigInt
+    -> String
 evmValueToUserFloatString evmValue =
     if BigInt.compare evmValue (BigInt.fromInt 0) == LT then
         "-" ++ evmValueToUserFloatString (BigInt.negate evmValue)
@@ -290,7 +346,9 @@ evmValueToUserFloatString evmValue =
                )
 
 
-removeUnnecessaryZerosAndDots : String -> String
+removeUnnecessaryZerosAndDots :
+    String
+    -> String
 removeUnnecessaryZerosAndDots numString =
     if String.endsWith "." numString then
         String.slice 0 -1 numString
@@ -310,6 +368,8 @@ maxTokenValue =
     tokenValue EthHelpers.maxUintValue
 
 
-isMaxTokenValue : TokenValue -> Bool
+isMaxTokenValue :
+    TokenValue
+    -> Bool
 isMaxTokenValue tv =
     compare tv maxTokenValue == EQ
