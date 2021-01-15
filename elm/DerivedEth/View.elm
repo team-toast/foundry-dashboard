@@ -6,7 +6,7 @@ import Config
 import DerivedEth.Types exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element, centerX, column, padding, row, spacing, text)
+import Element exposing (Attribute, Element, centerX, column, el, padding, paragraph, row, spacing, text)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -29,13 +29,48 @@ view :
     -> Model
     -> Element Msg
 view dProfile maybeUserInfo model =
-    [ text "dEth will rip your face off"
+    [ titleEl dProfile
     ]
         |> responsiveVal
             dProfile
             row
             column
-            [ padding 20
-            , spacing 25
+            ([ padding 20
+             , spacing 25
+             , centerX
+             , Element.Font.color EH.white
+             ]
+                ++ Theme.whiteGlowOuterRounded
+            )
+        |> el
+            [ Element.paddingEach
+                { top =
+                    responsiveVal
+                        dProfile
+                        60
+                        15
+                , bottom = 0
+                , left = 0
+                , right = 0
+                }
+            ]
+
+
+titleEl :
+    DisplayProfile
+    -> Element Msg
+titleEl dProfile =
+    text "dETH - Prepare to have your face ripped off by the Dragon..."
+        |> el
+            [ Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    50
+                    25
+            , Element.Font.color EH.white
+            , responsiveVal
+                dProfile
+                Element.Font.bold
+                Element.Font.semiBold
             , centerX
             ]
