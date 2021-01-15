@@ -169,10 +169,10 @@ body model =
                     |> Element.map DerivedEthMsg
 
             Farm farmModel ->
-                Element.map FarmMsg <|
-                    Farm.view
-                        model.dProfile
-                        farmModel
+                Farm.view
+                    model.dProfile
+                    farmModel
+                    |> Element.map FarmMsg
         ]
 
 
