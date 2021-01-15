@@ -2,6 +2,7 @@ module DerivedEth.State exposing (..)
 
 import Array
 import Common.Msg exposing (..)
+import Common.Types exposing (..)
 import Config
 import DerivedEth.Types exposing (..)
 import Eth.Types exposing (Address)
@@ -9,13 +10,19 @@ import Http
 import Json.Decode exposing (Decoder, value)
 import Time
 import TokenValue
+import Wallet exposing (Wallet)
 
 
 init :
-    Int
+    Wallet
+    -> Time.Posix
     -> ( Model, Cmd Msg )
-init nowInMillis =
-    ( { currentTime = nowInMillis
+init wallet now =
+    ( { now = now
+      , wallet = wallet
+      , userDerivedEthInfo = Nothing
+      , depositWithdrawUXModel = Nothing
+      , jurisdictionCheckStatus = WaitingForClick
       }
     , Cmd.none
     )
@@ -32,11 +39,13 @@ update msg prevModel =
                 prevModel
                 Cmd.none
                 [ msgUp ]
+                []
 
         Tick i ->
             UpdateResult
                 prevModel
                 Cmd.none
+                []
                 []
 
 
