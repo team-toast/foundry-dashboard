@@ -147,6 +147,20 @@ commonShadow =
         }
 
 
+whiteGlowOuterRounded : List (Attribute msg)
+whiteGlowOuterRounded =
+    [ Element.Border.rounded 10
+    , Element.Border.glow EH.white 5
+    ]
+
+
+whiteGlowInnerRounded : List (Attribute msg)
+whiteGlowInnerRounded =
+    [ Element.Border.rounded 10
+    , Element.Border.innerGlow EH.white 5
+    ]
+
+
 
 -- daiYellow =
 --     yellow
