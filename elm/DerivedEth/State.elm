@@ -1,9 +1,9 @@
-module DEth.State exposing (..)
+module DerivedEth.State exposing (..)
 
 import Array
 import Common.Msg exposing (..)
 import Config
-import DEth.Types exposing (..)
+import DerivedEth.Types exposing (..)
 import Eth.Types exposing (Address)
 import Http
 import Json.Decode exposing (Decoder, value)

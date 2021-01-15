@@ -9,6 +9,7 @@ import Common.Types exposing (..)
 import Common.View
 import Config
 import Contracts.Dai as Dai
+import DerivedEth.State as DerivedEth
 import Dict exposing (Dict)
 import Eth
 import Eth.Decode
@@ -402,6 +403,25 @@ update msg prevModel =
                 _ ->
                     ( prevModel, Cmd.none )
 
+        DerivedEthMsg derivedEthMsg ->
+            case prevModel.submodel of
+                DerivedEth derivedEthModel ->
+                    let
+                        updateResult =
+                            derivedEthModel
+                                |> DerivedEth.update derivedEthMsg
+                    in
+                    ( { prevModel
+                        | submodel =
+                            DerivedEth updateResult.newModel
+                      }
+                    , Cmd.map DerivedEthMsg updateResult.cmd
+                    )
+                        |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
+
         CookieConsentGranted ->
             ( { prevModel
                 | cookieConsentGranted = True
@@ -671,7 +691,8 @@ gotoRoute route prevModel =
         Routing.Stats ->
             let
                 ( statsModel, statsCmd ) =
-                    Stats.init <| Time.posixToMillis prevModel.now
+                    Time.posixToMillis prevModel.now
+                        |> Stats.init
             in
             ( { prevModel
                 | route = route
@@ -690,6 +711,19 @@ gotoRoute route prevModel =
                 , submodel = Farm farmModel
               }
             , Cmd.map FarmMsg farmCmd
+            )
+
+        Routing.DerivedEth ->
+            let
+                ( derivedEthModel, derivedEthCmd ) =
+                    Time.posixToMillis prevModel.now
+                        |> DerivedEth.init
+            in
+            ( { prevModel
+                | route = route
+                , submodel = DerivedEth derivedEthModel
+              }
+            , Cmd.map DerivedEthMsg derivedEthCmd
             )
 
         Routing.NotFound err ->
@@ -784,6 +818,21 @@ runMsgDown msg prevModel =
             )
                 |> withMsgUps updateResult.msgUps
 
+        DerivedEth derivedEthModel ->
+            let
+                updateResult =
+                    derivedEthModel |> DerivedEth.runMsgDown msg
+
+                newSubmodel =
+                    DerivedEth updateResult.newModel
+            in
+            ( { prevModel
+                | submodel = newSubmodel
+              }
+            , Cmd.map DerivedEthMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
 
 encodeGTag : GTagData -> Json.Decode.Value
 encodeGTag gtag =
@@ -820,6 +869,11 @@ submodelSubscriptions submodel =
             Sub.map
                 FarmMsg
                 (Farm.subscriptions farmModel)
+
+        DerivedEth derivedEthModel ->
+            Sub.map
+                DerivedEthMsg
+                (DerivedEth.subscriptions derivedEthModel)
 
 
 subscriptions : Model -> Sub Msg

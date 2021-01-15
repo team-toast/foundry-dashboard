@@ -4,6 +4,7 @@ import Browser
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
+import DerivedEth.View as DerivedEth
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -140,25 +141,32 @@ body model =
                 Element.none
 
             Home homeModel ->
-                Element.map HomeMsg <|
-                    Home.view
-                        model.dProfile
-                        (Wallet.userInfo model.wallet)
-                        homeModel
+                Home.view
+                    model.dProfile
+                    (Wallet.userInfo model.wallet)
+                    homeModel
+                    |> Element.map HomeMsg
 
             Sentiment sentimentModel ->
-                Element.map SentimentMsg <|
-                    Sentiment.view
-                        model.dProfile
-                        (Wallet.userInfo model.wallet)
-                        sentimentModel
+                Sentiment.view
+                    model.dProfile
+                    (Wallet.userInfo model.wallet)
+                    sentimentModel
+                    |> Element.map SentimentMsg
 
             Stats statsModel ->
-                Element.map StatsMsg <|
-                    Stats.view
-                        model.dProfile
-                        (Wallet.userInfo model.wallet)
-                        statsModel
+                Stats.view
+                    model.dProfile
+                    (Wallet.userInfo model.wallet)
+                    statsModel
+                    |> Element.map StatsMsg
+
+            DerivedEth derivedEthModel ->
+                DerivedEth.view
+                    model.dProfile
+                    (Wallet.userInfo model.wallet)
+                    derivedEthModel
+                    |> Element.map DerivedEthMsg
 
             Farm farmModel ->
                 Element.map FarmMsg <|

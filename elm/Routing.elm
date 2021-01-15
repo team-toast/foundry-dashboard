@@ -15,7 +15,7 @@ type Route
     | Sentiment
     | Stats
     | Farm
-    | Deth
+    | DerivedEth
     | NotFound String
 
 
@@ -26,7 +26,7 @@ routeParser =
         , Parser.map Sentiment (Parser.s "sentiment")
         , Parser.map Stats (Parser.s "stats")
         , Parser.map Farm (Parser.s "farm")
-        , Parser.map Deth (Parser.s "deth")
+        , Parser.map DerivedEth (Parser.s "DerivedEth")
         ]
 
 
@@ -54,9 +54,9 @@ routeToString basePath route =
                         [ "#", "farm" ]
                         []
 
-                Deth ->
+                DerivedEth ->
                     Builder.relative
-                        [ "#", "deth" ]
+                        [ "#", "DerivedEth" ]
                         []
 
                 NotFound _ ->

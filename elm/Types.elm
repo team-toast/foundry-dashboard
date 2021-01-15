@@ -5,6 +5,7 @@ import Browser
 import Browser.Navigation
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import DerivedEth.Types as DerivedEth
 import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
@@ -59,6 +60,7 @@ type Submodel
     | Sentiment Sentiment.Model
     | Stats Stats.Model
     | Farm Farm.Model
+    | DerivedEth DerivedEth.Model
 
 
 type Msg
@@ -74,13 +76,12 @@ type Msg
     | ClickHappened
     | ShowExpandedTrackedTxs Bool
     | TxSigned Int (Result String TxHash)
-    -- | TxBroadcast Int (Result String Tx)
     | TxMined Int (Result String TxReceipt)
     | HomeMsg Home.Msg
     | SentimentMsg Sentiment.Msg
     | StatsMsg Stats.Msg
     | FarmMsg Farm.Msg
-      -- | BalanceFetched Address (Result Http.Error TokenValue)
+    | DerivedEthMsg DerivedEth.Msg
     | CookieConsentGranted
     | MsgUp MsgUp
     | NoOp

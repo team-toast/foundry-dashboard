@@ -1,4 +1,4 @@
-module DEth.Types exposing (..)
+module DerivedEth.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Time
