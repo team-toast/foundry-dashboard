@@ -26,7 +26,7 @@ routeParser =
         , Parser.map Sentiment (Parser.s "sentiment")
         , Parser.map Stats (Parser.s "stats")
         , Parser.map Farm (Parser.s "farm")
-        , Parser.map DerivedEth (Parser.s "DerivedEth")
+        , Parser.map DerivedEth (Parser.s "dragon")
         ]
 
 
