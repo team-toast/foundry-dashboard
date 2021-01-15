@@ -1,5 +1,6 @@
 module Common.Types exposing (..)
 
+import Contracts.UniSwapGraph.Object exposing (Token)
 import Dict exposing (Dict)
 import Eth.Net
 import Eth.Sentry.Tx as TxSentry
@@ -13,9 +14,6 @@ import TokenValue exposing (TokenValue)
 type alias UserInfo =
     { network : Eth.Net.NetworkId
     , address : Address
-
-    -- , balance : Maybe TokenValue
-    -- , unlockStatus : UnlockStatus
     }
 
 
@@ -27,43 +25,8 @@ type alias GTagData =
     }
 
 
-
--- type UnlockStatus
---     = NotConnected
---     | Checking
---     | Locked
---     | Unlocking
---     | Unlocked
--- withBalance : TokenValue -> UserInfo -> UserInfo
--- withBalance balance userInfo =
---     { userInfo
---         | balance = Just balance
---     }
--- withUnlockStatus : UnlockStatus -> UserInfo -> UserInfo
--- withUnlockStatus unlockStatus userInfo =
---     { userInfo
---         | unlockStatus = unlockStatus
---     }
-
-
 type PhaceIconId
     = UserPhace
-
-
-
--- type alias TrackedTx =
---     { txHash : TxHash
---     , txInfo : TxInfo
---     , status : TxStatus
---     }
--- type TxInfo
---     = None -- unused for now
--- type TxStatus
---     = Mining
---     | Failed FailReason
---     | Mined
--- type FailReason
---     = MinedButExecutionFailed
 
 
 type alias UserStakingInfo =
@@ -73,4 +36,44 @@ type alias UserStakingInfo =
     , claimableRewards : TokenValue
     , rewardRate : TokenValue
     , timestamp : Time.Posix
+    }
+
+
+type alias UserDerivedEthInfo =
+    { balance : TokenValue
+    , totalCollateralRedeemed : TokenValue
+    , fee : TokenValue
+    , collateralReturned : TokenValue
+    }
+
+
+type alias DepositOrWithdrawUXModel =
+    Maybe ( DepositOrWithdraw, AmountUXModel )
+
+
+type alias AmountUXModel =
+    { amountInput : String
+    }
+
+
+type DepositOrWithdraw
+    = Deposit
+    | Withdraw
+
+
+type Jurisdiction
+    = ForbiddenJurisdictions
+    | JurisdictionsWeArentIntimidatedIntoExcluding
+
+
+type JurisdictionCheckStatus
+    = WaitingForClick
+    | Checking
+    | Checked Jurisdiction
+    | Error String
+
+
+type alias LocationInfo =
+    { ipCode : String
+    , geoCode : String
     }
