@@ -410,10 +410,18 @@ update msg prevModel =
                         updateResult =
                             derivedEthModel
                                 |> DerivedEth.update derivedEthMsg
+
+                        ( newTxSentry, sentryCmd, newTrackedTxs ) =
+                            initiateUserTxs
+                                prevModel.txSentry
+                                prevModel.trackedTxs
+                                (UserTx.mapInitiatorList DerivedEthMsg updateResult.userTxs)
                     in
                     ( { prevModel
                         | submodel =
                             DerivedEth updateResult.newModel
+                        , txSentry = newTxSentry
+                        , trackedTxs = newTrackedTxs
                       }
                     , Cmd.map DerivedEthMsg updateResult.cmd
                     )
@@ -616,9 +624,6 @@ trackingNotifiers :
     -> UserTx.Notifiers Msg
 trackingNotifiers trackedTxId =
     { onSign = Just <| TxSigned trackedTxId
-
-    -- , onBroadcast = Nothing
-    -- , onBroadcast = Just <| TxBroadcast trackedTxId
     , onMine = Just <| TxMined trackedTxId
     }
 
@@ -704,7 +709,9 @@ gotoRoute route prevModel =
         Routing.Farm ->
             let
                 ( farmModel, farmCmd ) =
-                    Farm.init prevModel.wallet prevModel.now
+                    Farm.init
+                        prevModel.wallet
+                        prevModel.now
             in
             ( { prevModel
                 | route = route
@@ -716,8 +723,9 @@ gotoRoute route prevModel =
         Routing.DerivedEth ->
             let
                 ( derivedEthModel, derivedEthCmd ) =
-                    Time.posixToMillis prevModel.now
-                        |> DerivedEth.init
+                    DerivedEth.init
+                        prevModel.wallet
+                        prevModel.now
             in
             ( { prevModel
                 | route = route
