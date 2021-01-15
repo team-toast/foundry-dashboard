@@ -61,38 +61,6 @@ justModelUpdate model =
     }
 
 
-type alias DepositOrWithdrawUXModel =
-    Maybe ( DepositOrWithdraw, AmountUXModel )
-
-
-type alias AmountUXModel =
-    { amountInput : String
-    }
-
-
-type DepositOrWithdraw
-    = Deposit
-    | Withdraw
-
-
-type Jurisdiction
-    = ForbiddenJurisdictions
-    | JurisdictionsWeArentIntimidatedIntoExcluding
-
-
-type JurisdictionCheckStatus
-    = WaitingForClick
-    | Checking
-    | Checked Jurisdiction
-    | Error String
-
-
-type alias LocationInfo =
-    { ipCode : String
-    , geoCode : String
-    }
-
-
 calcAvailableRewards : UserStakingInfo -> Time.Posix -> TokenValue
 calcAvailableRewards stakingInfo now =
     let
