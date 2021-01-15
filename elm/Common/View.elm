@@ -34,7 +34,11 @@ shortenedHash hash =
             ++ String.right 4 hashStr
 
 
-web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
+web3ConnectButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> (MsgUp -> msg)
+    -> Element msg
 web3ConnectButton dProfile attrs msgMapper =
     defaultTheme.emphasizedActionButton
         dProfile
@@ -43,7 +47,14 @@ web3ConnectButton dProfile attrs msgMapper =
         (msgMapper ConnectToWeb3)
 
 
-phaceElement : Bool -> Address -> Bool -> DisplayProfile -> msg -> msg -> Element msg
+phaceElement :
+    Bool
+    -> Address
+    -> Bool
+    -> DisplayProfile
+    -> msg
+    -> msg
+    -> Element msg
 phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg =
     let
         phaceWidth =
@@ -113,7 +124,10 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
                 (Phace.fromEthAddress fromAddress)
 
 
-loadingElement : List (Attribute msg) -> Maybe String -> Element msg
+loadingElement :
+    List (Attribute msg)
+    -> Maybe String
+    -> Element msg
 loadingElement attrs maybeString =
     Element.el
         ([ Element.Font.italic
@@ -125,7 +139,9 @@ loadingElement attrs maybeString =
         (Element.text <| Maybe.withDefault "loading..." maybeString)
 
 
-emphasizedText : String -> Element msg
+emphasizedText :
+    String
+    -> Element msg
 emphasizedText =
     Element.el
         [ Element.Font.bold
@@ -134,7 +150,10 @@ emphasizedText =
         << Element.text
 
 
-daiSymbol : Bool -> List (Attribute msg) -> Element msg
+daiSymbol :
+    Bool
+    -> List (Attribute msg)
+    -> Element msg
 daiSymbol isWhite attributes =
     Element.image attributes
         { src =
@@ -147,7 +166,10 @@ daiSymbol isWhite attributes =
         }
 
 
-appStatusMessage : Element.Color -> String -> Element msg
+appStatusMessage :
+    Element.Color
+    -> String
+    -> Element msg
 appStatusMessage color errStr =
     Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
         Element.paragraph
@@ -163,7 +185,9 @@ appStatusMessage color errStr =
             [ Element.text errStr ]
 
 
-posixToString : Time.Posix -> String
+posixToString :
+    Time.Posix
+    -> String
 posixToString t =
     let
         z =
@@ -181,7 +205,9 @@ posixToString t =
         ++ " (UTC)"
 
 
-subheaderAttributes : DisplayProfile -> List (Attribute msg)
+subheaderAttributes :
+    DisplayProfile
+    -> List (Attribute msg)
 subheaderAttributes dProfile =
     [ Element.paddingXY 0 <|
         responsiveVal
@@ -197,7 +223,9 @@ subheaderAttributes dProfile =
     ]
 
 
-commonFontSize : DisplayProfile -> Int
+commonFontSize :
+    DisplayProfile
+    -> Int
 commonFontSize dProfile =
     case dProfile of
         Desktop ->
@@ -211,7 +239,9 @@ maxContentColWidth =
     1000
 
 
-renderContentOrError : String -> Element msg
+renderContentOrError :
+    String
+    -> Element msg
 renderContentOrError content =
     let
         renderResult =
@@ -237,7 +267,12 @@ renderContentOrError content =
                         ++ errStr
 
 
-daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
+daiAmountInput :
+    DisplayProfile
+    -> List (Attribute msg)
+    -> String
+    -> (String -> msg)
+    -> Element msg
 daiAmountInput dProfile attributes currentInput onChange =
     Element.Input.text
         [ Element.width <|
