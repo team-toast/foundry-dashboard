@@ -44,7 +44,9 @@ import UserTx
 import Wallet exposing (Wallet)
 
 
-root : Model -> Browser.Document Msg
+root :
+    Model
+    -> Browser.Document Msg
 root model =
     { title = "Dashboard - Foundry"
     , body =
@@ -65,7 +67,9 @@ root model =
     }
 
 
-modals : Model -> List (Element Msg)
+modals :
+    Model
+    -> List (Element Msg)
 modals model =
     Maybe.Extra.values
         ([ if not model.cookieConsentGranted then
@@ -82,7 +86,9 @@ modals model =
         )
 
 
-viewCookieConsentModal : DisplayProfile -> Element Msg
+viewCookieConsentModal :
+    DisplayProfile
+    -> Element Msg
 viewCookieConsentModal dProfile =
     Element.row
         [ Element.alignBottom
@@ -123,7 +129,9 @@ viewCookieConsentModal dProfile =
         ]
 
 
-body : Model -> Element Msg
+body :
+    Model
+    -> Element Msg
 body model =
     Element.column
         [ Element.width Element.fill
@@ -177,7 +185,7 @@ body model =
 
 
 header :
-    EH.DisplayProfile
+    DisplayProfile
     -> UserTx.Tracker Msg
     -> Bool
     -> Maybe UserInfo
@@ -254,7 +262,9 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
         )
 
 
-logoBlock : EH.DisplayProfile -> Element Msg
+logoBlock :
+    DisplayProfile
+    -> Element Msg
 logoBlock dProfile =
     Element.row
         [ Element.height Element.fill
@@ -313,7 +323,11 @@ logoBlock dProfile =
         ]
 
 
-connectButtonOrPhace : DisplayProfile -> Maybe UserInfo -> Maybe PhaceIconId -> Element Msg
+connectButtonOrPhace :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> Maybe PhaceIconId
+    -> Element Msg
 connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
     case maybeUserInfo of
         Nothing ->
@@ -343,7 +357,7 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
 
 
 userNoticeEls :
-    EH.DisplayProfile
+    DisplayProfile
     -> List UserNotice
     -> List (Element Msg)
 userNoticeEls dProfile notices =
@@ -421,7 +435,7 @@ userNoticeEls dProfile notices =
 
 
 userNotice :
-    EH.DisplayProfile
+    DisplayProfile
     -> ( Int, UserNotice )
     -> Element Msg
 userNotice dProfile ( id, notice ) =
@@ -498,7 +512,11 @@ userNotice dProfile ( id, notice ) =
         )
 
 
-maybeTxTracker : DisplayProfile -> Bool -> UserTx.Tracker Msg -> Maybe (Element Msg)
+maybeTxTracker :
+    DisplayProfile
+    -> Bool
+    -> UserTx.Tracker Msg
+    -> Maybe (Element Msg)
 maybeTxTracker dProfile showExpanded trackedTxs =
     if List.isEmpty trackedTxs then
         Nothing
@@ -619,7 +637,9 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
 
 
-trackedTxsColumn : UserTx.Tracker Msg -> Element Msg
+trackedTxsColumn :
+    UserTx.Tracker Msg
+    -> Element Msg
 trackedTxsColumn trackedTxs =
     Element.column
         [ Element.Background.color <| Theme.lightBlue
@@ -653,7 +673,12 @@ trackedTxsColumn trackedTxs =
         )
 
 
-viewTrackedTxRow : Int -> UserTx.TxInfo -> TxHash -> UserTx.SignedTxStatus -> Element Msg
+viewTrackedTxRow :
+    Int
+    -> UserTx.TxInfo
+    -> TxHash
+    -> UserTx.SignedTxStatus
+    -> Element Msg
 viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
     let
         etherscanLink label =
@@ -687,53 +712,6 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                     UserTx.StakingExit ->
                         "Exit Farming"
 
-        -- case ( trackedTx.txInfo, trackedTx.status ) of
-        --     ( UnlockTx, _ ) ->
-        --         Element.text "Unlock DAI"
-        --     ( TipTx postId amount, _ ) ->
-        --         Element.row
-        --             []
-        --             [ Element.text "Tip "
-        --             , Element.el
-        --                 [ Element.Font.color defaultTheme.linkTextColor
-        --                 , Element.pointer
-        --                 , Element.Events.onClick <|
-        --                     MsgUp <|
-        --                         GotoRoute <|
-        --                             Routing.ViewContext <|
-        --                                 Post.ForPost postId
-        --                 ]
-        --                 (Element.text "Post")
-        --             ]
-        --     ( BurnTx postId amount, _ ) ->
-        --         Element.row
-        --             []
-        --             [ Element.text "Burn for "
-        --             , Element.el
-        --                 [ Element.Font.color defaultTheme.linkTextColor
-        --                 , Element.pointer
-        --                 , Element.Events.onClick <|
-        --                     MsgUp <|
-        --                         GotoRoute <|
-        --                             Routing.ViewContext <|
-        --                                 Post.ForPost postId
-        --                 ]
-        --                 (Element.text "Post")
-        --             ]
-        --     ( PostTx _, Mined _ ) ->
-        --         Element.text "Post"
-        --     ( PostTx draft, _ ) ->
-        --         Element.row
-        --             [ Element.spacing 8
-        --             ]
-        --             [ Element.text "Post"
-        --             , Element.el
-        --                 [ Element.Font.color defaultTheme.linkTextColor
-        --                 , Element.pointer
-        --                 , Element.Events.onClick <| ViewDraft <| Just draft
-        --                 ]
-        --                 (Element.text "(View Draft)")
-        --             ]
         statusEl =
             case signedTxStatus of
                 UserTx.Mining ->
@@ -763,7 +741,9 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
         ]
 
 
-signedTxStatusToColor : UserTx.SignedTxStatus -> Element.Color
+signedTxStatusToColor :
+    UserTx.SignedTxStatus
+    -> Element.Color
 signedTxStatusToColor signedStatus =
     case signedStatus of
         UserTx.Mining ->
