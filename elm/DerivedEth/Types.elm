@@ -11,14 +11,17 @@ import Wallet exposing (Wallet)
 type alias Model =
     { wallet : Wallet
     , userDerivedEthInfo : Maybe UserDerivedEthInfo
-    , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , now : Time.Posix
     , jurisdictionCheckStatus : JurisdictionCheckStatus
+    , depositAmount : String
+    , withDrawalAmount : String
     }
 
 
 type Msg
     = MsgUp MsgUp
+    | DepositAmountChanged String
+    | WithdrawalAmountChanged String
     | Tick Time.Posix
 
 

@@ -21,8 +21,9 @@ init wallet now =
     ( { now = now
       , wallet = wallet
       , userDerivedEthInfo = Nothing
-      , depositWithdrawUXModel = Nothing
       , jurisdictionCheckStatus = WaitingForClick
+      , depositAmount = "0"
+      , withDrawalAmount = "0"
       }
     , Cmd.none
     )
@@ -41,6 +42,20 @@ update msg prevModel =
                 [ msgUp ]
                 []
 
+        DepositAmountChanged amount ->
+            UpdateResult
+                { prevModel | depositAmount = amount }
+                Cmd.none
+                []
+                []
+
+        WithdrawalAmountChanged amount ->
+            UpdateResult
+                { prevModel | withDrawalAmount = amount }
+                Cmd.none
+                []
+                []
+
         Tick i ->
             UpdateResult
                 prevModel
@@ -55,8 +70,28 @@ runMsgDown :
     -> UpdateResult
 runMsgDown msg prevModel =
     case msg of
-        UpdateWallet _ ->
-            justModelUpdate prevModel
+        Common.Msg.UpdateWallet newWallet ->
+            let
+                newModel =
+                    { prevModel
+                        | wallet = newWallet
+                        , userDerivedEthInfo = Nothing
+                    }
+
+                cmd =
+                    case Wallet.userInfo newWallet of
+                        Just userInfo ->
+                            Cmd.none
+
+                        --fetchUserDerivedEthInfoCmd userInfo.address
+                        Nothing ->
+                            Cmd.none
+            in
+            UpdateResult
+                newModel
+                cmd
+                []
+                []
 
 
 subscriptions :
@@ -64,4 +99,5 @@ subscriptions :
     -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 5000 Tick ]
+        [ Time.every (1000 * 60 * 5) Tick -- (1000 * 60 * 5) -> 5 minutes
+        ]
