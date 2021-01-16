@@ -41,7 +41,7 @@ type alias UserStakingInfo =
 
 type alias UserDerivedEthInfo =
     { ethBalance : TokenValue
-    , dEthbalance : TokenValue
+    , dEthBalance : TokenValue
     , totalCollateralRedeemed : TokenValue
     , fee : TokenValue
     , collateralReturned : TokenValue
