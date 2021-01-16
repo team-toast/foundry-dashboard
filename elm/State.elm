@@ -139,12 +139,6 @@ update msg prevModel =
         EveryFewSeconds ->
             ( prevModel
             , Cmd.none
-              -- , Wallet.userInfo prevModel.wallet
-              --     |> Maybe.map
-              --         (\userInfo ->
-              --             fetchDaiBalanceAndAllowanceCmd userInfo.address
-              --         )
-              --     |> Maybe.withDefault Cmd.none
             )
 
         WalletStatus walletSentryResult ->
@@ -154,16 +148,20 @@ update msg prevModel =
                         ( newWallet, notifySubmodel ) =
                             case walletSentry.account of
                                 Just newAddress ->
-                                    if (prevModel.wallet |> Wallet.userInfo |> Maybe.map .address) == Just newAddress then
+                                    if
+                                        (prevModel.wallet
+                                            |> Wallet.userInfo
+                                            |> Maybe.map .address
+                                        )
+                                            == Just newAddress
+                                    then
                                         ( prevModel.wallet, False )
 
                                     else
-                                        ( Wallet.Active <|
-                                            UserInfo
-                                                walletSentry.networkId
-                                                newAddress
-                                          -- Nothing
-                                          -- Checking
+                                        ( UserInfo
+                                            walletSentry.networkId
+                                            newAddress
+                                            |> Wallet.Active
                                         , True
                                         )
 
@@ -183,7 +181,8 @@ update msg prevModel =
                            )
 
                 Err errStr ->
-                    ( prevModel |> addUserNotice (UN.walletError errStr)
+                    ( prevModel
+                        |> addUserNotice (UN.walletError errStr)
                     , Cmd.none
                     )
 
@@ -208,31 +207,6 @@ update msg prevModel =
             , cmd
             )
 
-        -- BalanceFetched address fetchResult ->
-        --     let
-        --         maybeCurrentAddress =
-        --             Wallet.userInfo prevModel.wallet
-        --                 |> Maybe.map .address
-        --     in
-        --     if maybeCurrentAddress /= Just address then
-        --         ( prevModel, Cmd.none )
-        --     else
-        --         case fetchResult of
-        --             Ok balance ->
-        --                 let
-        --                     newWallet =
-        --                         prevModel.wallet |> Wallet.withFetchedBalance balance
-        --                 in
-        --                 ( { prevModel
-        --                     | wallet = newWallet
-        --                   }
-        --                 , Cmd.none
-        --                 )
-        --             Err httpErr ->
-        --                 ( prevModel
-        --                     |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
-        --                 , Cmd.none
-        --                 )
         DismissNotice id ->
             ( { prevModel
                 | userNotices =
@@ -814,7 +788,8 @@ runMsgDown msg prevModel =
         Farm farmModel ->
             let
                 updateResult =
-                    farmModel |> Farm.runMsgDown msg
+                    farmModel
+                        |> Farm.runMsgDown msg
 
                 newSubmodel =
                     Farm updateResult.newModel
@@ -829,7 +804,8 @@ runMsgDown msg prevModel =
         DerivedEth derivedEthModel ->
             let
                 updateResult =
-                    derivedEthModel |> DerivedEth.runMsgDown msg
+                    derivedEthModel
+                        |> DerivedEth.runMsgDown msg
 
                 newSubmodel =
                     DerivedEth updateResult.newModel
@@ -888,7 +864,6 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 200 Tick
-        , Time.every 2500 (always EveryFewSeconds)
         , walletSentryPort
             (WalletSentry.decodeToMsg
                 (WalletStatus << Err)
