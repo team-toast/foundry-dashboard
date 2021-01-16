@@ -4,8 +4,10 @@ import Array
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Config
+import Contracts.ERC20Wrapper as ERC20
 import DerivedEth.Types exposing (..)
 import Eth.Types exposing (Address)
+import Helpers.Eth
 import Http
 import Json.Decode exposing (Decoder, value)
 import Time
@@ -44,17 +46,136 @@ update msg prevModel =
 
         DepositAmountChanged amount ->
             UpdateResult
-                { prevModel | depositAmount = amount }
+                { prevModel
+                    | depositAmount = amount
+                }
                 Cmd.none
                 []
                 []
 
         WithdrawalAmountChanged amount ->
             UpdateResult
-                { prevModel | withDrawalAmount = amount }
+                { prevModel
+                    | withDrawalAmount = amount
+                }
                 Cmd.none
                 []
                 []
+
+        DepositClicked ->
+            UpdateResult
+                prevModel
+                Cmd.none
+                []
+                []
+
+        WithdrawClicked ->
+            UpdateResult
+                prevModel
+                Cmd.none
+                []
+                []
+
+        UserEthBalanceFetched fetchResult ->
+            case fetchResult of
+                Err err ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+                        []
+
+                Ok tokenValue ->
+                    UpdateResult
+                        { prevModel
+                            | userDerivedEthInfo =
+                                (case prevModel.userDerivedEthInfo of
+                                    Nothing ->
+                                        { ethBalance = tokenValue
+                                        , dEthBalance = TokenValue.zero
+                                        , totalCollateralRedeemed = TokenValue.zero
+                                        , fee = TokenValue.zero
+                                        , collateralReturned = TokenValue.zero
+                                        }
+
+                                    Just oldUserDerivedEthInfoModel ->
+                                        { oldUserDerivedEthInfoModel
+                                            | ethBalance = tokenValue
+                                        }
+                                )
+                                    |> Just
+                        }
+                        Cmd.none
+                        []
+                        []
+
+        UserDerivedEthBalanceFetched fetchResult ->
+            case fetchResult of
+                Err err ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+                        []
+
+                Ok tokenValue ->
+                    UpdateResult
+                        { prevModel
+                            | userDerivedEthInfo =
+                                (case prevModel.userDerivedEthInfo of
+                                    Nothing ->
+                                        { ethBalance = TokenValue.zero
+                                        , dEthBalance = tokenValue
+                                        , totalCollateralRedeemed = TokenValue.zero
+                                        , fee = TokenValue.zero
+                                        , collateralReturned = TokenValue.zero
+                                        }
+
+                                    Just oldUserDerivedEthInfoModel ->
+                                        { oldUserDerivedEthInfoModel
+                                            | dEthBalance = tokenValue
+                                        }
+                                )
+                                    |> Just
+                        }
+                        Cmd.none
+                        []
+                        []
+
+        DerivedEthRedeemableFetched fetchResult ->
+            case fetchResult of
+                Err err ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+                        []
+
+                Ok ( totalCollateral, fee, returnedCollateral ) ->
+                    UpdateResult
+                        { prevModel
+                            | userDerivedEthInfo =
+                                (case prevModel.userDerivedEthInfo of
+                                    Nothing ->
+                                        { ethBalance = TokenValue.zero
+                                        , dEthBalance = TokenValue.zero
+                                        , totalCollateralRedeemed = totalCollateral
+                                        , fee = fee
+                                        , collateralReturned = returnedCollateral
+                                        }
+
+                                    Just oldUserDerivedEthInfoModel ->
+                                        { oldUserDerivedEthInfoModel
+                                            | totalCollateralRedeemed = totalCollateral
+                                            , fee = fee
+                                            , collateralReturned = returnedCollateral
+                                        }
+                                )
+                                    |> Just
+                        }
+                        Cmd.none
+                        []
+                        []
 
         Tick i ->
             UpdateResult
@@ -101,3 +222,23 @@ subscriptions model =
     Sub.batch
         [ Time.every (1000 * 60 * 5) Tick -- (1000 * 60 * 5) -> 5 minutes
         ]
+
+
+fetchEthBalance :
+    Address
+    -> Cmd Msg
+fetchEthBalance owner =
+    ERC20.getBalanceCmd
+        Helpers.Eth.zeroAddress
+        owner
+        UserEthBalanceFetched
+
+
+fetchDerivedEthBalance :
+    Address
+    -> Cmd Msg
+fetchDerivedEthBalance owner =
+    ERC20.getBalanceCmd
+        Config.derivedEthContractAddress
+        owner
+        UserDerivedEthBalanceFetched

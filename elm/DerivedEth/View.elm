@@ -2,24 +2,14 @@ module DerivedEth.View exposing (view)
 
 import Common.Types exposing (..)
 import Common.View exposing (..)
-import Config
-import Contracts.Staking exposing (withdraw)
 import DerivedEth.Types exposing (..)
-import Dict exposing (Dict)
-import Dict.Extra
 import Element exposing (Attribute, Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
-import Element.Events
 import Element.Font
 import Element.Input
-import Eth.Types exposing (Address)
-import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
-import Helpers.Tuple as TupleHelpers
-import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
-import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
@@ -127,7 +117,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
                     , availableDerivedEthEl
                         dProfile
                         withdrawalAmount
-                        userDerivedEthInfo.dEthbalance
+                        userDerivedEthInfo.dEthBalance
                     ]
     )
         |> column
@@ -151,8 +141,15 @@ availableEthEl dProfile amountToDeposit availableEth =
         amountToDeposit
         availableEth
         DepositAmountChanged
+    , buttonEl
+        dProfile
+        "Deposit"
+        (Just DepositClicked)
     ]
-        |> column
+        |> responsiveVal
+            dProfile
+            row
+            column
             (Theme.whiteGlowInnerRounded ++ [])
 
 
@@ -168,8 +165,15 @@ availableDerivedEthEl dProfile amountToWithdraw availableDerivedEth =
         amountToWithdraw
         availableDerivedEth
         WithdrawalAmountChanged
+    , buttonEl
+        dProfile
+        "Withdraw"
+        (Just WithdrawClicked)
     ]
-        |> column
+        |> responsiveVal
+            dProfile
+            row
+            column
             (Theme.whiteGlowInnerRounded ++ [])
 
 
@@ -209,6 +213,19 @@ inputEl dProfile inputAmount userBalance msg =
         , text = inputAmount
         , placeholder = Nothing
         , label = Element.Input.labelHidden "amount"
+        }
+
+
+buttonEl :
+    DisplayProfile
+    -> String
+    -> Maybe Msg
+    -> Element Msg
+buttonEl dProfile buttonLabel msg =
+    Element.Input.button
+        []
+        { onPress = msg
+        , label = text buttonLabel
         }
 
 

@@ -2,6 +2,7 @@ module DerivedEth.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (DepositOrWithdrawUXModel, JurisdictionCheckStatus, UserDerivedEthInfo)
+import Http
 import Time
 import TokenValue exposing (TokenValue)
 import UserTx
@@ -22,6 +23,11 @@ type Msg
     = MsgUp MsgUp
     | DepositAmountChanged String
     | WithdrawalAmountChanged String
+    | DepositClicked
+    | WithdrawClicked
+    | UserEthBalanceFetched (Result Http.Error TokenValue)
+    | UserDerivedEthBalanceFetched (Result Http.Error TokenValue)
+    | DerivedEthRedeemableFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
     | Tick Time.Posix
 
 
@@ -30,20 +36,4 @@ type alias UpdateResult =
     , cmd : Cmd Msg
     , msgUps : List MsgUp
     , userTxs : List (UserTx.Initiator Msg)
-    }
-
-
-loadingText : String
-loadingText =
-    "Loading..."
-
-
-justModelUpdate :
-    Model
-    -> UpdateResult
-justModelUpdate model =
-    { newModel = model
-    , cmd = Cmd.none
-    , msgUps = []
-    , userTxs = []
     }
