@@ -1,8 +1,9 @@
 module DerivedEth.Types exposing (..)
 
 import Common.Msg exposing (..)
-import Common.Types exposing (DepositOrWithdrawUXModel, JurisdictionCheckStatus, UserDerivedEthInfo)
+import Common.Types exposing (DepositOrWithdrawUXModel, JurisdictionCheckStatus, LocationInfo, UserDerivedEthInfo)
 import Http
+import Json.Decode
 import Time
 import TokenValue exposing (TokenValue)
 import UserTx
@@ -29,11 +30,13 @@ type Msg
     | UserDerivedEthBalanceFetched (Result Http.Error TokenValue)
     | DerivedEthRedeemableFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
     | Tick Time.Posix
+    | VerifyJurisdictionClicked
+    | LocationCheckResult (Result Json.Decode.Error (Result String LocationInfo))
 
 
 type alias UpdateResult =
     { newModel : Model
     , cmd : Cmd Msg
-    , msgUps : List MsgUp
     , userTxs : List (UserTx.Initiator Msg)
+    , msgUps : List MsgUp
     }

@@ -3,7 +3,7 @@ module DerivedEth.View exposing (view)
 import Common.Types exposing (..)
 import Common.View exposing (..)
 import DerivedEth.Types exposing (..)
-import Element exposing (Attribute, Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Attribute, Element, alignLeft, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -95,29 +95,26 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
 
                 Just userDerivedEthInfo ->
                     [ case jurisdictionCheckStatus of
-                        Error err ->
-                            text err
+                        Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+                            investOrWithdrawEl
+                                dProfile
+                                "Squander your ETH for worthless beans"
+                                "Deposit"
+                                depositAmount
+                                userDerivedEthInfo.ethBalance
+                                DepositAmountChanged
 
-                        WaitingForClick ->
-                            text "tick tock"
-
-                        Checking ->
-                            text "Verifying location"
-
-                        Checked jurisdiction ->
-                            case jurisdiction of
-                                ForbiddenJurisdictions ->
-                                    text "fuckoff SEC"
-
-                                JurisdictionsWeArentIntimidatedIntoExcluding ->
-                                    availableEthEl
-                                        dProfile
-                                        depositAmount
-                                        userDerivedEthInfo.ethBalance
-                    , availableDerivedEthEl
+                        _ ->
+                            verifyJurisdictionButtonOrResult
+                                dProfile
+                                jurisdictionCheckStatus
+                    , investOrWithdrawEl
                         dProfile
+                        "Redeem worthless beans for ETH"
+                        "Redeem"
                         withdrawalAmount
                         userDerivedEthInfo.dEthBalance
+                        WithdrawalAmountChanged
                     ]
     )
         |> column
@@ -129,52 +126,37 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
             )
 
 
-availableEthEl :
+investOrWithdrawEl :
     DisplayProfile
     -> String
+    -> String
+    -> String
     -> TokenValue
+    -> (String -> Msg)
     -> Element Msg
-availableEthEl dProfile amountToDeposit availableEth =
-    [ text "ETH available to invest"
+investOrWithdrawEl dProfile heading buttonText inputAmount userBalance msg =
+    [ text heading
     , inputEl
         dProfile
-        amountToDeposit
-        availableEth
-        DepositAmountChanged
+        inputAmount
+        userBalance
+        msg
     , buttonEl
         dProfile
-        "Deposit"
+        buttonText
         (Just DepositClicked)
     ]
         |> responsiveVal
             dProfile
             row
             column
-            (Theme.whiteGlowInnerRounded ++ [])
-
-
-availableDerivedEthEl :
-    DisplayProfile
-    -> String
-    -> TokenValue
-    -> Element Msg
-availableDerivedEthEl dProfile amountToWithdraw availableDerivedEth =
-    [ text "dETH available to redeem"
-    , inputEl
-        dProfile
-        amountToWithdraw
-        availableDerivedEth
-        WithdrawalAmountChanged
-    , buttonEl
-        dProfile
-        "Withdraw"
-        (Just WithdrawClicked)
-    ]
-        |> responsiveVal
-            dProfile
-            row
-            column
-            (Theme.whiteGlowInnerRounded ++ [])
+            (Theme.whiteGlowInnerRounded
+                ++ [ width fill
+                   , spacing 5
+                   , padding 12
+                   , Element.Font.size (responsiveVal dProfile 20 16)
+                   ]
+            )
 
 
 inputEl :
@@ -197,6 +179,7 @@ inputEl dProfile inputAmount userBalance msg =
             , Element.Background.color <| Element.rgba 1 1 1 0.3
             , padding 0
             , Element.Border.width 0
+            , centerX
             ]
                 ++ (if validateInput inputAmount userBalance == Nothing then
                         [ Element.Border.width 2
@@ -223,7 +206,11 @@ buttonEl :
     -> Element Msg
 buttonEl dProfile buttonLabel msg =
     Element.Input.button
-        []
+        [ padding 5
+        , Element.Border.rounded 5
+        , Element.Border.glow Theme.lightGray 1
+        , centerX
+        ]
         { onPress = msg
         , label = text buttonLabel
         }
@@ -246,3 +233,68 @@ validateInput input max =
                 else
                     Just val
             )
+
+
+msgInsteadOfButton :
+    DisplayProfile
+    -> String
+    -> Element.Color
+    -> Element Msg
+msgInsteadOfButton dProfile text color =
+    Element.el
+        [ Element.centerX
+        , Element.Font.size <|
+            responsiveVal
+                dProfile
+                18
+                12
+        , Element.Font.italic
+        , Element.Font.color color
+        ]
+        (Element.text text)
+
+
+verifyJurisdictionButtonOrResult :
+    DisplayProfile
+    -> JurisdictionCheckStatus
+    -> Element Msg
+verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
+    case jurisdictionCheckStatus of
+        WaitingForClick ->
+            EH.redButton
+                dProfile
+                [ Element.width Element.fill ]
+                [ "Confirm you are not a US citizen" ]
+                VerifyJurisdictionClicked
+
+        Checking ->
+            EH.disabledButton
+                dProfile
+                [ Element.width Element.fill
+                , Element.Font.color EH.black
+                ]
+                "Verifying Jurisdiction..."
+                Nothing
+
+        Error errStr ->
+            Element.column
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+                [ msgInsteadOfButton
+                    dProfile
+                    "Error verifying jurisdiction."
+                    EH.red
+                ]
+
+        Checked ForbiddenJurisdictions ->
+            msgInsteadOfButton
+                dProfile
+                "Sorry, US citizens and residents are excluded."
+                EH.red
+
+        Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+            msgInsteadOfButton
+                dProfile
+                "Jurisdiction Verified."
+                EH.green

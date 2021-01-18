@@ -1,4 +1,4 @@
-port module Farm.State exposing (..)
+module Farm.State exposing (..)
 
 import Common.Msg exposing (MsgDown, MsgUp, gTag)
 import Common.Types exposing (..)
@@ -10,6 +10,7 @@ import Farm.Types exposing (..)
 import Html exposing (th)
 import Json.Decode
 import Maybe
+import Ports exposing (beginLocationCheck, locationCheckResult)
 import Result.Extra
 import Set
 import Time
@@ -435,9 +436,3 @@ subscriptions model =
             (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
         , Time.every 10000 (always RefetchStakingInfoOrApy)
         ]
-
-
-port beginLocationCheck : () -> Cmd msg
-
-
-port locationCheckResult : (Json.Decode.Value -> msg) -> Sub msg
