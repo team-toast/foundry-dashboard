@@ -101,6 +101,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
                                 "Squander your ETH for worthless beans"
                                 "Deposit"
                                 depositAmount
+                                "ETH"
                                 userDerivedEthInfo.ethBalance
                                 DepositAmountChanged
 
@@ -113,6 +114,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
                         "Redeem worthless beans for ETH"
                         "Redeem"
                         withdrawalAmount
+                        "dETH"
                         userDerivedEthInfo.dEthBalance
                         WithdrawalAmountChanged
                     ]
@@ -131,20 +133,39 @@ investOrWithdrawEl :
     -> String
     -> String
     -> String
+    -> String
     -> TokenValue
     -> (String -> Msg)
     -> Element Msg
-investOrWithdrawEl dProfile heading buttonText inputAmount userBalance msg =
+investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance msg =
+    let
+        inputValid =
+            validateInput inputAmount userBalance
+    in
     [ text heading
+        |> el [ Element.Font.size (responsiveVal dProfile 20 14) ]
     , inputEl
         dProfile
         inputAmount
         userBalance
         msg
-    , buttonEl
-        dProfile
-        buttonText
-        (Just DepositClicked)
+    , if userBalance == TokenValue.zero then
+        Element.rgba 1 0 0 0.8
+            |> msgInsteadOfButton
+                dProfile
+                ("Your " ++ tokenName ++ " balance is zero")
+
+      else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
+        Element.rgba 1 0 0 0.8
+            |> msgInsteadOfButton
+                dProfile
+                (tokenName ++ "value should be greater than 0 and less than or equal to " ++ TokenValue.toConciseString userBalance)
+
+      else
+        buttonEl
+            dProfile
+            buttonText
+            (Just DepositClicked)
     ]
         |> responsiveVal
             dProfile
@@ -154,7 +175,6 @@ investOrWithdrawEl dProfile heading buttonText inputAmount userBalance msg =
                 ++ [ width fill
                    , spacing 5
                    , padding 12
-                   , Element.Font.size (responsiveVal dProfile 20 16)
                    ]
             )
 
@@ -171,13 +191,16 @@ inputEl dProfile inputAmount userBalance msg =
             responsiveVal
                 dProfile
                 150
-                75
+                100
 
         inputStyles =
-            [ width <|
-                px amountElWidth
-            , Element.Background.color <| Element.rgba 1 1 1 0.3
-            , padding 0
+            [ px amountElWidth
+                |> width
+            , px 30
+                |> height
+            , Element.rgba 1 1 1 0.3
+                |> Element.Background.color
+            , padding 3
             , Element.Border.width 0
             , centerX
             ]
@@ -240,18 +263,19 @@ msgInsteadOfButton :
     -> String
     -> Element.Color
     -> Element Msg
-msgInsteadOfButton dProfile text color =
-    Element.el
-        [ Element.centerX
-        , Element.Font.size <|
-            responsiveVal
-                dProfile
-                18
-                12
-        , Element.Font.italic
-        , Element.Font.color color
-        ]
-        (Element.text text)
+msgInsteadOfButton dProfile textToDisplay color =
+    [ text textToDisplay ]
+        |> paragraph []
+        |> el
+            [ Element.centerX
+            , Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    18
+                    12
+            , Element.Font.italic
+            , Element.Font.color color
+            ]
 
 
 verifyJurisdictionButtonOrResult :

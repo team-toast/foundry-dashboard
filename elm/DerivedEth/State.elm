@@ -27,8 +27,8 @@ init wallet now =
       , wallet = wallet
       , userDerivedEthInfo = Nothing
       , jurisdictionCheckStatus = WaitingForClick
-      , depositAmount = "0"
-      , withDrawalAmount = "0"
+      , depositAmount = ""
+      , withDrawalAmount = ""
       }
     , [ fetchEthBalance wallet
       , fetchDerivedEthBalance wallet
