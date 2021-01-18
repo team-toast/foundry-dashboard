@@ -54,8 +54,8 @@ titleEl :
     DisplayProfile
     -> Element Msg
 titleEl dProfile =
-    text "\"Prepare to have your face ripped off by the Dragon.\" - dETH"
-        |> el
+    [ text "\"Prepare to have your face ripped off by the Dragon.\" - dETH" ]
+        |> paragraph
             [ responsiveVal
                 dProfile
                 50
