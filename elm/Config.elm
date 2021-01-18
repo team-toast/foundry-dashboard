@@ -23,7 +23,7 @@ httpProviderUrl =
 
 mainnetHttpProviderUrl : String
 mainnetHttpProviderUrl =
-    "https://d8a8054f0e9440f68e34f7ab44a78b09.eth.rpc.rivet.cloud/"
+    "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
 
 
 ganacheHttpProviderUrl : String
