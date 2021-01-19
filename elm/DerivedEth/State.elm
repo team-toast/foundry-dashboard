@@ -26,10 +26,6 @@ init :
     -> Time.Posix
     -> ( Model, Cmd Msg )
 init wallet now =
-    let
-        uInfo =
-            Wallet.userInfo wallet
-    in
     ( { now = now
       , wallet = wallet
       , userDerivedEthInfo = Nothing
@@ -37,15 +33,11 @@ init wallet now =
       , depositAmount = ""
       , withDrawalAmount = ""
       }
-    , (case uInfo of
-        Nothing ->
-            [ Cmd.none ]
-
-        Just userInfo ->
-            [ fetchEthBalance userInfo.address
-            , fetchDerivedEthBalance userInfo.address
-            ]
-      )
+    , [ wallet
+            |> fetchDerivedEthBalance
+      , wallet
+            |> fetchEthBalance
+      ]
         |> Cmd.batch
     )
 
@@ -380,6 +372,24 @@ update msg prevModel =
                         []
                         []
 
+        FetchUserEthBalance ->
+            UpdateResult
+                prevModel
+                (prevModel.wallet
+                    |> fetchEthBalance
+                )
+                []
+                []
+
+        FetchUserDerivedEthBalance ->
+            UpdateResult
+                prevModel
+                (prevModel.wallet
+                    |> fetchDerivedEthBalance
+                )
+                []
+                []
+
         Tick i ->
             let
                 userInfo =
@@ -393,8 +403,10 @@ update msg prevModel =
                         []
 
                     Just uInfo ->
-                        [ fetchDerivedEthBalance uInfo.address
-                        , fetchEthBalance uInfo.address
+                        [ prevModel.wallet
+                            |> fetchDerivedEthBalance
+                        , prevModel.wallet
+                            |> fetchEthBalance
                         ]
                  )
                     |> Cmd.batch
@@ -434,22 +446,32 @@ runMsgDown msg prevModel =
 
 
 fetchEthBalance :
-    Address
+    Wallet
     -> Cmd Msg
-fetchEthBalance address =
-    ERC20.getEthBalance
-        address
-        UserEthBalanceFetched
+fetchEthBalance wallet =
+    case Wallet.userInfo wallet of
+        Nothing ->
+            Cmd.none
+
+        Just userInfo ->
+            ERC20.getEthBalance
+                userInfo.address
+                UserEthBalanceFetched
 
 
 fetchDerivedEthBalance :
-    Address
+    Wallet
     -> Cmd Msg
-fetchDerivedEthBalance address =
-    ERC20.getBalanceCmd
-        derivedEthContractAddress
-        address
-        UserDerivedEthBalanceFetched
+fetchDerivedEthBalance wallet =
+    case Wallet.userInfo wallet of
+        Nothing ->
+            Cmd.none
+
+        Just userInfo ->
+            ERC20.getBalanceCmd
+                derivedEthContractAddress
+                userInfo.address
+                UserDerivedEthBalanceFetched
 
 
 locationCheckDecoder : Json.Decode.Decoder (Result String LocationInfo)
@@ -520,15 +542,12 @@ doDepositChainCmd :
     -> UserTx.Initiator Msg
 doDepositChainCmd sender amount =
     { notifiers =
-        { onMine = Nothing
-
-        -- sender
-        --     |> always fetchEthBalance
-        --     |> Just
-        , onSign = Nothing
-
-        -- DepositSigned amount
-        --     |> Just
+        { onMine =
+            always FetchUserEthBalance
+                |> Just
+        , onSign =
+            DepositSigned
+                |> Just
         }
     , send = Death.deposit sender amount
     , txInfo = UserTx.DEthDeposit
@@ -541,8 +560,12 @@ doWithdrawChainCmd :
     -> UserTx.Initiator Msg
 doWithdrawChainCmd receiver amount =
     { notifiers =
-        { onMine = Nothing
-        , onSign = Nothing
+        { onMine =
+            always FetchUserDerivedEthBalance
+                |> Just
+        , onSign =
+            WithdrawSigned
+                |> Just
         }
     , send = Death.redeem receiver amount
     , txInfo = UserTx.DEthRedeem

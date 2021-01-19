@@ -2,7 +2,7 @@ module DerivedEth.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (DepositOrWithdrawUXModel, JurisdictionCheckStatus, LocationInfo, UserDerivedEthInfo)
-import Eth.Types exposing (TxHash)
+import Eth.Types exposing (Address, TxHash)
 import Http
 import Json.Decode
 import Time
@@ -36,6 +36,8 @@ type Msg
     | ApproveTokenSpend
     | DepositSigned (Result String TxHash)
     | WithdrawSigned (Result String TxHash)
+    | FetchUserEthBalance
+    | FetchUserDerivedEthBalance
 
 
 type alias UpdateResult =
