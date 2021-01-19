@@ -4,9 +4,11 @@ import Array
 import Common.Msg exposing (MsgDown, MsgUp, gTag)
 import Common.Types exposing (..)
 import Config exposing (derivedEthContractAddress, ethAddress, forbiddenJurisdictionCodes)
+import Contracts.DEthWrapper as Death
 import Contracts.ERC20Wrapper as ERC20
 import DerivedEth.Types exposing (..)
 import Eth.Types exposing (Address)
+import Eth.Utils
 import Helpers.Eth
 import Http
 import Json.Decode exposing (Decoder, value)
@@ -14,7 +16,8 @@ import Ports exposing (beginLocationCheck, locationCheckResult)
 import Result.Extra
 import Set exposing (Set)
 import Time
-import TokenValue
+import TokenValue exposing (TokenValue)
+import UserTx
 import Wallet exposing (Wallet)
 
 
@@ -23,6 +26,10 @@ init :
     -> Time.Posix
     -> ( Model, Cmd Msg )
 init wallet now =
+    let
+        uInfo =
+            Wallet.userInfo wallet
+    in
     ( { now = now
       , wallet = wallet
       , userDerivedEthInfo = Nothing
@@ -30,9 +37,15 @@ init wallet now =
       , depositAmount = ""
       , withDrawalAmount = ""
       }
-    , [ fetchEthBalance wallet
-      , fetchDerivedEthBalance wallet
-      ]
+    , (case uInfo of
+        Nothing ->
+            [ Cmd.none ]
+
+        Just userInfo ->
+            [ fetchEthBalance userInfo.address
+            , fetchDerivedEthBalance userInfo.address
+            ]
+      )
         |> Cmd.batch
     )
 
@@ -68,18 +81,55 @@ update msg prevModel =
                 []
                 []
 
-        DepositClicked ->
+        DepositClicked amount ->
+            let
+                userInfo =
+                    prevModel.wallet
+                        |> Wallet.userInfo
+            in
             UpdateResult
                 prevModel
                 Cmd.none
-                []
-                []
+                (case userInfo of
+                    Nothing ->
+                        []
 
-        WithdrawClicked ->
+                    Just uInfo ->
+                        [ doDepositChainCmd
+                            uInfo.address
+                            amount
+                        ]
+                )
+                [ Common.Msg.GTag <|
+                    GTagData
+                        "Squander ETH"
+                        "funnel"
+                        ""
+                        (TokenValue.mul 100 amount
+                            |> TokenValue.toFloatWithWarning
+                            |> floor
+                        )
+                ]
+
+        WithdrawClicked amount ->
+            let
+                userInfo =
+                    prevModel.wallet
+                        |> Wallet.userInfo
+            in
             UpdateResult
                 prevModel
                 Cmd.none
-                []
+                (case userInfo of
+                    Nothing ->
+                        []
+
+                    Just uInfo ->
+                        [ doWithdrawChainCmd
+                            uInfo.address
+                            amount
+                        ]
+                )
                 []
 
         UserEthBalanceFetched fetchResult ->
@@ -102,6 +152,7 @@ update msg prevModel =
                                         , totalCollateralRedeemed = TokenValue.zero
                                         , fee = TokenValue.zero
                                         , collateralReturned = TokenValue.zero
+                                        , dEthAllowance = TokenValue.zero
                                         }
 
                                     Just oldUserDerivedEthInfoModel ->
@@ -135,6 +186,7 @@ update msg prevModel =
                                         , totalCollateralRedeemed = TokenValue.zero
                                         , fee = TokenValue.zero
                                         , collateralReturned = TokenValue.zero
+                                        , dEthAllowance = TokenValue.zero
                                         }
 
                                     Just oldUserDerivedEthInfoModel ->
@@ -168,6 +220,7 @@ update msg prevModel =
                                         , totalCollateralRedeemed = totalCollateral
                                         , fee = fee
                                         , collateralReturned = returnedCollateral
+                                        , dEthAllowance = TokenValue.zero
                                         }
 
                                     Just oldUserDerivedEthInfoModel ->
@@ -240,12 +293,110 @@ update msg prevModel =
                         ]
                 )
 
-        Tick i ->
+        ApproveTokenSpend ->
             UpdateResult
                 prevModel
-                ([ fetchDerivedEthBalance prevModel.wallet
-                 , fetchEthBalance prevModel.wallet
-                 ]
+                Cmd.none
+                []
+                []
+
+        DepositSigned signResult ->
+            case signResult of
+                Ok txHash ->
+                    let
+                        tv =
+                            TokenValue.fromString prevModel.depositAmount
+
+                        amount =
+                            case tv of
+                                Nothing ->
+                                    TokenValue.zero
+
+                                Just val ->
+                                    val
+                    in
+                    UpdateResult
+                        { prevModel
+                            | depositAmount = ""
+                        }
+                        Cmd.none
+                        []
+                        [ Common.Msg.GTag <|
+                            GTagData
+                                "Squander ETH Signed"
+                                "conversion"
+                                (Eth.Utils.txHashToString txHash)
+                                (amount
+                                    |> TokenValue.mul 100
+                                    |> TokenValue.toFloatWithWarning
+                                    |> floor
+                                )
+                        ]
+
+                _ ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+                        []
+
+        WithdrawSigned signResult ->
+            case signResult of
+                Ok txHash ->
+                    let
+                        tv =
+                            TokenValue.fromString prevModel.depositAmount
+
+                        amount =
+                            case tv of
+                                Nothing ->
+                                    TokenValue.zero
+
+                                Just val ->
+                                    val
+                    in
+                    UpdateResult
+                        { prevModel
+                            | withDrawalAmount = ""
+                        }
+                        Cmd.none
+                        []
+                        [ Common.Msg.GTag <|
+                            GTagData
+                                "Redeem worthless beans Signed"
+                                "conversion"
+                                (Eth.Utils.txHashToString txHash)
+                                (amount
+                                    |> TokenValue.mul 100
+                                    |> TokenValue.toFloatWithWarning
+                                    |> floor
+                                )
+                        ]
+
+                _ ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+                        []
+
+        Tick i ->
+            let
+                userInfo =
+                    prevModel.wallet
+                        |> Wallet.userInfo
+            in
+            UpdateResult
+                prevModel
+                ((case userInfo of
+                    Nothing ->
+                        []
+
+                    Just uInfo ->
+                        [ fetchDerivedEthBalance uInfo.address
+                        , fetchEthBalance uInfo.address
+                        ]
+                 )
                     |> Cmd.batch
                 )
                 []
@@ -283,32 +434,22 @@ runMsgDown msg prevModel =
 
 
 fetchEthBalance :
-    Wallet
+    Address
     -> Cmd Msg
-fetchEthBalance wallet =
-    case Wallet.userInfo wallet of
-        Just userInfo ->
-            ERC20.getEthBalance
-                userInfo.address
-                UserEthBalanceFetched
-
-        Nothing ->
-            Cmd.none
+fetchEthBalance address =
+    ERC20.getEthBalance
+        address
+        UserEthBalanceFetched
 
 
 fetchDerivedEthBalance :
-    Wallet
+    Address
     -> Cmd Msg
-fetchDerivedEthBalance wallet =
-    case Wallet.userInfo wallet of
-        Just userInfo ->
-            ERC20.getBalanceCmd
-                derivedEthContractAddress
-                userInfo.address
-                UserDerivedEthBalanceFetched
-
-        Nothing ->
-            Cmd.none
+fetchDerivedEthBalance address =
+    ERC20.getBalanceCmd
+        derivedEthContractAddress
+        address
+        UserDerivedEthBalanceFetched
 
 
 locationCheckDecoder : Json.Decode.Decoder (Result String LocationInfo)
@@ -329,7 +470,9 @@ locationInfoDecoder =
         (Json.Decode.field "geoCountry" Json.Decode.string)
 
 
-locationCheckResultToJurisdictionStatus : Result Json.Decode.Error (Result String LocationInfo) -> JurisdictionCheckStatus
+locationCheckResultToJurisdictionStatus :
+    Result Json.Decode.Error (Result String LocationInfo)
+    -> JurisdictionCheckStatus
 locationCheckResultToJurisdictionStatus decodeResult =
     decodeResult
         |> Result.map
@@ -353,7 +496,10 @@ locationCheckResultToJurisdictionStatus decodeResult =
         |> Result.Extra.merge
 
 
-countryCodeToJurisdiction : String -> String -> Jurisdiction
+countryCodeToJurisdiction :
+    String
+    -> String
+    -> Jurisdiction
 countryCodeToJurisdiction ipCode geoCode =
     let
         allowedJurisdiction =
@@ -366,6 +512,41 @@ countryCodeToJurisdiction ipCode geoCode =
 
     else
         ForbiddenJurisdictions
+
+
+doDepositChainCmd :
+    Address
+    -> TokenValue
+    -> UserTx.Initiator Msg
+doDepositChainCmd sender amount =
+    { notifiers =
+        { onMine = Nothing
+
+        -- sender
+        --     |> always fetchEthBalance
+        --     |> Just
+        , onSign = Nothing
+
+        -- DepositSigned amount
+        --     |> Just
+        }
+    , send = Death.deposit sender amount
+    , txInfo = UserTx.DEthDeposit
+    }
+
+
+doWithdrawChainCmd :
+    Address
+    -> TokenValue
+    -> UserTx.Initiator Msg
+doWithdrawChainCmd receiver amount =
+    { notifiers =
+        { onMine = Nothing
+        , onSign = Nothing
+        }
+    , send = Death.redeem receiver amount
+    , txInfo = UserTx.DEthRedeem
+    }
 
 
 subscriptions :

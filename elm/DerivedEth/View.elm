@@ -152,6 +152,21 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
 
             else
                 WithdrawalAmountChanged
+
+        msg3 =
+            if tokenName == "ETH" then
+                DepositClicked
+
+            else
+                WithdrawClicked
+
+        msg3Amount =
+            case TokenValue.fromString inputAmount of
+                Nothing ->
+                    TokenValue.zero
+
+                Just val ->
+                    val
     in
     [ text heading
         |> el
@@ -236,7 +251,10 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
             buttonEl
                 dProfile
                 buttonText
-                (Just DepositClicked)
+                (msg3Amount
+                    |> msg3
+                    |> Just
+                )
       ]
         |> responsiveVal
             dProfile

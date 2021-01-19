@@ -2,6 +2,7 @@ module DerivedEth.Types exposing (..)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (DepositOrWithdrawUXModel, JurisdictionCheckStatus, LocationInfo, UserDerivedEthInfo)
+import Eth.Types exposing (TxHash)
 import Http
 import Json.Decode
 import Time
@@ -24,14 +25,17 @@ type Msg
     = MsgUp MsgUp
     | DepositAmountChanged String
     | WithdrawalAmountChanged String
-    | DepositClicked
-    | WithdrawClicked
+    | DepositClicked TokenValue
+    | WithdrawClicked TokenValue
     | UserEthBalanceFetched (Result Http.Error TokenValue)
     | UserDerivedEthBalanceFetched (Result Http.Error TokenValue)
     | DerivedEthRedeemableFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
     | Tick Time.Posix
     | VerifyJurisdictionClicked
     | LocationCheckResult (Result Json.Decode.Error (Result String LocationInfo))
+    | ApproveTokenSpend
+    | DepositSigned (Result String TxHash)
+    | WithdrawSigned (Result String TxHash)
 
 
 type alias UpdateResult =

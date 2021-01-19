@@ -92,13 +92,13 @@ redeem contractAddress tokensToRedeem_ receiver_ =
 -- squanderMyEthForWorthlessBeans(address) function
 
 
-squanderMyEthForWorthlessBeans : Address -> Address -> Call ()
-squanderMyEthForWorthlessBeans contractAddress receiver_ =
+squanderMyEthForWorthlessBeans : Address -> Address -> Maybe BigInt -> Call ()
+squanderMyEthForWorthlessBeans contractAddress receiver_ amount =
     { to = Just contractAddress
     , from = Nothing
     , gas = Nothing
     , gasPrice = Nothing
-    , value = Nothing
+    , value = amount
     , data = Just <| E.functionCall "026a9f93" [ E.address receiver_ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
