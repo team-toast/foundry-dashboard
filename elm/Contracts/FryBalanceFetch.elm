@@ -12,7 +12,10 @@ import Task
 import TokenValue exposing (TokenValue)
 
 
-fetch : List Address -> (Result Http.Error (AddressDict TokenValue) -> msg) -> Cmd msg
+fetch :
+    List Address
+    -> (Result Http.Error (AddressDict TokenValue) -> msg)
+    -> Cmd msg
 fetch addresses msgConstructor =
     Eth.call
         Config.httpProviderUrl
