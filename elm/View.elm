@@ -702,7 +702,7 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                             ++ " ETHFRY"
 
                     UserTx.StakingWithdraw amount ->
-                        "Withrdaw "
+                        "Withdraw "
                             ++ TokenValue.toConciseString amount
                             ++ " ETHFRY"
 
@@ -711,6 +711,12 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
 
                     UserTx.StakingExit ->
                         "Exit Farming"
+
+                    UserTx.DEthRedeem ->
+                        "Redeem dETH"
+
+                    UserTx.DEthDeposit ->
+                        "Squander ETH"
 
         statusEl =
             case signedTxStatus of
