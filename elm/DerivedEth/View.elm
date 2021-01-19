@@ -9,6 +9,7 @@ import Element.Border
 import Element.Font
 import Element.Input
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Html exposing (th)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -141,39 +142,115 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
     let
         inputValid =
             validateInput inputAmount userBalance
+
+        textFontSize =
+            Element.Font.size (responsiveVal dProfile 20 14)
+
+        msg2 =
+            if tokenName == "ETH" then
+                DepositAmountChanged
+
+            else
+                WithdrawalAmountChanged
     in
     [ text heading
-        |> el [ Element.Font.size (responsiveVal dProfile 20 14) ]
-    , inputEl
-        dProfile
-        inputAmount
-        userBalance
-        msg
-    , if userBalance == TokenValue.zero then
-        Element.rgba 1 0 0 0.8
-            |> msgInsteadOfButton
-                dProfile
-                ("Your " ++ tokenName ++ " balance is zero")
-
-      else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
-        Element.rgba 1 0 0 0.8
-            |> msgInsteadOfButton
-                dProfile
-                (tokenName ++ "value should be greater than 0 and less than or equal to " ++ TokenValue.toConciseString userBalance)
-
-      else
-        buttonEl
+        |> el
+            [ textFontSize, Element.Font.semiBold ]
+    , text
+        (tokenName
+            ++ " balance: "
+            ++ (userBalance
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+               )
+        )
+        |> el
+            [ textFontSize ]
+    , [ buttonEl
             dProfile
-            buttonText
-            (Just DepositClicked)
-    ]
+            "25%"
+            ((TokenValue.toFloatWithWarning userBalance
+                * 0.25
+                |> String.fromFloat
+                |> msg2
+             )
+                |> Just
+            )
+      , buttonEl
+            dProfile
+            "50%"
+            ((TokenValue.toFloatWithWarning userBalance
+                * 0.5
+                |> String.fromFloat
+                |> msg2
+             )
+                |> Just
+            )
+      , buttonEl
+            dProfile
+            "75%"
+            ((TokenValue.toFloatWithWarning userBalance
+                * 0.75
+                |> String.fromFloat
+                |> msg2
+             )
+                |> Just
+            )
+      , buttonEl
+            dProfile
+            "100%"
+            ((userBalance
+                |> TokenValue.toFloatWithWarning
+                |> String.fromFloat
+                |> msg2
+             )
+                |> Just
+            )
+      ]
+        |> row
+            [ spacing 10 ]
+    , [ inputEl
+            dProfile
+            inputAmount
+            userBalance
+            msg
+      , if userBalance == TokenValue.zero then
+            Element.rgba 1 0 0 0.8
+                |> msgInsteadOfButton
+                    dProfile
+                    ("Your " ++ tokenName ++ " balance is zero")
+
+        else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
+            Element.rgba 1 0 0 0.8
+                |> msgInsteadOfButton
+                    dProfile
+                    (tokenName
+                        ++ " value should be greater than 0 and less than or equal to "
+                        ++ (userBalance
+                                |> TokenValue.toFloatWithWarning
+                                |> String.fromFloat
+                           )
+                    )
+
+        else
+            buttonEl
+                dProfile
+                buttonText
+                (Just DepositClicked)
+      ]
         |> responsiveVal
             dProfile
             row
             column
+            [ width fill
+            , spacing 5
+            , padding 12
+            ]
+    ]
+        |> column
             (Theme.whiteGlowInnerRounded
                 ++ [ width fill
-                   , spacing 5
+                   , spacing 10
                    , padding 12
                    ]
             )
@@ -233,6 +310,7 @@ buttonEl dProfile buttonLabel msg =
         , Element.Border.rounded 5
         , Element.Border.glow Theme.lightGray 1
         , centerX
+        , Element.Background.color Theme.darkerBlue
         ]
         { onPress = msg
         , label = text buttonLabel

@@ -3,7 +3,7 @@ module DerivedEth.State exposing (..)
 import Array
 import Common.Msg exposing (MsgDown, MsgUp, gTag)
 import Common.Types exposing (..)
-import Config exposing (forbiddenJurisdictionCodes)
+import Config exposing (derivedEthContractAddress, ethAddress, forbiddenJurisdictionCodes)
 import Contracts.ERC20Wrapper as ERC20
 import DerivedEth.Types exposing (..)
 import Eth.Types exposing (Address)
@@ -288,8 +288,7 @@ fetchEthBalance :
 fetchEthBalance wallet =
     case Wallet.userInfo wallet of
         Just userInfo ->
-            ERC20.getBalanceCmd
-                Helpers.Eth.zeroAddress
+            ERC20.getEthBalance
                 userInfo.address
                 UserEthBalanceFetched
 
@@ -304,7 +303,7 @@ fetchDerivedEthBalance wallet =
     case Wallet.userInfo wallet of
         Just userInfo ->
             ERC20.getBalanceCmd
-                Config.derivedEthContractAddress
+                derivedEthContractAddress
                 userInfo.address
                 UserDerivedEthBalanceFetched
 
