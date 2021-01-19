@@ -45,6 +45,7 @@ type alias UserDerivedEthInfo =
     , totalCollateralRedeemed : TokenValue
     , fee : TokenValue
     , collateralReturned : TokenValue
+    , dEthAllowance : TokenValue
     }
 
 
