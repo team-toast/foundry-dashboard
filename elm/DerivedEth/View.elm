@@ -126,7 +126,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
             (Theme.whiteGlowOuterRounded
                 ++ [ spacing 20
                    , padding 20
-                   , width fill
+                   , centerX
                    ]
             )
 

@@ -398,7 +398,10 @@ update msg prevModel =
                         , txSentry = newTxSentry
                         , trackedTxs = newTrackedTxs
                       }
-                    , Cmd.map DerivedEthMsg updateResult.cmd
+                    , [ Cmd.map DerivedEthMsg updateResult.cmd
+                      , sentryCmd
+                      ]
+                        |> Cmd.batch
                     )
                         |> withMsgUps updateResult.msgUps
 
