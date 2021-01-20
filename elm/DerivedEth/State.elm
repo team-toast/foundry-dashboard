@@ -1,24 +1,21 @@
 module DerivedEth.State exposing (..)
 
-import Array
-import Common.Msg exposing (MsgDown, MsgUp, gTag)
+import Common.Msg exposing (MsgDown, gTag)
 import Common.Types exposing (..)
-import Config exposing (derivedEthContractAddress, ethAddress, forbiddenJurisdictionCodes)
+import Config exposing (derivedEthContractAddress, forbiddenJurisdictionCodes)
 import Contracts.DEthWrapper as Death
 import Contracts.ERC20Wrapper as ERC20
 import DerivedEth.Types exposing (..)
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Eth
-import Http
-import Json.Decode exposing (Decoder, value)
+import Json.Decode
 import Ports exposing (beginLocationCheck, locationCheckResult)
 import Result.Extra
-import Set exposing (Set)
+import Set
 import Time
 import TokenValue exposing (TokenValue)
 import UserTx
-import Wallet exposing (Wallet)
+import Wallet exposing (Wallet, userInfo)
 
 
 init :
@@ -126,7 +123,7 @@ update msg prevModel =
 
         UserEthBalanceFetched fetchResult ->
             case fetchResult of
-                Err err ->
+                Err _ ->
                     UpdateResult
                         prevModel
                         Cmd.none
@@ -160,7 +157,7 @@ update msg prevModel =
 
         UserDerivedEthBalanceFetched fetchResult ->
             case fetchResult of
-                Err err ->
+                Err _ ->
                     UpdateResult
                         prevModel
                         Cmd.none
@@ -194,7 +191,7 @@ update msg prevModel =
 
         DerivedEthRedeemableFetched fetchResult ->
             case fetchResult of
-                Err err ->
+                Err _ ->
                     UpdateResult
                         prevModel
                         Cmd.none
@@ -390,7 +387,7 @@ update msg prevModel =
                 []
                 []
 
-        Tick i ->
+        Tick _ ->
             let
                 userInfo =
                     prevModel.wallet
@@ -402,11 +399,13 @@ update msg prevModel =
                     Nothing ->
                         []
 
-                    Just uInfo ->
+                    Just _ ->
                         [ prevModel.wallet
                             |> fetchDerivedEthBalance
                         , prevModel.wallet
                             |> fetchEthBalance
+                        , prevModel.userDerivedEthInfo
+                            |> fetchDethPositionInfo
                         ]
                  )
                     |> Cmd.batch
@@ -431,7 +430,7 @@ runMsgDown msg prevModel =
 
                 cmd =
                     case Wallet.userInfo newWallet of
-                        Just userInfo ->
+                        Just _ ->
                             Cmd.none
 
                         --fetchUserDerivedEthInfoCmd userInfo.address
@@ -472,6 +471,20 @@ fetchDerivedEthBalance wallet =
                 derivedEthContractAddress
                 userInfo.address
                 UserDerivedEthBalanceFetched
+
+
+fetchDethPositionInfo :
+    Maybe UserDerivedEthInfo
+    -> Cmd Msg
+fetchDethPositionInfo maybeDethInfo =
+    case maybeDethInfo of
+        Nothing ->
+            Cmd.none
+
+        Just dEthInfo ->
+            Death.getRedeemable
+                dEthInfo.dEthBalance
+                DerivedEthRedeemableFetched
 
 
 locationCheckDecoder : Json.Decode.Decoder (Result String LocationInfo)
@@ -575,9 +588,9 @@ doWithdrawChainCmd receiver amount =
 subscriptions :
     Model
     -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
-        [ Time.every (1000 * 60 * 5 / 10) Tick -- (1000 * 60 * 5) -> 5 minutes
+        [ Time.every (1000 * 3) Tick
         , locationCheckResult
             (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
         ]

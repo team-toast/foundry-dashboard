@@ -105,6 +105,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
                                 "ETH"
                                 userDerivedEthInfo.ethBalance
                                 DepositAmountChanged
+                                maybeUserDerivedEthInfo
 
                         _ ->
                             verifyJurisdictionButtonOrResult
@@ -118,6 +119,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
                         "dETH"
                         userDerivedEthInfo.dEthBalance
                         WithdrawalAmountChanged
+                        maybeUserDerivedEthInfo
                     ]
     )
         |> column
@@ -137,8 +139,9 @@ investOrWithdrawEl :
     -> String
     -> TokenValue
     -> (String -> Msg)
+    -> Maybe UserDerivedEthInfo
     -> Element Msg
-investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance msg =
+investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance msg maybeUserDerivedEthInfo =
     let
         inputValid =
             validateInput inputAmount userBalance
@@ -167,20 +170,82 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
 
                 Just val ->
                     val
+
+        userDEthInfo =
+            case maybeUserDerivedEthInfo of
+                Nothing ->
+                    { total = TokenValue.zero, fee = TokenValue.zero, returned = TokenValue.zero }
+
+                Just dEthInfo ->
+                    { total = dEthInfo.totalCollateralRedeemed, fee = dEthInfo.fee, returned = dEthInfo.collateralReturned }
     in
     [ text heading
         |> el
-            [ textFontSize, Element.Font.semiBold ]
-    , text
-        (tokenName
-            ++ " balance: "
-            ++ (userBalance
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
-               )
-        )
-        |> el
-            [ textFontSize ]
+            [ textFontSize
+            , Element.Font.semiBold
+            , centerX
+            ]
+    , if tokenName == "dETH" then
+        [ text "Your dETH position:"
+        , text
+            (tokenName
+                ++ " balance: "
+                ++ (userBalance
+                        |> TokenValue.toFloatWithWarning
+                        |> String.fromFloat
+                   )
+            )
+            |> el
+                [ textFontSize ]
+        , text
+            ("Redeemable: "
+                ++ (userDEthInfo.total
+                        |> TokenValue.toFloatWithWarning
+                        |> String.fromFloat
+                   )
+            )
+            |> el
+                [ textFontSize ]
+        , text
+            ("Fee: "
+                ++ (userDEthInfo.fee
+                        |> TokenValue.toFloatWithWarning
+                        |> String.fromFloat
+                   )
+            )
+            |> el
+                [ textFontSize ]
+        , text
+            ("Returned: "
+                ++ (userDEthInfo.returned
+                        |> TokenValue.toFloatWithWarning
+                        |> String.fromFloat
+                   )
+            )
+            |> el
+                [ textFontSize ]
+        ]
+            |> column
+                (Theme.whiteGlowInnerRounded
+                    ++ [ padding 20
+                       , spacing 5
+                       , centerX
+                       ]
+                )
+
+      else
+        text
+            (tokenName
+                ++ " balance: "
+                ++ (userBalance
+                        |> TokenValue.toFloatWithWarning
+                        |> String.fromFloat
+                   )
+            )
+            |> el
+                [ textFontSize
+                , centerX
+                ]
     , [ buttonEl
             dProfile
             "25%"
@@ -223,53 +288,45 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
             )
       ]
         |> row
-            [ spacing 10 ]
-    , [ inputEl
-            dProfile
-            inputAmount
-            userBalance
-            msg
-      , if userBalance == TokenValue.zero then
-            Element.rgba 1 0 0 0.8
-                |> msgInsteadOfButton
-                    dProfile
-                    ("Your " ++ tokenName ++ " balance is zero")
-
-        else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
-            Element.rgba 1 0 0 0.8
-                |> msgInsteadOfButton
-                    dProfile
-                    (tokenName
-                        ++ " value should be greater than 0 and less than or equal to "
-                        ++ (userBalance
-                                |> TokenValue.toFloatWithWarning
-                                |> String.fromFloat
-                           )
-                    )
-
-        else
-            buttonEl
-                dProfile
-                buttonText
-                (msg3Amount
-                    |> msg3
-                    |> Just
-                )
-      ]
-        |> responsiveVal
-            dProfile
-            row
-            column
-            [ width fill
-            , spacing 5
-            , padding 12
+            [ spacing 10
+            , centerX
             ]
+    , inputEl
+        dProfile
+        inputAmount
+        userBalance
+        msg
+    , if userBalance == TokenValue.zero then
+        Element.rgba 1 0 0 0.8
+            |> msgInsteadOfButton
+                dProfile
+                ("Your " ++ tokenName ++ " balance is zero")
+
+      else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
+        Element.rgba 1 0 0 0.8
+            |> msgInsteadOfButton
+                dProfile
+                ("Min 0, Max "
+                    ++ (userBalance
+                            |> TokenValue.toFloatWithWarning
+                            |> String.fromFloat
+                       )
+                )
+
+      else
+        buttonEl
+            dProfile
+            buttonText
+            (msg3Amount
+                |> msg3
+                |> Just
+            )
     ]
         |> column
             (Theme.whiteGlowInnerRounded
-                ++ [ width fill
-                   , spacing 10
+                ++ [ spacing 10
                    , padding 12
+                   , centerX
                    ]
             )
 
