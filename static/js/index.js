@@ -2,8 +2,6 @@ var elm_ethereum_ports = require('elm-ethereum-ports');
 var networkChangeNotifier = require('./networkChangeNotifier');
 var ethereumJsUtil = require('ethereumjs-utils');
 var locationCheck = require('./dualLocationCheck.js');
-
-window.web3 = undefined; // hacky workaround because metamask and this legacy-web3 library both refuse to work otherwise
 require('@metamask/legacy-web3');
 
 const { web3 } = window;
