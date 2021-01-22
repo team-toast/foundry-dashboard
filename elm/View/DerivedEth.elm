@@ -1,7 +1,6 @@
-module DerivedEth.View exposing (view)
+module View.DerivedEth exposing (view)
 
 import Common.Types exposing (..)
-import Common.View exposing (..)
 import DerivedEth.Types exposing (..)
 import Element exposing (Attribute, Element, alignLeft, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background
@@ -12,6 +11,7 @@ import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Html exposing (th)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
+import View.Common exposing (..)
 import Wallet exposing (Wallet)
 
 
@@ -172,12 +172,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
                     val
 
         userDEthInfo =
-            case maybeUserDerivedEthInfo of
-                Nothing ->
-                    { total = TokenValue.zero, fee = TokenValue.zero, returned = TokenValue.zero }
-
-                Just dEthInfo ->
-                    { total = dEthInfo.totalCollateralRedeemed, fee = dEthInfo.fee, returned = dEthInfo.collateralReturned }
+            Maybe.withDefault derivedEthInfoInit maybeUserDerivedEthInfo
     in
     [ text heading
         |> el
@@ -198,8 +193,8 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
             |> el
                 [ textFontSize ]
         , text
-            ("Redeemable: "
-                ++ (userDEthInfo.total
+            ("ETH Redeemable: "
+                ++ (userDEthInfo.totalCollateralRedeemed
                         |> TokenValue.toFloatWithWarning
                         |> String.fromFloat
                    )
@@ -207,8 +202,8 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
             |> el
                 [ textFontSize ]
         , text
-            ("Fee: "
-                ++ (userDEthInfo.fee
+            ("Redeem Fee: "
+                ++ (userDEthInfo.redeemFee
                         |> TokenValue.toFloatWithWarning
                         |> String.fromFloat
                    )
@@ -216,8 +211,8 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
             |> el
                 [ textFontSize ]
         , text
-            ("Returned: "
-                ++ (userDEthInfo.returned
+            ("ETH Returned: "
+                ++ (userDEthInfo.collateralReturned
                         |> TokenValue.toFloatWithWarning
                         |> String.fromFloat
                    )
@@ -296,32 +291,63 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
         inputAmount
         userBalance
         msg
-    , if userBalance == TokenValue.zero then
-        Element.rgba 1 0 0 0.8
-            |> msgInsteadOfButton
-                dProfile
-                ("Your " ++ tokenName ++ " balance is zero")
-
-      else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
-        Element.rgba 1 0 0 0.8
-            |> msgInsteadOfButton
-                dProfile
-                ("Min 0, Max "
-                    ++ (userBalance
-                            |> TokenValue.toFloatWithWarning
-                            |> String.fromFloat
-                       )
-                )
-
-      else
-        buttonEl
-            dProfile
-            buttonText
-            (msg3Amount
-                |> msg3
-                |> Just
-            )
     ]
+        ++ (if userBalance == TokenValue.zero then
+                [ Element.rgba 1 0 0 0.8
+                    |> msgInsteadOfButton
+                        dProfile
+                        ("Your " ++ tokenName ++ " balance is zero")
+                ]
+
+            else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
+                [ Element.rgba 1 0 0 0.8
+                    |> msgInsteadOfButton
+                        dProfile
+                        ("Min 0, Max "
+                            ++ (userBalance
+                                    |> TokenValue.toFloatWithWarning
+                                    |> String.fromFloat
+                               )
+                        )
+                ]
+
+            else
+                [ text
+                    ("Actual ETH Added: "
+                        ++ (userDEthInfo.actualCollateralAdded
+                                |> TokenValue.toFloatWithWarning
+                                |> String.fromFloat
+                           )
+                    )
+                    |> el
+                        [ textFontSize ]
+                , text
+                    ("Deposit Fee: "
+                        ++ (userDEthInfo.depositFee
+                                |> TokenValue.toFloatWithWarning
+                                |> String.fromFloat
+                           )
+                    )
+                    |> el
+                        [ textFontSize ]
+                , text
+                    ("dETH received: "
+                        ++ (userDEthInfo.tokensIssued
+                                |> TokenValue.toFloatWithWarning
+                                |> String.fromFloat
+                           )
+                    )
+                    |> el
+                        [ textFontSize ]
+                , buttonEl
+                    dProfile
+                    buttonText
+                    (msg3Amount
+                        |> msg3
+                        |> Just
+                    )
+                ]
+           )
         |> column
             (Theme.whiteGlowInnerRounded
                 ++ [ spacing 10
@@ -369,7 +395,12 @@ inputEl dProfile inputAmount userBalance msg =
         inputStyles
         { onChange = msg
         , text = inputAmount
-        , placeholder = Nothing
+        , placeholder =
+            text "Enter Amount"
+                |> Element.Input.placeholder
+                    [ Element.Font.color Theme.almostWhite
+                    ]
+                |> Just
         , label = Element.Input.labelHidden "amount"
         }
 

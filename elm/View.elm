@@ -3,8 +3,6 @@ module View exposing (root)
 import Browser
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
-import Common.View exposing (..)
-import DerivedEth.View as DerivedEth
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -17,13 +15,11 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Farm.View as Farm
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
-import Home.View as Home
 import Html.Attributes
 import Images
 import Json.Decode
@@ -32,8 +28,6 @@ import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Phace
 import Routing exposing (Route)
-import Sentiment.View as Sentiment
-import Stats.View as Stats
 import Theme exposing (defaultTheme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -41,6 +35,12 @@ import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import UserTx
+import View.Common exposing (..)
+import View.DerivedEth as DerivedEth
+import View.Farm as Farm
+import View.Home as Home
+import View.Sentiment as Sentiment
+import View.Stats as Stats
 import Wallet exposing (Wallet)
 
 

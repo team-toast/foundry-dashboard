@@ -6,7 +6,6 @@ import Browser.Events
 import Browser.Navigation
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
-import Common.View
 import Config
 import Contracts.Dai as Dai
 import DerivedEth.State as DerivedEth
@@ -40,6 +39,7 @@ import Types exposing (..)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
 import UserTx exposing (TxInfo)
+import View.Common
 import Wallet
 
 

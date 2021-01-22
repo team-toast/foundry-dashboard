@@ -38,6 +38,7 @@ type Msg
     | WithdrawSigned (Result String TxHash)
     | FetchUserEthBalance
     | FetchUserDerivedEthBalance
+    | DerivedEthIssuanceDetailFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
 
 
 type alias UpdateResult =
@@ -45,4 +46,18 @@ type alias UpdateResult =
     , cmd : Cmd Msg
     , userTxs : List (UserTx.Initiator Msg)
     , msgUps : List MsgUp
+    }
+
+
+derivedEthInfoInit : UserDerivedEthInfo
+derivedEthInfoInit =
+    { ethBalance = TokenValue.zero
+    , dEthBalance = TokenValue.zero
+    , totalCollateralRedeemed = TokenValue.zero
+    , redeemFee = TokenValue.zero
+    , collateralReturned = TokenValue.zero
+    , dEthAllowance = TokenValue.zero
+    , actualCollateralAdded = TokenValue.zero
+    , depositFee = TokenValue.zero
+    , tokensIssued = TokenValue.zero
     }

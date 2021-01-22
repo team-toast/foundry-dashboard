@@ -1,6 +1,8 @@
 module Contracts.Generated.DEth exposing
-    ( CalculateRedemptionValue
+    ( CalculateIssuanceAmount
+    , CalculateRedemptionValue
     , balanceOf
+    , calculateIssuanceAmount
     , calculateRedemptionValue
     , redeem
     , squanderMyEthForWorthlessBeans
@@ -36,6 +38,39 @@ balanceOf contractAddress account_ =
     , nonce = Nothing
     , decoder = toElmDecoder D.uint
     }
+
+
+
+--calculateIssuanceAmount(uint256) function
+
+
+type alias CalculateIssuanceAmount =
+    { actualCollateralAdded : BigInt
+    , fee : BigInt
+    , tokensIssued : BigInt
+    }
+
+
+calculateIssuanceAmount : Address -> BigInt -> Call CalculateIssuanceAmount
+calculateIssuanceAmount contractAddress suppliedCollateral_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "fb7f2672" [ E.uint suppliedCollateral_ ]
+    , nonce = Nothing
+    , decoder = calculateIssuanceAmountDecoder
+    }
+
+
+calculateIssuanceAmountDecoder : Decoder CalculateIssuanceAmount
+calculateIssuanceAmountDecoder =
+    abiDecode CalculateIssuanceAmount
+        |> andMap D.uint
+        |> andMap D.uint
+        |> andMap D.uint
+        |> toElmDecoder
 
 
 

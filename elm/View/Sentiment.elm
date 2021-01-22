@@ -1,9 +1,8 @@
-module Sentiment.View exposing (view)
+module View.Sentiment exposing (view)
 
 import AddressDict exposing (AddressDict)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
-import Common.View exposing (..)
 import Config
 import Dict exposing (Dict)
 import Dict.Extra
@@ -16,7 +15,6 @@ import Element.Input
 import ElementMarkdown
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Farm.View exposing (commonImageAttributes)
 import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
@@ -31,6 +29,8 @@ import Routing exposing (Route)
 import Sentiment.Types exposing (..)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
+import View.Common exposing (..)
+import View.Farm exposing (commonImageAttributes)
 import Wallet exposing (Wallet)
 
 

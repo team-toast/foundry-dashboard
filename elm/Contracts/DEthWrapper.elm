@@ -28,6 +28,18 @@ redeem receiver amount =
         |> Eth.toSend
 
 
+getIssuanceDetail : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Cmd msg
+getIssuanceDetail amount msgConstructor =
+    Eth.call
+        Config.httpProviderUrl
+        (Death.calculateIssuanceAmount
+            derivedEthContractAddress
+            (TokenValue.getEvmValue amount)
+        )
+        |> Task.map unpackCalculatedIssuanceAmount
+        |> Task.attempt msgConstructor
+
+
 getRedeemable : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Cmd msg
 getRedeemable amount msgConstructor =
     Eth.call
@@ -42,7 +54,10 @@ getRedeemable amount msgConstructor =
 
 unpackCalculatedRedemptionValue : Death.CalculateRedemptionValue -> ( TokenValue, TokenValue, TokenValue )
 unpackCalculatedRedemptionValue data =
-    ( TokenValue.tokenValue data.totalCollateralRedeemed, TokenValue.tokenValue data.fee, TokenValue.tokenValue data.collateralReturned )
+    ( TokenValue.tokenValue data.totalCollateralRedeemed
+    , TokenValue.tokenValue data.fee
+    , TokenValue.tokenValue data.collateralReturned
+    )
 
 
 approveDEthToken : Eth.Send
@@ -52,3 +67,11 @@ approveDEthToken =
         Config.derivedEthContractAddress
         (TokenValue.maxTokenValue |> TokenValue.getEvmValue)
         |> Eth.toSend
+
+
+unpackCalculatedIssuanceAmount : Death.CalculateIssuanceAmount -> ( TokenValue, TokenValue, TokenValue )
+unpackCalculatedIssuanceAmount data =
+    ( TokenValue.tokenValue data.actualCollateralAdded
+    , TokenValue.tokenValue data.fee
+    , TokenValue.tokenValue data.tokensIssued
+    )

@@ -1,7 +1,6 @@
-module Stats.View exposing (view)
+module View.Stats exposing (view)
 
 import Common.Types exposing (..)
-import Common.View exposing (..)
 import Config
 import Dict exposing (Dict)
 import Dict.Extra
@@ -20,6 +19,7 @@ import Stats.Types exposing (..)
 import Theme exposing (darkTheme, defaultTheme)
 import Time
 import TokenValue exposing (TokenValue)
+import View.Common exposing (..)
 import Wallet exposing (Wallet)
 
 

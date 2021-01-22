@@ -43,9 +43,12 @@ type alias UserDerivedEthInfo =
     { ethBalance : TokenValue
     , dEthBalance : TokenValue
     , totalCollateralRedeemed : TokenValue
-    , fee : TokenValue
+    , redeemFee : TokenValue
     , collateralReturned : TokenValue
     , dEthAllowance : TokenValue
+    , actualCollateralAdded : TokenValue
+    , depositFee : TokenValue
+    , tokensIssued : TokenValue
     }
 
 

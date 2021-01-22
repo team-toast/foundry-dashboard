@@ -1,4 +1,4 @@
-module Common.View exposing (..)
+module View.Common exposing (..)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (..)

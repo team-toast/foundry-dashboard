@@ -1,7 +1,6 @@
-module Farm.View exposing (..)
+module View.Farm exposing (..)
 
 import Common.Types exposing (..)
-import Common.View
 import Config
 import Css exposing (calc)
 import Element exposing (Attribute, Element)
@@ -20,6 +19,7 @@ import Maybe.Extra
 import Theme
 import Time
 import TokenValue exposing (TokenValue)
+import View.Common
 import Wallet exposing (Wallet)
 
 
@@ -217,7 +217,7 @@ balancesElement :
 balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
     case Wallet.userInfo wallet of
         Nothing ->
-            Common.View.web3ConnectButton
+            View.Common.web3ConnectButton
                 dProfile
                 [ Element.centerY
                 , Element.centerX

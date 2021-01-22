@@ -57,7 +57,9 @@ update msg prevModel =
                 { prevModel
                     | depositAmount = amount
                 }
-                Cmd.none
+                (fetchIssuanceDetail
+                    amount
+                )
                 []
                 []
 
@@ -139,9 +141,12 @@ update msg prevModel =
                                         { ethBalance = tokenValue
                                         , dEthBalance = TokenValue.zero
                                         , totalCollateralRedeemed = TokenValue.zero
-                                        , fee = TokenValue.zero
+                                        , redeemFee = TokenValue.zero
                                         , collateralReturned = TokenValue.zero
                                         , dEthAllowance = TokenValue.zero
+                                        , actualCollateralAdded = TokenValue.zero
+                                        , depositFee = TokenValue.zero
+                                        , tokensIssued = TokenValue.zero
                                         }
 
                                     Just oldUserDerivedEthInfoModel ->
@@ -173,9 +178,12 @@ update msg prevModel =
                                         { ethBalance = TokenValue.zero
                                         , dEthBalance = tokenValue
                                         , totalCollateralRedeemed = TokenValue.zero
-                                        , fee = TokenValue.zero
+                                        , redeemFee = TokenValue.zero
                                         , collateralReturned = TokenValue.zero
                                         , dEthAllowance = TokenValue.zero
+                                        , actualCollateralAdded = TokenValue.zero
+                                        , depositFee = TokenValue.zero
+                                        , tokensIssued = TokenValue.zero
                                         }
 
                                     Just oldUserDerivedEthInfoModel ->
@@ -207,15 +215,18 @@ update msg prevModel =
                                         { ethBalance = TokenValue.zero
                                         , dEthBalance = TokenValue.zero
                                         , totalCollateralRedeemed = totalCollateral
-                                        , fee = fee
+                                        , redeemFee = fee
                                         , collateralReturned = returnedCollateral
                                         , dEthAllowance = TokenValue.zero
+                                        , actualCollateralAdded = TokenValue.zero
+                                        , depositFee = TokenValue.zero
+                                        , tokensIssued = TokenValue.zero
                                         }
 
                                     Just oldUserDerivedEthInfoModel ->
                                         { oldUserDerivedEthInfoModel
                                             | totalCollateralRedeemed = totalCollateral
-                                            , fee = fee
+                                            , redeemFee = fee
                                             , collateralReturned = returnedCollateral
                                         }
                                 )
@@ -387,6 +398,45 @@ update msg prevModel =
                 []
                 []
 
+        DerivedEthIssuanceDetailFetched fetchResult ->
+            case fetchResult of
+                Err _ ->
+                    UpdateResult
+                        prevModel
+                        Cmd.none
+                        []
+                        []
+
+                Ok ( actualCollateralAdded, depositFee, tokensIssued ) ->
+                    UpdateResult
+                        { prevModel
+                            | userDerivedEthInfo =
+                                (case prevModel.userDerivedEthInfo of
+                                    Nothing ->
+                                        { ethBalance = TokenValue.zero
+                                        , dEthBalance = TokenValue.zero
+                                        , totalCollateralRedeemed = TokenValue.zero
+                                        , redeemFee = TokenValue.zero
+                                        , collateralReturned = TokenValue.zero
+                                        , dEthAllowance = TokenValue.zero
+                                        , actualCollateralAdded = actualCollateralAdded
+                                        , depositFee = depositFee
+                                        , tokensIssued = tokensIssued
+                                        }
+
+                                    Just oldUserDerivedEthInfoModel ->
+                                        { oldUserDerivedEthInfoModel
+                                            | actualCollateralAdded = actualCollateralAdded
+                                            , depositFee = depositFee
+                                            , tokensIssued = tokensIssued
+                                        }
+                                )
+                                    |> Just
+                        }
+                        Cmd.none
+                        []
+                        []
+
         Tick _ ->
             let
                 userInfo =
@@ -471,6 +521,18 @@ fetchDerivedEthBalance wallet =
                 derivedEthContractAddress
                 userInfo.address
                 UserDerivedEthBalanceFetched
+
+
+fetchIssuanceDetail : String -> Cmd Msg
+fetchIssuanceDetail depositAmount =
+    case TokenValue.fromString depositAmount of
+        Nothing ->
+            Cmd.none
+
+        Just amount ->
+            Death.getIssuanceDetail
+                amount
+                DerivedEthIssuanceDetailFetched
 
 
 fetchDethPositionInfo :

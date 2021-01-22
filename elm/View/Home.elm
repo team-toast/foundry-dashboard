@@ -1,7 +1,6 @@
-module Home.View exposing (view)
+module View.Home exposing (view)
 
 import Common.Types exposing (..)
-import Common.View exposing (..)
 import Config
 import Dict exposing (Dict)
 import Dict.Extra
@@ -18,6 +17,7 @@ import Home.Types exposing (..)
 import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
+import View.Common exposing (..)
 import Wallet exposing (Wallet)
 
 
