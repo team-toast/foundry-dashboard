@@ -1,9 +1,6 @@
 module Routing exposing (..)
 
-import Common.Types exposing (..)
 import Eth.Types exposing (Address, Hex)
-import Eth.Utils
-import Result.Extra
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)

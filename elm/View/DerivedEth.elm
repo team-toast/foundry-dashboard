@@ -1,7 +1,5 @@
 module View.DerivedEth exposing (view)
 
-import Common.Types exposing (..)
-import DerivedEth.Types exposing (..)
 import Element exposing (Attribute, Element, alignLeft, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
@@ -9,17 +7,15 @@ import Element.Font
 import Element.Input
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Html exposing (th)
+import Misc exposing (derivedEthInfoInit)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
+import Types exposing (JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
 import View.Common exposing (..)
 import Wallet exposing (Wallet)
 
 
-view :
-    DisplayProfile
-    -> Maybe UserInfo
-    -> Model
-    -> Element Msg
+view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
 view dProfile maybeUserInfo model =
     [ titleEl dProfile
     , mainEl
@@ -51,9 +47,7 @@ view dProfile maybeUserInfo model =
             ]
 
 
-titleEl :
-    DisplayProfile
-    -> Element Msg
+titleEl : DisplayProfile -> Element Msg
 titleEl dProfile =
     [ text "\"Prepare to have your face ripped off by the Dragon.\" - dETH" ]
         |> paragraph
@@ -71,14 +65,7 @@ titleEl dProfile =
             ]
 
 
-mainEl :
-    DisplayProfile
-    -> String
-    -> String
-    -> JurisdictionCheckStatus
-    -> Maybe UserInfo
-    -> Maybe UserDerivedEthInfo
-    -> Element Msg
+mainEl : DisplayProfile -> String -> String -> JurisdictionCheckStatus -> Maybe UserInfo -> Maybe UserDerivedEthInfo -> Element Msg
 mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUserInfo maybeUserDerivedEthInfo =
     (case maybeUserInfo of
         Nothing ->
@@ -151,17 +138,17 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
 
         msg2 =
             if tokenName == "ETH" then
-                DepositAmountChanged
+                Types.DepositAmountChanged
 
             else
-                WithdrawalAmountChanged
+                Types.WithdrawalAmountChanged
 
         msg3 =
             if tokenName == "ETH" then
-                DepositClicked
+                Types.DepositClicked
 
             else
-                WithdrawClicked
+                Types.WithdrawClicked
 
         msg3Amount =
             case TokenValue.fromString inputAmount of
@@ -468,14 +455,14 @@ verifyJurisdictionButtonOrResult :
     -> Element Msg
 verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
     case jurisdictionCheckStatus of
-        WaitingForClick ->
+        Types.WaitingForClick ->
             EH.redButton
                 dProfile
                 [ Element.width Element.fill ]
                 [ "Confirm you are not a US citizen" ]
-                VerifyJurisdictionClicked
+                Types.VerifyJurisdictionClicked
 
-        Checking ->
+        Types.Checking ->
             EH.disabledButton
                 dProfile
                 [ Element.width Element.fill
@@ -484,7 +471,7 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                 "Verifying Jurisdiction..."
                 Nothing
 
-        Error errStr ->
+        Types.Error errStr ->
             Element.column
                 [ Element.spacing 10
                 , Element.width Element.fill
@@ -495,13 +482,13 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                     EH.red
                 ]
 
-        Checked ForbiddenJurisdictions ->
+        Types.Checked ForbiddenJurisdictions ->
             msgInsteadOfButton
                 dProfile
                 "Sorry, US citizens and residents are excluded."
                 EH.red
 
-        Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+        Types.Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
             msgInsteadOfButton
                 dProfile
                 "Jurisdiction Verified."

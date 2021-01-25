@@ -1,11 +1,8 @@
 module View.Common exposing (..)
 
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
-import Element.Events
 import Element.Font
 import Element.Input
 import ElementMarkdown
@@ -14,7 +11,7 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Time as TimeHelpers
 import Phace
-import Routing exposing (Route)
+import Ports
 import Theme exposing (defaultTheme)
 import Time
 
@@ -37,14 +34,13 @@ shortenedHash hash =
 web3ConnectButton :
     EH.DisplayProfile
     -> List (Attribute msg)
-    -> (MsgUp -> msg)
     -> Element msg
-web3ConnectButton dProfile attrs msgMapper =
+web3ConnectButton dProfile attrs =
     defaultTheme.emphasizedActionButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        (msgMapper ConnectToWeb3)
+        (msgMapper Ports.connectToWeb3)
 
 
 phaceElement :
@@ -101,17 +97,9 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
                         ]
                         (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
-    Element.el
-        (if showAddress then
-            [ Element.inFront <| addressOutputEl ()
-            , Element.alignTop
-            ]
-
-         else
-            [ Element.alignTop ]
-        )
-    <|
-        Element.el
+    Phace.fromEthAddress fromAddress 100 100
+        |> Element.html
+        |> Element.el
             [ Element.Border.rounded 10
             , Element.clip
             , Element.pointer
@@ -119,9 +107,15 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
             , Element.Border.width 2
             , Element.Border.color EH.black
             ]
-        <|
-            Element.html
-                (Phace.fromEthAddress fromAddress)
+        |> Element.el
+            (if showAddress then
+                [ Element.inFront <| addressOutputEl ()
+                , Element.alignTop
+                ]
+
+             else
+                [ Element.alignTop ]
+            )
 
 
 loadingElement :

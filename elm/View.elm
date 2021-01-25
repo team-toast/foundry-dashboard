@@ -1,8 +1,6 @@
 module View exposing (root)
 
 import Browser
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -41,7 +39,6 @@ import View.Farm as Farm
 import View.Home as Home
 import View.Sentiment as Sentiment
 import View.Stats as Stats
-import Wallet exposing (Wallet)
 
 
 root :
@@ -73,10 +70,10 @@ modals :
 modals model =
     Maybe.Extra.values
         ([ if not model.cookieConsentGranted then
-            Just <| viewCookieConsentModal model.dProfile
+            viewCookieConsentModal model.dProfile
 
            else
-            Nothing
+            Element.none
          ]
             ++ List.map Just
                 (userNoticeEls
@@ -142,7 +139,7 @@ body model =
             model.dProfile
             model.trackedTxs
             model.trackedTxsExpanded
-            (Wallet.userInfo model.wallet)
+            (userInfo model.wallet)
             model.showAddressId
         , case model.submodel of
             BlankInitialSubmodel ->
@@ -344,7 +341,6 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
                                 ]
                        )
                 )
-                MsgUp
 
         Just userInfo ->
             phaceElement

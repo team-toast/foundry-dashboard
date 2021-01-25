@@ -1,6 +1,5 @@
 module View.Farm exposing (..)
 
-import Common.Types exposing (..)
 import Config
 import Css exposing (calc)
 import Element exposing (Attribute, Element)
@@ -10,7 +9,6 @@ import Element.Events
 import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
-import Farm.Types exposing (..)
 import FormatFloat
 import Helpers.Element as EH exposing (DisplayProfile, redButton, responsiveVal)
 import Helpers.Time as TimeHelpers
@@ -20,7 +18,6 @@ import Theme
 import Time
 import TokenValue exposing (TokenValue)
 import View.Common
-import Wallet exposing (Wallet)
 
 
 view :

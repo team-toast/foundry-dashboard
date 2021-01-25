@@ -1,7 +1,6 @@
 module Contracts.Staking exposing (..)
 
 import BigInt exposing (BigInt)
-import Common.Types exposing (UserStakingInfo)
 import Config
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingContract
@@ -14,6 +13,7 @@ import Helpers.Time as TimeHelpers
 import Http
 import Task
 import TokenValue exposing (TokenValue)
+import Types exposing (UserStakingInfo)
 
 
 approveLiquidityToken : Eth.Send

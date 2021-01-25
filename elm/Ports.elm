@@ -1,7 +1,6 @@
 port module Ports exposing (..)
 
 import Json.Decode
-import Json.Encode
 
 
 port walletSentryPort : (Json.Decode.Value -> msg) -> Sub msg
@@ -26,3 +25,15 @@ port beginLocationCheck : () -> Cmd msg
 
 
 port locationCheckResult : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port web3Sign : Json.Decode.Value -> Cmd msg
+
+
+port web3SignResult : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port web3ValidateSig : Json.Decode.Value -> Cmd msg
+
+
+port web3ValidateSigResult : (Json.Decode.Value -> msg) -> Sub msg
