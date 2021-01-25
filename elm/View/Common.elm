@@ -5,10 +5,10 @@ import Element.Background
 import Element.Border
 import Element.Font
 import Element.Input
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Time as TimeHelpers
 import Phace
 import Ports
@@ -40,7 +40,7 @@ web3ConnectButton dProfile attrs =
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        (msgMapper Ports.connectToWeb3)
+        (EH.Action <| msgMapper ConnectToWeb3)
 
 
 phaceElement :

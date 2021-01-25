@@ -4,7 +4,7 @@ import Element exposing (Attribute, Color, Element)
 import Element.Background
 import Element.Border
 import Element.Font
-import Helpers.Element as EH
+import ElementHelpers as EH
 
 
 type alias Theme msg =
@@ -26,9 +26,9 @@ type alias Theme msg =
     , daiBurnedTextIsWhite : Bool
     , daiTippedBackground : Color
     , daiTippedTextIsWhite : Bool
-    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-    , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
+    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+    , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg
     }
 
 
@@ -87,6 +87,10 @@ darkRed =
 
 darkGray =
     Element.rgb255 150 150 150
+
+
+red =
+    Element.rgb255 226 1 79
 
 
 blue =
@@ -180,8 +184,8 @@ whiteGlowInnerRounded =
 --     Element.rgb255 242 243 247
 
 
-blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-blueButton dProfile attributes text msg =
+blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+blueButton dProfile attributes text action =
     EH.button dProfile
         attributes
         ( Element.rgba 0 0 1 1
@@ -190,11 +194,11 @@ blueButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        action
 
 
-lightBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-lightBlueButton dProfile attributes text msg =
+lightBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+lightBlueButton dProfile attributes text action =
     let
         color =
             Element.rgb255 25 169 214
@@ -207,11 +211,11 @@ lightBlueButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        action
 
 
-inverseBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-inverseBlueButton dProfile attributes text msg =
+inverseBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+inverseBlueButton dProfile attributes text action =
     EH.button dProfile
         attributes
         ( Element.rgba 0 0 1 0.05
@@ -220,11 +224,11 @@ inverseBlueButton dProfile attributes text msg =
         )
         blue
         text
-        msg
+        action
 
 
-redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-redButton dProfile attributes text msg =
+redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+redButton dProfile attributes text action =
     EH.button
         dProfile
         attributes
@@ -234,11 +238,11 @@ redButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        action
 
 
-disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
-disabledButton dProfile attributes text =
+disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg
+disabledButton dProfile attributes text maybeTipText =
     Element.el
         ([ Element.Border.rounded 4
          , EH.responsiveVal
@@ -255,7 +259,37 @@ disabledButton dProfile attributes text =
          , Element.Background.color lightGray
          , Element.Font.center
          , EH.noSelectText
+         , Element.above <|
+            maybeErrorElement
+                [ Element.moveUp 5 ]
+                maybeTipText
          ]
             ++ attributes
         )
         (Element.el [ Element.centerY, Element.centerX ] <| Element.text text)
+
+
+maybeErrorElement : List (Attribute msg) -> Maybe String -> Element msg
+maybeErrorElement attributes maybeError =
+    case maybeError of
+        Nothing ->
+            Element.none
+
+        Just errorString ->
+            Element.el
+                ([ Element.Border.rounded 5
+                 , Element.Border.color softRed
+                 , Element.Border.width 1
+                 , Element.Background.color <| Element.rgb 1 0.4 0.4
+                 , Element.padding 5
+                 , Element.centerX
+                 , Element.centerY
+                 , Element.width (Element.shrink |> Element.maximum 200)
+                 , Element.Font.size 14
+                 ]
+                    ++ attributes
+                )
+                (Element.paragraph
+                    []
+                    [ Element.text errorString ]
+                )

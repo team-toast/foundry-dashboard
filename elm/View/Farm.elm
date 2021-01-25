@@ -8,9 +8,9 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import ElementHelpers as EH exposing (DisplayProfile, responsiveVal)
 import Eth.Types exposing (Address)
 import FormatFloat
-import Helpers.Element as EH exposing (DisplayProfile, redButton, responsiveVal)
 import Helpers.Time as TimeHelpers
 import Images
 import Maybe.Extra
@@ -103,7 +103,7 @@ subTitleEl dProfile now =
 
             else
                 "Farming ends in "
-                    ++ TimeHelpers.toDetailIntervalString
+                    ++ TimeHelpers.toConciseIntervalString
                         (TimeHelpers.sub
                             (TimeHelpers.secondsToPosix Config.farmingPeriodEnds)
                             now
@@ -305,7 +305,7 @@ apyElement dProfile now maybeApy =
                     , Element.padding 5
                     , Element.Background.color <| Element.rgba 1 1 1 0.3
                     , Element.Border.rounded 5
-                    , Element.Border.glow EH.lightGray 1
+                    , Element.Border.glow Theme.lightGray 1
                     ]
                     [ Element.el
                         [ Element.Font.color EH.white ]
@@ -833,7 +833,7 @@ mainRow dProfile =
         , Element.Background.color <| Element.rgba 1 1 1 0.15
         , Element.padding 10
         , Element.Border.rounded 5
-        , Element.Border.glow EH.lightGray 1
+        , Element.Border.glow Theme.lightGray 1
         , Element.Font.size <| responsiveVal dProfile 30 24
         , Element.width <|
             responsiveVal
@@ -1013,7 +1013,7 @@ actionButtonStyles dProfile maybeHoverText maybeOnClick =
     , Element.Border.color <| Element.rgba 0 0 0 0.2
     ]
         ++ Maybe.Extra.values
-            [ Maybe.map EH.withTitle maybeHoverText ]
+            [ Maybe.map EH.withHovertext maybeHoverText ]
         ++ (case maybeOnClick of
                 Just onClick ->
                     [ Element.pointer
@@ -1052,14 +1052,14 @@ verifyJurisdictionButtonOrResult :
 verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
     case jurisdictionCheckStatus of
         WaitingForClick ->
-            EH.redButton
+            Theme.redButton
                 dProfile
                 [ Element.width Element.fill ]
                 [ "Confirm you are not a US citizen" ]
-                VerifyJurisdictionClicked
+                (EH.Action VerifyJurisdictionClicked)
 
         Checking ->
-            EH.disabledButton
+            Theme.disabledButton
                 dProfile
                 [ Element.width Element.fill
                 , Element.Font.color EH.black
@@ -1075,20 +1075,20 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                 [ msgInsteadOfButton
                     dProfile
                     "Error verifying jurisdiction."
-                    EH.red
+                    Theme.red
                 ]
 
         Checked ForbiddenJurisdictions ->
             msgInsteadOfButton
                 dProfile
                 "Sorry, US citizens and residents are excluded."
-                EH.red
+                Theme.red
 
         Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
             msgInsteadOfButton
                 dProfile
                 "Jurisdiction Verified."
-                EH.green
+                Theme.green
 
 
 verifyJurisdictionErrorEl :

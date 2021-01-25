@@ -5,13 +5,16 @@ import Array exposing (Array)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
+import ElementHelpers as EH
 import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
-import Eth.Types exposing (Address, TxHash, TxReceipt)
+import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
+import Farm.Types as Farm
 import Graphql.Http
 import Helpers.Element as EH
+import Home.Types as Home
 import Http
 import Json.Decode
 import Routing exposing (Route)

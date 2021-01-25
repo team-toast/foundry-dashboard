@@ -10,9 +10,11 @@ import Element.Events
 import Element.Font
 import Element.Input
 import Element.Lazy
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
+import Farm.View as Farm
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
@@ -122,7 +124,10 @@ viewCookieConsentModal dProfile =
                 }
             , Element.text "."
             ]
-        , Theme.blueButton dProfile [] [ "Understood" ] CookieConsentGranted
+        , Theme.blueButton dProfile
+            []
+            [ "Understood" ]
+            (EH.Action CookieConsentGranted)
         ]
 
 
