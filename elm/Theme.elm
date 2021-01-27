@@ -63,20 +63,6 @@ basicTheme =
     }
 
 
-darkTheme : Theme msg
-darkTheme =
-    { basicTheme
-        | appBackground = veryDarkGray
-        , blockBackground = darkBlue
-        , mainTextColor = almostWhite
-        , emphasizedTextColor = EH.white
-        , loadingTextColor = lightGray
-        , appStatusTextColor = lightGray
-        , daiBurnedBackground = darkRed
-        , daiBurnedTextIsWhite = True
-    }
-
-
 softRed =
     Element.rgb255 255 0 110
 
