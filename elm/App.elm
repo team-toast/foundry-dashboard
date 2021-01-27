@@ -3,9 +3,11 @@ module App exposing (main)
 import Browser.Hash as Hash
 import Browser.Navigation
 import Config
+import Eth.Sentry.Event exposing (EventSentry)
 import Json.Decode
 import Misc exposing (emptyModel, fetchAllPollsCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, locationCheckDecoder)
 import Ports
+import Routing
 import Time
 import Types exposing (..)
 import Update
@@ -28,11 +30,22 @@ main =
 init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
+        model =
+            emptyModel key now flags.basePath
+
         now =
             flags.nowInMillis
                 |> Time.millisToPosix
+
+        route =
+            Routing.urlToRoute url
+
+        model2 =
+            { model
+                | route = route
+            }
     in
-    ( emptyModel key now
+    ( model2
     , let
         getEthPrice =
             fetchEthPrice

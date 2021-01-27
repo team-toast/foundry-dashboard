@@ -42,7 +42,49 @@ update msg prevModel =
             ( prevModel, cmd )
 
         UrlChanged url ->
-            prevModel |> updateFromPageRoute (url |> Routing.urlToRoute)
+            case Routing.urlToRoute url of
+                Routing.Home ->
+                    ( { prevModel
+                        | route = Routing.Home
+                      }
+                    , Cmd.none
+                    )
+
+                Routing.Sentiment ->
+                    ( { prevModel
+                        | route = Routing.Sentiment
+                      }
+                    , Cmd.none
+                    )
+
+                Routing.Stats ->
+                    ( { prevModel
+                        | route = Routing.Stats
+                      }
+                    , Cmd.none
+                    )
+
+                Routing.Farm ->
+                    ( { prevModel
+                        | route = Routing.Farm
+                      }
+                    , Cmd.none
+                    )
+
+                Routing.DerivedEth ->
+                    ( { prevModel
+                        | route = Routing.DerivedEth
+                      }
+                    , Cmd.none
+                    )
+
+                Routing.NotFound err ->
+                    ( { prevModel
+                        | route = Routing.NotFound "url not found"
+                      }
+                        |> addUserNotice routeNotFound
+                    , Cmd.none
+                    )
 
         Tick i ->
             let
@@ -1202,38 +1244,6 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        -- LocationCheckResult decodeResult ->
-        --     let
-        --         jurisdictionCheckStatus =
-        --             locationCheckResultToJurisdictionStatus decodeResult
-        --     in
-        --     ( { prevModel
-        --         | jurisdictionCheckStatus = jurisdictionCheckStatus
-        --       }
-        --     , case jurisdictionCheckStatus of
-        --         WaitingForClick ->
-        --             Cmd.none
-        --         Checking ->
-        --             Cmd.none
-        --         Checked ForbiddenJurisdictions ->
-        --             handleGTag
-        --                 "jurisdiction not allowed"
-        --                 "funnel abort"
-        --                 ""
-        --                 0
-        --         Checked _ ->
-        --             handleGTag
-        --                 "3b - jurisdiction verified"
-        --                 "funnel"
-        --                 ""
-        --                 0
-        --         Error error ->
-        --             handleGTag
-        --                 "failed jursidiction check"
-        --                 "funnel abort"
-        --                 error
-        --                 0
-        --     )
         ApproveTokenSpend ->
             ( prevModel
             , Cmd.none

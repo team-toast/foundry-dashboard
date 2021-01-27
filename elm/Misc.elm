@@ -44,8 +44,8 @@ import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
 
 
-emptyModel : Browser.Navigation.Key -> Time.Posix -> Model
-emptyModel key now =
+emptyModel : Browser.Navigation.Key -> Time.Posix -> String -> Model
+emptyModel key now basePath =
     let
         txSentry =
             TxSentry.init
@@ -53,7 +53,7 @@ emptyModel key now =
                 Types.TxSentryMsg
                 Config.httpProviderUrl
 
-        ( eventSentry, eventSentryCmd ) =
+        ( eventSentry, sentryCmd ) =
             EventSentry.init
                 Types.EventSentryMsg
                 Config.httpProviderUrl
@@ -64,7 +64,7 @@ emptyModel key now =
             )
     in
     { navKey = key
-    , basePath = ""
+    , basePath = basePath
     , route = Routing.Sentiment
     , wallet = wallet
     , now = now
