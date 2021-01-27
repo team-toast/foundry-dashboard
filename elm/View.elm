@@ -1,7 +1,7 @@
 module View exposing (view)
 
 import Browser
-import Element exposing (Element)
+import Element exposing (Element, column, el, row)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -81,7 +81,7 @@ modals model =
 
 viewCookieConsentModal : DisplayProfile -> Element Msg
 viewCookieConsentModal dProfile =
-    Element.row
+    row
         [ Element.alignBottom
         , responsiveVal dProfile Element.centerX (Element.width Element.fill)
         , Element.Border.roundEach
@@ -125,7 +125,7 @@ viewCookieConsentModal dProfile =
 
 viewPage : Model -> Element Msg
 viewPage model =
-    Element.column
+    column
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.appBackground
         , Element.height Element.fill
@@ -170,7 +170,7 @@ header :
     -> Maybe PhaceIconId
     -> Element Msg
 header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
-    Element.row
+    row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
         , Element.padding <|
@@ -191,7 +191,7 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
             Desktop ->
                 [ logoBlock dProfile
                 , (Maybe.map
-                    (Element.el
+                    (el
                         [ Element.alignTop
                         , Element.alignRight
                         ]
@@ -200,42 +200,37 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
                     maybeTxTracker dProfile trackedTxsExpanded trackedTxs
                   )
                     |> Maybe.withDefault Element.none
-                , Element.el
-                    [ Element.centerY
-                    , Element.alignRight
-                    ]
-                  <|
-                    connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                    |> el
+                        [ Element.centerY
+                        , Element.alignRight
+                        ]
                 ]
 
             Mobile ->
-                [ Element.column
-                    [ Element.alignTop
-                    , Element.alignLeft
-                    ]
-                    [ Element.el
+                [ [ logoBlock dProfile
+                        |> el
+                            [ Element.alignTop
+                            , Element.alignLeft
+                            ]
+                  , maybeTxTracker dProfile trackedTxsExpanded trackedTxs
+                        |> Maybe.map
+                            (el
+                                [ Element.alignTop
+                                , Element.alignRight
+                                ]
+                            )
+                        |> Maybe.withDefault Element.none
+                  ]
+                    |> column
                         [ Element.alignTop
                         , Element.alignLeft
                         ]
-                      <|
-                        logoBlock dProfile
-                    , (Maybe.map
-                        (Element.el
-                            [ Element.alignTop
-                            , Element.alignRight
-                            ]
-                        )
-                       <|
-                        maybeTxTracker dProfile trackedTxsExpanded trackedTxs
-                      )
-                        |> Maybe.withDefault Element.none
-                    ]
-                , Element.el
-                    [ Element.centerY
-                    , Element.alignRight
-                    ]
-                  <|
-                    connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                    |> el
+                        [ Element.centerY
+                        , Element.alignRight
+                        ]
                 ]
         )
 
@@ -244,20 +239,8 @@ logoBlock :
     DisplayProfile
     -> Element Msg
 logoBlock dProfile =
-    Element.row
-        [ Element.height Element.fill
-        , Element.padding <|
-            responsiveVal
-                dProfile
-                10
-                7
-        , Element.spacing <|
-            responsiveVal
-                dProfile
-                20
-                10
-        ]
-        [ Images.toElement
+    [ Images.fryIcon
+        |> Images.toElement
             [ Element.centerY
             , Element.width <|
                 Element.px <|
@@ -266,10 +249,8 @@ logoBlock dProfile =
                         60
                         30
             ]
-            Images.fryIcon
-        , Element.column
-            [ Element.spacing 5 ]
-            [ Element.el
+    , [ Element.text "Foundry Dashboard"
+            |> el
                 [ Element.Font.color EH.white
                 , Element.Font.size <|
                     responsiveVal
@@ -279,9 +260,11 @@ logoBlock dProfile =
                 , Element.Font.bold
                 , Element.centerY
                 ]
-              <|
-                Element.text "Foundry Dashboard"
-            , Element.newTabLink
+      , { url = "https://foundrydao.com"
+        , label =
+            Element.text "What is Foundry?"
+        }
+            |> Element.newTabLink
                 [ Element.alignLeft
                 , Element.Background.color Theme.blue
                 , Element.paddingXY 10 3
@@ -293,12 +276,23 @@ logoBlock dProfile =
                         18
                         10
                 ]
-                { url = "https://foundrydao.com"
-                , label =
-                    Element.text "What is Foundry?"
-                }
+      ]
+        |> column
+            [ Element.spacing 5 ]
+    ]
+        |> row
+            [ Element.height Element.fill
+            , Element.padding <|
+                responsiveVal
+                    dProfile
+                    10
+                    7
+            , Element.spacing <|
+                responsiveVal
+                    dProfile
+                    20
+                    10
             ]
-        ]
 
 
 connectButtonOrPhace :
@@ -343,7 +337,7 @@ userNoticeEls dProfile notices =
         []
 
     else
-        [ Element.column
+        [ column
             [ Element.moveLeft <|
                 EH.responsiveVal
                     dProfile
@@ -378,7 +372,7 @@ userNoticeEls dProfile notices =
                 |> List.filter (\( _, notice ) -> notice.align == UN.BottomRight)
                 |> List.map (userNotice dProfile)
             )
-        , Element.column
+        , column
             [ Element.moveRight <|
                 EH.responsiveVal
                     dProfile
@@ -449,7 +443,7 @@ userNotice dProfile ( id, notice ) =
                 EH.black
                 (DismissNotice id)
     in
-    Element.el
+    el
         [ Element.Background.color color
         , Element.Border.rounded <|
             EH.responsiveVal
@@ -483,7 +477,7 @@ userNotice dProfile ( id, notice ) =
                             paragraphLines
                         )
                 )
-            |> Element.column
+            |> column
                 [ Element.spacing 4
                 , Element.width Element.fill
                 ]
@@ -533,7 +527,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                     |> TupleHelpers.mapEachTuple3
                         (Maybe.map
                             (\n ->
-                                Element.el
+                                el
                                     [ Element.Font.color <| trackedTxMiningColor ]
                                 <|
                                     Element.text <|
@@ -543,7 +537,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
                         (Maybe.map
                             (\n ->
-                                Element.el
+                                el
                                     [ Element.Font.color <| trackedTxSuccessColor ]
                                 <|
                                     Element.text <|
@@ -553,7 +547,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
                         (Maybe.map
                             (\n ->
-                                Element.el
+                                el
                                     [ Element.Font.color <| trackedTxFailedColor ]
                                 <|
                                     Element.text <|
@@ -568,10 +562,10 @@ maybeTxTracker dProfile showExpanded trackedTxs =
 
         else
             Just <|
-                Element.el
+                el
                     [ Element.below <|
                         if showExpanded then
-                            Element.el
+                            el
                                 [ Element.alignRight
                                 , Element.alignTop
                                 ]
@@ -582,7 +576,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                             Element.none
                     ]
                 <|
-                    Element.column
+                    column
                         [ Element.Border.rounded 5
                         , Element.Border.width 2
                         , Element.Border.color Theme.blue
@@ -619,7 +613,7 @@ trackedTxsColumn :
     UserTx.Tracker Msg
     -> Element Msg
 trackedTxsColumn trackedTxs =
-    Element.column
+    column
         [ Element.Background.color <| Theme.lightBlue
         , Element.Border.rounded 3
         , Element.Border.glow
@@ -707,7 +701,7 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                 UserTx.Success txReceipt ->
                     etherscanLink "Mined"
     in
-    Element.row
+    row
         [ Element.width <| Element.px 300
         , Element.Background.color
             (signedTxStatusToColor signedTxStatus
@@ -721,7 +715,7 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
         , Element.Font.size 20
         ]
         [ titleEl
-        , Element.el [ Element.alignRight ] <| statusEl
+        , el [ Element.alignRight ] <| statusEl
         ]
 
 

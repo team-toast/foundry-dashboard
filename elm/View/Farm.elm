@@ -1,7 +1,7 @@
 module View.Farm exposing (..)
 
 import Config
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, el, text)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -26,7 +26,7 @@ view model =
         dProfile =
             model.dProfile
     in
-    Element.el
+    el
         [ Element.width Element.fill
         , Element.paddingEach
             { top =
@@ -62,53 +62,52 @@ view model =
 
 titleEl : DisplayProfile -> Element Msg
 titleEl dProfile =
-    Element.el
-        [ Element.Font.size <|
-            responsiveVal
+    text "Farming for Fryers!"
+        |> el
+            [ Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    50
+                    25
+            , Element.Font.color EH.white
+            , responsiveVal
                 dProfile
-                50
-                25
-        , Element.Font.color EH.white
-        , responsiveVal
-            dProfile
-            Element.Font.bold
-            Element.Font.semiBold
-        , Element.centerX
-        ]
-    <|
-        Element.text "Farming for Fryers!"
+                Element.Font.bold
+                Element.Font.semiBold
+            , Element.centerX
+            ]
 
 
 subTitleEl : DisplayProfile -> Time.Posix -> Element Msg
 subTitleEl dProfile now =
-    Element.el
-        [ Element.Font.size <|
-            responsiveVal
-                dProfile
-                30
-                16
-        , Element.Font.color EH.white
-        , Element.Font.medium
-        , Element.Font.italic
-        , Element.centerX
-        ]
-    <|
-        Element.text <|
-            if calcTimeLeft now <= 0 then
-                "Farming has ended!"
+    (if calcTimeLeft now <= 0 then
+        "Farming has ended!"
 
-            else
-                "Farming ends in "
-                    ++ TimeHelpers.toConciseIntervalString
-                        (TimeHelpers.sub
-                            (TimeHelpers.secondsToPosix Config.farmingPeriodEnds)
-                            now
-                        )
+     else
+        "Farming ends in "
+            ++ TimeHelpers.toConciseIntervalString
+                (TimeHelpers.sub
+                    (TimeHelpers.secondsToPosix Config.farmingPeriodEnds)
+                    now
+                )
+    )
+        |> text
+        |> el
+            [ Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    30
+                    16
+            , Element.Font.color EH.white
+            , Element.Font.medium
+            , Element.Font.italic
+            , Element.centerX
+            ]
 
 
 farmVideoEl : DisplayProfile -> Element Msg
 farmVideoEl dProfile =
-    Element.el
+    el
         [ Element.Font.size <|
             responsiveVal
                 dProfile
@@ -123,7 +122,7 @@ farmVideoEl dProfile =
     <|
         Element.newTabLink
             []
-            { label = Element.text "Click here to learn how to farm $FRY!"
+            { label = text "Click here to learn how to farm $FRY!"
             , url = "https://www.youtube.com/watch?v=AKfuuy7vUjA&ab_channel=FoundryDAO"
             }
 
@@ -218,11 +217,11 @@ balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo
         Just userInfo ->
             case maybeUserStakingInfo of
                 Nothing ->
-                    Element.el
+                    el
                         [ Element.Font.italic
                         , Element.centerY
                         ]
-                        (Element.text "Fetching info...")
+                        (text "Fetching info...")
 
                 Just userStakingInfo ->
                     Element.column
@@ -260,7 +259,7 @@ apyElement :
     -> Maybe Float
     -> Element Msg
 apyElement dProfile now maybeApy =
-    Element.el
+    el
         ([ Element.alignTop
          , Element.alignRight
          , Element.Font.size <|
@@ -280,9 +279,9 @@ apyElement dProfile now maybeApy =
     <|
         case maybeApy of
             Nothing ->
-                Element.el
+                el
                     [ Element.Font.italic ]
-                    (Element.text "Fetching APY...")
+                    (text "Fetching APY...")
 
             Just apy ->
                 let
@@ -301,17 +300,17 @@ apyElement dProfile now maybeApy =
                     , Element.Border.rounded 5
                     , Element.Border.glow Theme.lightGray 1
                     ]
-                    [ Element.el
+                    [ el
                         [ Element.Font.color EH.white ]
                       <|
-                        Element.text "Current APY: "
-                    , Element.el
+                        text "Current APY: "
+                    , el
                         [ Element.centerX
                         , Element.Font.color EH.black
                         , Element.Font.semiBold
                         ]
                       <|
-                        Element.text <|
+                        text <|
                             FormatFloat.formatFloat 2
                                 (if calcTimeLeft now <= 0 then
                                     0
@@ -347,9 +346,9 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
             [ Element.newTabLink
                 [ Element.Font.color Theme.blue ]
                 { url = Config.urlToLiquidityPool
-                , label = Element.text "Obtain ETHFRY Liquidity"
+                , label = text "Obtain ETHFRY Liquidity"
                 }
-            , Element.text " to continue."
+            , text " to continue."
             ]
 
     else
@@ -379,7 +378,7 @@ unstakedRow dProfile now jurisdictionCheckStatus userStakingInfo depositOrWithdr
             dProfile
             "Unstaked Balance"
         , if calcTimeLeft now <= 0 then
-            Element.text "Farming has ended"
+            text "Farming has ended"
 
           else
             unstakedRowUX
@@ -667,16 +666,16 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                     }
 
             Nothing ->
-                Element.el
+                el
                     [ Element.width <|
                         Element.px amountElWidth
                     , Element.clip
                     ]
-                    (Element.text <|
+                    (text <|
                         TokenValue.toFloatString Nothing <|
                             balance
                     )
-        , Element.el
+        , el
             [ Element.width <|
                 responsiveVal
                     dProfile
@@ -690,7 +689,7 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
           <|
             Element.row
                 [ Element.alignRight ]
-                [ Element.text tokenLabel ]
+                [ text tokenLabel ]
         ]
 
 
@@ -841,22 +840,22 @@ rowLabel :
     DisplayProfile
     -> String
     -> Element Msg
-rowLabel dProfile text =
-    Element.el
-        [ Element.width <|
-            responsiveVal
-                dProfile
-                (Element.px 280)
-                Element.fill
-        , Element.Font.size <|
-            responsiveVal
-                dProfile
-                40
-                20
-        , Element.Font.regular
-        , Element.Font.color EH.white
-        ]
-        (Element.text text)
+rowLabel dProfile textToDisplay =
+    text textToDisplay
+        |> el
+            [ Element.width <|
+                responsiveVal
+                    dProfile
+                    (Element.px 280)
+                    Element.fill
+            , Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    40
+                    20
+            , Element.Font.regular
+            , Element.Font.color EH.white
+            ]
 
 
 commonImageAttributes : DisplayProfile -> List (Attribute msg)
@@ -876,7 +875,7 @@ unlockButton :
     DisplayProfile
     -> Element Msg
 unlockButton dProfile =
-    Element.el
+    el
         (actionButtonStyles
             dProfile
             (Just "Approve ETHFRY for Deposit")
@@ -896,7 +895,7 @@ makeDepositButton :
     -> Maybe Msg
     -> Element Msg
 makeDepositButton dProfile maybeHoverText maybeOnClick =
-    Element.el
+    el
         (actionButtonStyles
             dProfile
             maybeHoverText
@@ -916,7 +915,7 @@ makeWithdrawButton :
     -> Maybe Msg
     -> Element Msg
 makeWithdrawButton dProfile maybeHoverText maybeOnClick =
-    Element.el
+    el
         (actionButtonStyles
             dProfile
             maybeHoverText
@@ -934,7 +933,7 @@ exitButton :
     DisplayProfile
     -> Element Msg
 exitButton dProfile =
-    Element.el
+    el
         (actionButtonStyles
             dProfile
             (Just "Exit with all assets (FRY and ETHFRY)")
@@ -952,7 +951,7 @@ claimRewardsButton :
     DisplayProfile
     -> Element Msg
 claimRewardsButton dProfile =
-    Element.el
+    el
         (actionButtonStyles
             dProfile
             (Just "Claim FRY Rewards")
@@ -970,7 +969,7 @@ uxBackButton :
     DisplayProfile
     -> Element Msg
 uxBackButton dProfile =
-    Element.el
+    el
         (actionButtonStyles
             dProfile
             (Just "Back")
@@ -1025,18 +1024,18 @@ msgInsteadOfButton :
     -> String
     -> Element.Color
     -> Element Msg
-msgInsteadOfButton dProfile text color =
-    Element.el
-        [ Element.centerX
-        , Element.Font.size <|
-            responsiveVal
-                dProfile
-                18
-                12
-        , Element.Font.italic
-        , Element.Font.color color
-        ]
-        (Element.text text)
+msgInsteadOfButton dProfile textToDisplay color =
+    text textToDisplay
+        |> el
+            [ Element.centerX
+            , Element.Font.size <|
+                responsiveVal
+                    dProfile
+                    18
+                    12
+            , Element.Font.italic
+            , Element.Font.color color
+            ]
 
 
 verifyJurisdictionButtonOrResult :
@@ -1107,11 +1106,11 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
                  ]
                     ++ attributes
                 )
-                [ Element.el
+                [ el
                     []
                   <|
-                    Element.text errStr
-                , Element.text "There may be more info in the console."
+                    text errStr
+                , text "There may be more info in the console."
                 ]
 
         _ ->

@@ -375,18 +375,18 @@ inputEl dProfile inputAmount userBalance msg =
                         []
                    )
     in
-    Element.Input.text
-        inputStyles
-        { onChange = msg
-        , text = inputAmount
-        , placeholder =
-            text "Enter Amount"
-                |> Element.Input.placeholder
-                    [ Element.Font.color Theme.almostWhite
-                    ]
-                |> Just
-        , label = Element.Input.labelHidden "amount"
-        }
+    { onChange = msg
+    , text = inputAmount
+    , placeholder =
+        text "Enter Amount"
+            |> Element.Input.placeholder
+                [ Element.Font.color Theme.almostWhite
+                ]
+            |> Just
+    , label = Element.Input.labelHidden "amount"
+    }
+        |> Element.Input.text
+            inputStyles
 
 
 buttonEl :
@@ -395,16 +395,16 @@ buttonEl :
     -> Maybe Msg
     -> Element Msg
 buttonEl dProfile buttonLabel msg =
-    Element.Input.button
-        [ padding 5
-        , Element.Border.rounded 5
-        , Element.Border.glow Theme.lightGray 1
-        , centerX
-        , Element.Background.color Theme.darkerBlue
-        ]
-        { onPress = msg
-        , label = text buttonLabel
-        }
+    { onPress = msg
+    , label = text buttonLabel
+    }
+        |> Element.Input.button
+            [ padding 5
+            , Element.Border.rounded 5
+            , Element.Border.glow Theme.lightGray 1
+            , centerX
+            , Element.Background.color Theme.darkerBlue
+            ]
 
 
 validateInput :
@@ -466,15 +466,15 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                 Nothing
 
         Types.Error errStr ->
-            Element.column
-                [ Element.spacing 10
-                , Element.width Element.fill
-                ]
-                [ msgInsteadOfButton
-                    dProfile
-                    "Error verifying jurisdiction."
-                    red
-                ]
+            [ msgInsteadOfButton
+                dProfile
+                "Error verifying jurisdiction."
+                red
+            ]
+                |> Element.column
+                    [ Element.spacing 10
+                    , Element.width Element.fill
+                    ]
 
         Types.Checked Types.ForbiddenJurisdictions ->
             msgInsteadOfButton
