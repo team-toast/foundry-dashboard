@@ -1,36 +1,23 @@
-module View exposing (root)
+module View exposing (view)
 
 import Browser
-import Dict exposing (Dict)
-import Dict.Extra
-import Element exposing (Attribute, Element)
+import Element exposing (Element)
 import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
-import Element.Input
-import Element.Lazy
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
-import ElementMarkdown
-import Eth.Types exposing (Address, Hex, TxHash)
-import Eth.Utils
-import Farm.View as Farm
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Eth.Types exposing (TxHash)
 import Helpers.Eth as EthHelpers
-import Helpers.List as ListHelpers
-import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
+import Html exposing (Html)
 import Html.Attributes
 import Images
-import Json.Decode
-import List.Extra
 import Maybe.Extra
-import MaybeDebugLog exposing (maybeDebugLog)
-import Phace
-import Routing exposing (Route)
+import Misc exposing (userInfo)
+import Routing
 import Theme exposing (defaultTheme)
-import Time
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
@@ -43,51 +30,56 @@ import View.Sentiment as Sentiment
 import View.Stats as Stats
 
 
-root :
-    Model
-    -> Browser.Document Msg
-root model =
+view : Model -> Browser.Document Msg
+view model =
     { title = "Dashboard - Foundry"
     , body =
-        [ Element.layout
-            ([ Element.width Element.fill
-             , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-             , Element.Events.onClick ClickHappened
-             , Element.Font.family
-                [ Element.Font.typeface "DM Sans"
-                , Element.Font.sansSerif
-                ]
-             ]
-                ++ List.map Element.inFront (modals model)
-            )
-          <|
-            body model
-        ]
+        viewPage model
+            |> render model
+            |> List.singleton
     }
 
 
-modals :
-    Model
-    -> List (Element Msg)
+render : Model -> Element Msg -> Html Msg
+render model =
+    modals model
+        |> List.map Element.inFront
+        |> (++)
+            [ Element.width Element.fill
+            , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+            , Element.Events.onClick ClickHappened
+            , Element.Font.family
+                [ Element.Font.typeface "DM Sans"
+                , Element.Font.sansSerif
+                ]
+            ]
+        |> Element.layoutWith
+            { options =
+                [ Element.focusStyle
+                    { borderColor = Nothing
+                    , backgroundColor = Nothing
+                    , shadow = Nothing
+                    }
+                ]
+            }
+
+
+modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ if not model.cookieConsentGranted then
+        [ if model.cookieConsentGranted then
+            Nothing
+
+          else
             viewCookieConsentModal model.dProfile
-
-           else
-            Element.none
-         ]
-            ++ List.map Just
-                (userNoticeEls
-                    model.dProfile
-                    model.userNotices
-                )
-        )
+                |> Just
+        ]
+        ++ userNoticeEls
+            model.dProfile
+            model.userNotices
 
 
-viewCookieConsentModal :
-    DisplayProfile
-    -> Element Msg
+viewCookieConsentModal : DisplayProfile -> Element Msg
 viewCookieConsentModal dProfile =
     Element.row
         [ Element.alignBottom
@@ -131,10 +123,8 @@ viewCookieConsentModal dProfile =
         ]
 
 
-body :
-    Model
-    -> Element Msg
-body model =
+viewPage : Model -> Element Msg
+viewPage model =
     Element.column
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.appBackground
@@ -146,44 +136,30 @@ body model =
             model.trackedTxsExpanded
             (userInfo model.wallet)
             model.showAddressId
-        , case model.submodel of
-            BlankInitialSubmodel ->
-                Element.none
-
-            Home homeModel ->
-                Home.view
-                    model.dProfile
-                    (Wallet.userInfo model.wallet)
-                    homeModel
-                    |> Element.map HomeMsg
-
-            Sentiment sentimentModel ->
-                Sentiment.view
-                    model.dProfile
-                    (Wallet.userInfo model.wallet)
-                    sentimentModel
-                    |> Element.map SentimentMsg
-
-            Stats statsModel ->
-                Stats.view
-                    model.dProfile
-                    (Wallet.userInfo model.wallet)
-                    statsModel
-                    |> Element.map StatsMsg
-
-            DerivedEth derivedEthModel ->
-                DerivedEth.view
-                    model.dProfile
-                    (Wallet.userInfo model.wallet)
-                    derivedEthModel
-                    |> Element.map DerivedEthMsg
-
-            Farm farmModel ->
-                Farm.view
-                    model.dProfile
-                    farmModel
-                    |> Element.map FarmMsg
+        , viewBody model
         ]
+
+
+viewBody : Model -> Element Msg
+viewBody model =
+    case model.route of
+        Routing.Home ->
+            Home.view model
+
+        Routing.Farm ->
+            Farm.view model
+
+        Routing.Sentiment ->
+            Sentiment.view model
+
+        Routing.DerivedEth ->
+            DerivedEth.view model
+
+        Routing.Stats ->
+            Stats.view model
+
+        _ ->
+            Sentiment.view model
 
 
 header :
@@ -346,6 +322,7 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
                                 ]
                        )
                 )
+                (EH.Action Types.ConnectToWeb3)
 
         Just userInfo ->
             phaceElement
@@ -353,7 +330,7 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
                 userInfo.address
                 (showAddressInfo == Just UserPhace)
                 dProfile
-                (MsgUp <| ShowOrHideAddress UserPhace)
+                (ShowOrHideAddress UserPhace)
                 Types.NoOp
 
 

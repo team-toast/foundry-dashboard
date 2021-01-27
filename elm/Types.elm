@@ -11,10 +11,7 @@ import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
-import Farm.Types as Farm
 import Graphql.Http
-import Helpers.Element as EH
-import Home.Types as Home
 import Http
 import Json.Decode
 import Routing exposing (Route)
@@ -124,8 +121,6 @@ type Msg
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UserNotice
-    | GTag GTagData
-    | NonRepeatingGTag GTagData
     | RefreshAll
     | PollsFetched (Result Http.Error (List Poll))
     | OptionClicked (Maybe UserInfo) Poll (Maybe Int)
@@ -153,12 +148,6 @@ type Msg
 
 type alias Value =
     { ethPrice : Float
-    }
-
-
-type alias UpdateResult =
-    { newModel : Model
-    , cmd : Cmd Msg
     }
 
 

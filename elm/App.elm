@@ -4,7 +4,7 @@ import Browser.Hash as Hash
 import Browser.Navigation
 import Config
 import Json.Decode
-import Misc exposing (emptyModel, fetchAllPollsCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchStakingInfoOrApyCmd, fetchTeamTokenBalance, fetchTreasuryBalance, locationCheckDecoder)
+import Misc exposing (emptyModel, fetchAllPollsCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, locationCheckDecoder)
 import Ports
 import Time
 import Types exposing (..)
@@ -17,7 +17,7 @@ main : Program Flags Model Msg
 main =
     Hash.application
         { init = init
-        , view = View.root
+        , view = View.view
         , update = Update.update
         , subscriptions = subscriptions
         , onUrlRequest = LinkClicked
@@ -99,6 +99,5 @@ subscriptions model =
     , Time.every 4000 <| always RefreshAll
     , Ports.web3SignResult Web3SignResultValue
     , Ports.web3ValidateSigResult Web3ValidateSigResultValue
-    , Time.every (1000 * 3) Tick
     ]
         |> Sub.batch

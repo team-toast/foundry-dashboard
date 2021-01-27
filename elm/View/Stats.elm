@@ -1,37 +1,25 @@
 module View.Stats exposing (view)
 
-import Common.Types exposing (..)
 import Config
-import Dict exposing (Dict)
-import Dict.Extra
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
-import Element.Events
 import Element.Font
-import Element.Input
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
-import Helpers.Tuple as TupleHelpers
-import Routing exposing (Route)
-import Stats.Types exposing (..)
-import Theme exposing (darkTheme, defaultTheme)
-import Time
+import Misc exposing (calcEffectivePricePerToken, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
+import Theme
 import TokenValue exposing (TokenValue)
+import Types exposing (Model, Msg)
 import View.Common exposing (..)
-import Wallet exposing (Wallet)
 
 
-view :
-    EH.DisplayProfile
-    -> Maybe UserInfo
-    -> Model
-    -> Element Msg
-view dProfile maybeUserInfo model =
+view : Model -> Element Msg
+view model =
     let
         mainEl =
-            case dProfile of
+            case model.dProfile of
                 Desktop ->
                     Element.row
 
@@ -43,8 +31,8 @@ view dProfile maybeUserInfo model =
         , Element.spacing 25
         , Element.centerX
         ]
-        [ statsIcon dProfile model
-        , viewAddresses dProfile
+        [ statsIcon model
+        , viewAddresses model.dProfile
         ]
 
 
@@ -56,7 +44,7 @@ viewAddresses dProfile =
         [ Element.Background.color <| Element.rgba 1 1 1 0.1
         , Element.width Element.fill
         , Element.Border.rounded 20
-        , Element.Font.color EH.lightGray
+        , Element.Font.color Theme.lightGray
         , Element.Border.glow EH.white 2
         , Element.centerX
         , Element.padding 10
@@ -115,14 +103,15 @@ viewAddressAndLabel dProfile label address =
         ]
 
 
-statsIcon :
-    DisplayProfile
-    -> Model
-    -> Element Msg
-statsIcon dProfile model =
+statsIcon : Model -> Element Msg
+statsIcon model =
     let
+        dProfile =
+            model.dProfile
+
         defaultPadding =
-            Element.padding <| responsiveVal dProfile 10 7
+            responsiveVal dProfile 10 7
+                |> Element.padding
 
         rowBorderStyle =
             [ Element.Border.innerGlow EH.white 1
@@ -238,7 +227,7 @@ statsIcon dProfile model =
         [ Element.Background.color <| Element.rgba 1 1 1 0.1
         , Element.width Element.fill
         , Element.Border.rounded 20
-        , Element.Font.color EH.lightGray
+        , Element.Font.color Theme.lightGray
         , Element.Border.glow EH.white 2
         , Element.padding 5
         , Element.spacing 5

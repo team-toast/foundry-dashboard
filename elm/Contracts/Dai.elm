@@ -4,7 +4,6 @@ import Config
 import Contracts.Generated.ERC20 as ERC20
 import Eth
 import Eth.Types exposing (..)
-import Helpers.Eth as EthHelpers
 import Http
 import Task
 import TokenValue exposing (TokenValue)
@@ -22,6 +21,7 @@ getBalanceCmd owner msgConstructor =
             (Result.map TokenValue.tokenValue >> msgConstructor)
 
 
+
 -- getAllowanceCmd : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
 -- getAllowanceCmd owner msgConstructor =
 --     Eth.call
@@ -33,8 +33,6 @@ getBalanceCmd owner msgConstructor =
 --         )
 --         |> Task.attempt
 --             (Result.map TokenValue.tokenValue >> msgConstructor)
-
-
 -- unlockDaiCall : Call Bool
 -- unlockDaiCall =
 --     ERC20.approve

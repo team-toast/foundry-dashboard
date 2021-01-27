@@ -221,6 +221,7 @@ httpFetchError action httpError =
     , align = BottomRight
     }
 
+
 httpSendError : String -> Http.Error -> UserNotice
 httpSendError action httpError =
     let

@@ -3,10 +3,8 @@ module Contracts.FryBalanceFetch exposing (..)
 import AddressDict exposing (AddressDict)
 import Config
 import Contracts.Generated.ERC20BalanceFetchBatch as Generated
-import Dict exposing (Dict)
 import Eth
 import Eth.Types exposing (..)
-import Eth.Utils
 import Http
 import Task
 import TokenValue exposing (TokenValue)

@@ -1,7 +1,6 @@
 module View.Farm exposing (..)
 
 import Config
-import Css exposing (calc)
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
@@ -9,22 +8,24 @@ import Element.Events
 import Element.Font
 import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile, responsiveVal)
-import Eth.Types exposing (Address)
 import FormatFloat
 import Helpers.Time as TimeHelpers
 import Images
 import Maybe.Extra
+import Misc exposing (calcAvailableRewards, calcTimeLeft, userInfo, validateInput)
 import Theme
 import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (AmountUXModel, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg, UserStakingInfo, Wallet)
 import View.Common
 
 
-view :
-    DisplayProfile
-    -> Model
-    -> Element Msg
-view dProfile model =
+view : Model -> Element Msg
+view model =
+    let
+        dProfile =
+            model.dProfile
+    in
     Element.el
         [ Element.width Element.fill
         , Element.paddingEach
@@ -51,7 +52,7 @@ view dProfile model =
             [ titleEl dProfile
             , subTitleEl dProfile model.now
             , farmVideoEl dProfile
-            , bodyEl dProfile model
+            , bodyEl model
             , verifyJurisdictionErrorEl
                 dProfile
                 model.jurisdictionCheckStatus
@@ -59,9 +60,7 @@ view dProfile model =
             ]
 
 
-titleEl :
-    DisplayProfile
-    -> Element Msg
+titleEl : DisplayProfile -> Element Msg
 titleEl dProfile =
     Element.el
         [ Element.Font.size <|
@@ -80,10 +79,7 @@ titleEl dProfile =
         Element.text "Farming for Fryers!"
 
 
-subTitleEl :
-    DisplayProfile
-    -> Time.Posix
-    -> Element Msg
+subTitleEl : DisplayProfile -> Time.Posix -> Element Msg
 subTitleEl dProfile now =
     Element.el
         [ Element.Font.size <|
@@ -110,9 +106,7 @@ subTitleEl dProfile now =
                         )
 
 
-farmVideoEl :
-    DisplayProfile
-    -> Element Msg
+farmVideoEl : DisplayProfile -> Element Msg
 farmVideoEl dProfile =
     Element.el
         [ Element.Font.size <|
@@ -134,12 +128,12 @@ farmVideoEl dProfile =
             }
 
 
-bodyEl :
-    DisplayProfile
-    -> Model
-    -> Element Msg
-bodyEl dProfile model =
+bodyEl : Model -> Element Msg
+bodyEl model =
     let
+        dProfile =
+            model.dProfile
+
         mainEl =
             case dProfile of
                 EH.Desktop ->
@@ -212,14 +206,14 @@ balancesElement :
     -> DepositOrWithdrawUXModel
     -> Element Msg
 balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
-    case Wallet.userInfo wallet of
+    case userInfo wallet of
         Nothing ->
             View.Common.web3ConnectButton
                 dProfile
                 [ Element.centerY
                 , Element.centerX
                 ]
-                MsgUp
+                (EH.Action Types.ConnectToWeb3)
 
         Just userInfo ->
             case maybeUserStakingInfo of
@@ -421,7 +415,7 @@ unstakedRowUX dProfile now jurisdictionCheckStatus stakingInfo maybeDepositAmoun
     Element.row
         rowStyles
         (case jurisdictionCheckStatus of
-            Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+            Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
                 [ balanceOutputOrInput
                     dProfile
                     EH.black
@@ -666,7 +660,7 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                 in
                 Element.Input.text
                     inputStyles
-                    { onChange = AmountInputChanged
+                    { onChange = Types.AmountInputChanged
                     , text = amountUXModel.amountInput
                     , placeholder = Nothing
                     , label = Element.Input.labelHidden "amount"
@@ -717,7 +711,7 @@ activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
                                 ++ TokenValue.toConciseString amount
                                 ++ " ETHFRY"
                         )
-                        (Just <| DoWithdraw amount)
+                        (Just <| Types.DoWithdraw amount)
 
                 Nothing ->
                     makeWithdrawButton
@@ -750,7 +744,7 @@ activeDepositUXButtons dProfile amountUXModel unstakedBalance =
                                 ++ TokenValue.toConciseString amount
                                 ++ " ETHFRY"
                         )
-                        (Just <| DoDeposit amount)
+                        (Just <| Types.DoDeposit amount)
 
                 Nothing ->
                     makeDepositButton
@@ -788,7 +782,7 @@ maybeStartWithdrawButton dProfile currentBalance =
         makeWithdrawButton
             dProfile
             (Just "Withdraw ETHFRY")
-            (Just <| StartWithdraw currentBalance)
+            (Just <| Types.StartWithdraw currentBalance)
 
 
 maybeExitButton :
@@ -820,7 +814,7 @@ inactiveUnstackedRowButtons dProfile stakingInfo =
         makeDepositButton
             dProfile
             (Just "Deposit ETHFRY")
-            (Just <| StartDeposit stakingInfo.unstaked)
+            (Just <| Types.StartDeposit stakingInfo.unstaked)
 
 
 mainRow :
@@ -886,7 +880,7 @@ unlockButton dProfile =
         (actionButtonStyles
             dProfile
             (Just "Approve ETHFRY for Deposit")
-            (Just DoUnlock)
+            (Just Types.DoUnlock)
         )
     <|
         Images.toElement
@@ -944,7 +938,7 @@ exitButton dProfile =
         (actionButtonStyles
             dProfile
             (Just "Exit with all assets (FRY and ETHFRY)")
-            (Just DoExit)
+            (Just Types.DoExit)
         )
     <|
         Images.toElement
@@ -962,7 +956,7 @@ claimRewardsButton dProfile =
         (actionButtonStyles
             dProfile
             (Just "Claim FRY Rewards")
-            (Just DoClaimRewards)
+            (Just Types.DoClaimRewards)
         )
     <|
         Images.toElement
@@ -980,7 +974,7 @@ uxBackButton dProfile =
         (actionButtonStyles
             dProfile
             (Just "Back")
-            (Just UXBack)
+            (Just Types.UXBack)
         )
     <|
         Images.toElement
@@ -1051,14 +1045,14 @@ verifyJurisdictionButtonOrResult :
     -> Element Msg
 verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
     case jurisdictionCheckStatus of
-        WaitingForClick ->
+        Types.WaitingForClick ->
             Theme.redButton
                 dProfile
                 [ Element.width Element.fill ]
                 [ "Confirm you are not a US citizen" ]
-                (EH.Action VerifyJurisdictionClicked)
+                (EH.Action Types.VerifyJurisdictionClicked)
 
-        Checking ->
+        Types.Checking ->
             Theme.disabledButton
                 dProfile
                 [ Element.width Element.fill
@@ -1067,7 +1061,7 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                 "Verifying Jurisdiction..."
                 Nothing
 
-        Error errStr ->
+        Types.Error errStr ->
             Element.column
                 [ Element.spacing 10
                 , Element.width Element.fill
@@ -1078,13 +1072,13 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                     Theme.red
                 ]
 
-        Checked ForbiddenJurisdictions ->
+        Types.Checked Types.ForbiddenJurisdictions ->
             msgInsteadOfButton
                 dProfile
                 "Sorry, US citizens and residents are excluded."
                 Theme.red
 
-        Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+        Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
             msgInsteadOfButton
                 dProfile
                 "Jurisdiction Verified."
@@ -1098,7 +1092,7 @@ verifyJurisdictionErrorEl :
     -> Element Msg
 verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
     case jurisdictionCheckStatus of
-        Error errStr ->
+        Types.Error errStr ->
             Element.column
                 ([ Element.spacing <|
                     responsiveVal

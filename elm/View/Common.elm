@@ -11,8 +11,7 @@ import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Time as TimeHelpers
 import Phace
-import Ports
-import Theme exposing (defaultTheme)
+import Theme exposing (defaultTheme, redButton)
 import Time
 
 
@@ -31,16 +30,13 @@ shortenedHash hash =
             ++ String.right 4 hashStr
 
 
-web3ConnectButton :
-    EH.DisplayProfile
-    -> List (Attribute msg)
-    -> Element msg
-web3ConnectButton dProfile attrs =
-    defaultTheme.emphasizedActionButton
+web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> EH.ButtonAction msg -> Element msg
+web3ConnectButton dProfile attrs action =
+    redButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        (EH.Action <| msgMapper ConnectToWeb3)
+        action
 
 
 phaceElement :
@@ -51,7 +47,7 @@ phaceElement :
     -> msg
     -> msg
     -> Element msg
-phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg =
+phaceElement addressHangToRight userAddress showAddress dProfile onClick noOpMsg =
     let
         phaceWidth =
             responsiveVal dProfile 100 30
@@ -77,7 +73,7 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
                         , Element.Border.color EH.black
                         , EH.onClickNoPropagation noOpMsg
                         ]
-                        (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+                        (Element.text <| Eth.Utils.addressToChecksumString userAddress)
 
                 Mobile ->
                     -- delay processing because addressToChecksumString is expensive!
@@ -95,9 +91,9 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
                         , Element.Border.color EH.black
                         , EH.onClickNoPropagation noOpMsg
                         ]
-                        (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+                        (Element.text <| Eth.Utils.addressToChecksumString userAddress)
     in
-    Phace.fromEthAddress fromAddress 100 100
+    Phace.fromEthAddress userAddress phaceWidth phaceHeight
         |> Element.html
         |> Element.el
             [ Element.Border.rounded 10

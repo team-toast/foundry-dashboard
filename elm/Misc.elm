@@ -3,52 +3,76 @@ module Misc exposing (..)
 import AddressDict
 import Array exposing (Array)
 import Browser.Navigation
-import Config exposing (derivedEthContractAddress)
-import Contracts.BucketSale.Wrappers exposing (getTotalValueEnteredForBucket)
+import Config
+import Contracts.BucketSale.Wrappers as BucketSaleWrappers exposing (getTotalValueEnteredForBucket)
 import Contracts.DEthWrapper as Death
 import Contracts.ERC20Wrapper as ERC20
 import Contracts.FryBalanceFetch
 import Contracts.Staking as StakingContract
-import Contracts.UniSwapGraph.Object exposing (Transaction)
-import Contracts.UniSwapGraph.Scalar
+import Contracts.UniSwapGraph.Object exposing (..)
+import Contracts.UniSwapGraph.Object.Bundle as Bundle
+import Contracts.UniSwapGraph.Object.Token as Token
+import Contracts.UniSwapGraph.Query as Query
+import Contracts.UniSwapGraph.Scalar exposing (Id(..))
+import Contracts.UniSwapGraph.ScalarCodecs exposing (..)
 import Dict exposing (Dict)
+import ElementHelpers as EH
 import Eth.Net
-import Eth.Sentry.Event exposing (EventSentry)
+import Eth.Sentry.Event as EventSentry
+import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Graphql.Http
+import Graphql.Operation exposing (RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
-import Helpers.Element as EH
 import Helpers.Eth as EthHelpers
-import Helpers.Time as TimeHelpers
+import Helpers.Time as TimeHelpers exposing (toConciseIntervalString)
+import Helpers.Tuple exposing (tuple3MapSecond)
 import Http
-import Json.Decode exposing (Decoder)
+import Json.Decode as Decoder exposing (Decoder, Error, Value)
 import Json.Encode
 import Maybe.Extra exposing (isNothing)
-import Ports
+import Ports exposing (txIn, txOut)
 import Result.Extra
 import Routing
 import Set
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (GTagData, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, ResponseToValidate, SigValidationResult, SignedResponse, UpdateResult, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Value, Wallet)
+import Types exposing (GTagData, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Value, Wallet)
 import Url.Builder
-import UserNotice exposing (cantConnectNoWeb3)
-import UserTx exposing (TxInfo, TxSentry)
+import UserNotice exposing (noWeb3Provider)
+import UserTx exposing (TxInfo)
 
 
 emptyModel : Browser.Navigation.Key -> Time.Posix -> Model
 emptyModel key now =
+    let
+        txSentry =
+            TxSentry.init
+                ( txOut, txIn )
+                Types.TxSentryMsg
+                Config.httpProviderUrl
+
+        ( eventSentry, eventSentryCmd ) =
+            EventSentry.init
+                Types.EventSentryMsg
+                Config.httpProviderUrl
+
+        ( wallet, walletNotices ) =
+            ( Types.NoneDetected
+            , [ noWeb3Provider ]
+            )
+    in
     { navKey = key
     , basePath = ""
-    , route = Route.Sentiment
-    , wallet = Types.NoneDetected
+    , route = Routing.Sentiment
+    , wallet = wallet
     , now = now
     , dProfile = EH.Desktop
-    , txSentry = TxSentry.init
-    , eventSentry = EventSentry.init
+    , txSentry = txSentry
+    , eventSentry = eventSentry
     , showAddressId = Nothing
-    , userNotices = []
+    , userNotices = walletNotices
     , trackedTxs = []
     , trackedTxsExpanded = False
     , nonRepeatingGTagsSent = []
@@ -74,7 +98,7 @@ emptyModel key now =
     , withDrawalAmount = ""
     , polls = Nothing
     , maybeValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
-    , validatedResponses = ValidatedResponseTracker
+    , validatedResponses = Dict.empty
     , fryBalances = AddressDict.empty
     , mouseoverState = Types.None
     , userStakingInfo = Nothing
@@ -286,7 +310,7 @@ getBucketRemainingTimeText :
 getBucketRemainingTimeText bucketId now =
     case bucketId of
         Just id ->
-            TimeHelpers.toHumanReadableString
+            toConciseIntervalString
                 (TimeHelpers.sub
                     (getBucketEndTime id)
                     (Time.millisToPosix now)
@@ -326,9 +350,7 @@ calcEffectivePricePerToken totalValueEntered tokenValueEth ethValueUsd =
         Just tve ->
             case maybeFloatMultiply tokenValueEth ethValueUsd of
                 Just val ->
-                    tve
-                        |> TokenValue.mulFloatWithWarning val
-                        |> TokenValue.divFloatWithWarning tpb
+                    TokenValue.divFloatWithWarning (TokenValue.mulFloatWithWarning tve val) tpb
                         |> TokenValue.toConciseString
 
                 _ ->
@@ -426,14 +448,15 @@ calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
             Nothing
 
 
-gTag : String -> String -> String -> Int -> Msg
-gTag event category label value =
-    Types.GTag <|
-        GTagData
-            event
-            category
-            label
-            value
+handleGTag : String -> String -> String -> Int -> Cmd Msg
+handleGTag event category label value =
+    GTagData
+        event
+        category
+        label
+        value
+        |> encodeGTag
+        |> Ports.gTagOut
 
 
 fetchStakingInfoOrApyCmd : Time.Posix -> Wallet -> Cmd Msg
@@ -590,7 +613,7 @@ loggedSignedResponseToResponseToValidate polls ( responseId, signedResponse ) =
             )
 
 
-locationCheckResultToJurisdictionStatus : Result Json.Decode.Error (Result String LocationInfo) -> JurisdictionCheckStatus
+locationCheckResultToJurisdictionStatus : Result Error (Result String LocationInfo) -> JurisdictionCheckStatus
 locationCheckResultToJurisdictionStatus decodeResult =
     decodeResult
         |> Result.map
@@ -610,7 +633,7 @@ locationCheckResultToJurisdictionStatus decodeResult =
                     |> Result.Extra.merge
             )
         |> Result.mapError
-            (\e -> Types.Error <| "Location check response decode error: " ++ Json.Decode.errorToString e)
+            (\e -> Types.Error <| "Location check response decode error: " ++ Decoder.errorToString e)
         |> Result.Extra.merge
 
 
@@ -629,22 +652,22 @@ countryCodeToJurisdiction ipCode geoCode =
         Types.ForbiddenJurisdictions
 
 
-locationCheckDecoder : Json.Decode.Decoder (Result String LocationInfo)
+locationCheckDecoder : Decoder (Result String LocationInfo)
 locationCheckDecoder =
-    Json.Decode.oneOf
-        [ Json.Decode.field "errorMessage" Json.Decode.string
-            |> Json.Decode.map Err
+    Decoder.oneOf
+        [ Decoder.field "errorMessage" Decoder.string
+            |> Decoder.map Err
         , locationInfoDecoder
-            |> Json.Decode.map Ok
+            |> Decoder.map Ok
         ]
 
 
-locationInfoDecoder : Json.Decode.Decoder LocationInfo
+locationInfoDecoder : Decoder.Decoder LocationInfo
 locationInfoDecoder =
-    Json.Decode.map2
+    Decoder.map2
         LocationInfo
-        (Json.Decode.field "ipCountry" Json.Decode.string)
-        (Json.Decode.field "geoCountry" Json.Decode.string)
+        (Decoder.field "ipCountry" Decoder.string)
+        (Decoder.field "geoCountry" Decoder.string)
 
 
 calcAvailableRewards : UserStakingInfo -> Time.Posix -> TokenValue
@@ -657,7 +680,7 @@ calcAvailableRewards stakingInfo now =
                 |> (\msec -> msec / 1000)
 
         accrued =
-            TokenValue.mulFloatWithWarning secondsElapsed stakingInfo.rewardRate
+            TokenValue.mulFloatWithWarning stakingInfo.rewardRate secondsElapsed
     in
     TokenValue.add stakingInfo.claimableRewards accrued
 
@@ -711,35 +734,35 @@ fetchAllPollsCmd =
 
 pollListDecoder : Decoder (List Poll)
 pollListDecoder =
-    Json.Decode.list pollDecoder
-        |> Json.Decode.map (List.sortBy .id)
+    Decoder.list pollDecoder
+        |> Decoder.map (List.sortBy .id)
 
 
 pollDecoder : Decoder Poll
 pollDecoder =
-    Json.Decode.map4 Poll
-        (Json.Decode.field "Id" Json.Decode.int)
-        (Json.Decode.field "Title" Json.Decode.string)
-        (Json.Decode.field "Question" Json.Decode.string)
-        (Json.Decode.oneOf
+    Decoder.map4 Poll
+        (Decoder.field "Id" Decoder.int)
+        (Decoder.field "Title" Decoder.string)
+        (Decoder.field "Question" Decoder.string)
+        (Decoder.oneOf
             [ pollOptionListDecoder
-            , Json.Decode.succeed []
+            , Decoder.succeed []
             ]
         )
 
 
 pollOptionListDecoder : Decoder (List PollOption)
 pollOptionListDecoder =
-    Json.Decode.field "Options" (Json.Decode.list pollOptionDecoder)
-        |> Json.Decode.map (List.sortBy .id)
+    Decoder.field "Options" (Decoder.list pollOptionDecoder)
+        |> Decoder.map (List.sortBy .id)
 
 
 pollOptionDecoder : Decoder PollOption
 pollOptionDecoder =
-    Json.Decode.map3 PollOption
-        (Json.Decode.field "Id" Json.Decode.int)
-        (Json.Decode.field "PollId" Json.Decode.int)
-        (Json.Decode.field "Name" Json.Decode.string)
+    Decoder.map3 PollOption
+        (Decoder.field "Id" Decoder.int)
+        (Decoder.field "PollId" Decoder.int)
+        (Decoder.field "Name" Decoder.string)
 
 
 signResponseCmd : UserInfo -> Poll -> Maybe Int -> Cmd Msg
@@ -783,21 +806,21 @@ encodeResponseToValidate responseToValidate =
         ]
 
 
-signedResponseFromJSDecoder : Json.Decode.Decoder SignedResponse
+signedResponseFromJSDecoder : Decoder.Decoder SignedResponse
 signedResponseFromJSDecoder =
-    Json.Decode.map4 SignedResponse
-        (Json.Decode.field "address" EthHelpers.addressDecoder)
-        (Json.Decode.field "pollId" Json.Decode.int)
-        (Json.Decode.field "pollOptionId" (Json.Decode.nullable Json.Decode.int))
-        (Json.Decode.field "sig" Json.Decode.string)
+    Decoder.map4 SignedResponse
+        (Decoder.field "address" EthHelpers.addressDecoder)
+        (Decoder.field "pollId" Decoder.int)
+        (Decoder.field "pollOptionId" (Decoder.nullable Decoder.int))
+        (Decoder.field "sig" Decoder.string)
 
 
-validateSigResultDecoder : Json.Decode.Decoder ( Int, SigValidationResult )
+validateSigResultDecoder : Decoder.Decoder ( Int, SigValidationResult )
 validateSigResultDecoder =
-    Json.Decode.map2 Tuple.pair
-        (Json.Decode.field "id" Json.Decode.int)
-        (Json.Decode.field "success" Json.Decode.bool
-            |> Json.Decode.map
+    Decoder.map2 Tuple.pair
+        (Decoder.field "id" Decoder.int)
+        (Decoder.field "success" Decoder.bool
+            |> Decoder.map
                 (\successBool ->
                     if successBool then
                         Types.Valid
@@ -871,24 +894,24 @@ refreshPollVotesCmd maybePollId =
         }
 
 
-signedResponsesDictFromServerDecoder : Json.Decode.Decoder (Dict Int SignedResponse)
+signedResponsesDictFromServerDecoder : Decoder.Decoder (Dict Int SignedResponse)
 signedResponsesDictFromServerDecoder =
-    Json.Decode.list Json.Decode.value
-        |> Json.Decode.map (List.map (Json.Decode.decodeValue loggedSignedResponseFromServerDecoder))
-        |> Json.Decode.map (List.filterMap Result.toMaybe)
-        |> Json.Decode.map Dict.fromList
+    Decoder.list Decoder.value
+        |> Decoder.map (List.map (Decoder.decodeValue loggedSignedResponseFromServerDecoder))
+        |> Decoder.map (List.filterMap Result.toMaybe)
+        |> Decoder.map Dict.fromList
 
 
-loggedSignedResponseFromServerDecoder : Json.Decode.Decoder ( Int, SignedResponse )
+loggedSignedResponseFromServerDecoder : Decoder.Decoder ( Int, SignedResponse )
 loggedSignedResponseFromServerDecoder =
-    Json.Decode.field "Vote"
-        (Json.Decode.map2 Tuple.pair
-            (Json.Decode.field "Id" Json.Decode.int)
-            (Json.Decode.map4 SignedResponse
-                (Json.Decode.field "Address" <| EthHelpers.addressDecoder)
-                (Json.Decode.field "PollId" <| Json.Decode.int)
-                (Json.Decode.maybe <| Json.Decode.field "OptionId" Json.Decode.int)
-                (Json.Decode.field "Signature" <| Json.Decode.string)
+    Decoder.field "Vote"
+        (Decoder.map2 Tuple.pair
+            (Decoder.field "Id" Decoder.int)
+            (Decoder.map4 SignedResponse
+                (Decoder.field "Address" <| EthHelpers.addressDecoder)
+                (Decoder.field "PollId" <| Decoder.int)
+                (Decoder.maybe <| Decoder.field "OptionId" Decoder.int)
+                (Decoder.field "Signature" <| Decoder.string)
             )
         )
 
@@ -904,9 +927,7 @@ encodeSignedResponseForServer signedResponse =
         ]
 
 
-fetchEthBalance :
-    Wallet
-    -> Cmd Msg
+fetchEthBalance : Wallet -> Cmd Msg
 fetchEthBalance wallet =
     case userInfo wallet of
         Nothing ->
@@ -918,9 +939,7 @@ fetchEthBalance wallet =
                 Types.UserEthBalanceFetched
 
 
-fetchDerivedEthBalance :
-    Wallet
-    -> Cmd Msg
+fetchDerivedEthBalance : Wallet -> Cmd Msg
 fetchDerivedEthBalance wallet =
     case userInfo wallet of
         Nothing ->
@@ -928,7 +947,7 @@ fetchDerivedEthBalance wallet =
 
         Just uInfo ->
             ERC20.getBalanceCmd
-                derivedEthContractAddress
+                Config.derivedEthContractAddress
                 uInfo.address
                 Types.UserDerivedEthBalanceFetched
 
@@ -945,9 +964,7 @@ fetchIssuanceDetail depositAmount =
                 Types.DerivedEthIssuanceDetailFetched
 
 
-fetchDethPositionInfo :
-    Maybe UserDerivedEthInfo
-    -> Cmd Msg
+fetchDethPositionInfo : Maybe UserDerivedEthInfo -> Cmd Msg
 fetchDethPositionInfo maybeDethInfo =
     case maybeDethInfo of
         Nothing ->
@@ -959,10 +976,7 @@ fetchDethPositionInfo maybeDethInfo =
                 Types.DerivedEthRedeemableFetched
 
 
-doDepositChainCmd :
-    Address
-    -> TokenValue
-    -> UserTx.Initiator Msg
+doDepositChainCmd : Address -> TokenValue -> UserTx.Initiator Msg
 doDepositChainCmd sender amount =
     { notifiers =
         { onMine =
@@ -1031,114 +1045,12 @@ network walletState =
             Just uInfo.network
 
 
-withMsgUp : Msg -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-withMsgUp msgUp ( prevModel, prevCmd ) =
-    handleMsgUp msgUp prevModel
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ prevCmd, newCmd ]
-            )
-
-
-handleMsgUp : Msg -> Model -> ( Model, Cmd Msg )
-handleMsgUp msgUp prevModel =
-    case msgUp of
-        Types.GotoRoute route ->
-            prevModel
-                |> gotoRoute route
-                |> Tuple.mapSecond
-                    (\cmd ->
-                        Cmd.batch
-                            [ cmd
-                            , Browser.Navigation.pushUrl
-                                prevModel.navKey
-                                (Routing.routeToString prevModel.basePath route)
-                            ]
-                    )
-
-        Types.ConnectToWeb3 ->
-            case prevModel.wallet of
-                Types.NoneDetected ->
-                    ( prevModel |> addUserNotice cantConnectNoWeb3
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( prevModel
-                    , Ports.connectToWeb3 ()
-                    )
-
-        Types.ShowOrHideAddress phaceId ->
-            ( { prevModel
-                | showAddressId =
-                    if prevModel.showAddressId == Just phaceId then
-                        Nothing
-
-                    else
-                        Just phaceId
-              }
-            , Cmd.none
-            )
-
-        Types.AddUserNotice userNotice ->
-            ( prevModel |> addUserNotice userNotice
-            , Cmd.none
-            )
-
-        Types.GTag gtag ->
-            ( prevModel
-            , Ports.gTagOut (encodeGTag gtag)
-            )
-
-        Types.NonRepeatingGTag gtag ->
-            let
-                alreadySent =
-                    prevModel.nonRepeatingGTagsSent
-                        |> List.any
-                            (\event ->
-                                event == gtag.event
-                            )
-            in
-            if alreadySent then
-                ( prevModel, Cmd.none )
-
-            else
-                ( { prevModel
-                    | nonRepeatingGTagsSent =
-                        prevModel.nonRepeatingGTagsSent
-                            |> List.append
-                                [ gtag.event ]
-                  }
-                , Ports.gTagOut (encodeGTag gtag)
-                )
-
-        Types.NoOp ->
-            ( prevModel, Cmd.none )
-
-
-handleMsgUps : List Msg -> Model -> ( Model, Cmd Msg )
-handleMsgUps msgUps prevModel =
-    List.foldl
-        withMsgUp
-        ( prevModel, Cmd.none )
-        msgUps
-
-
-withMsgUps : List MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-withMsgUps msgUps ( prevModel, prevCmd ) =
-    handleMsgUps msgUps prevModel
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ prevCmd, newCmd ]
-            )
-
-
 initiateUserTxs : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> List (UserTx.Initiator Msg) -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
 initiateUserTxs txSentry prevTrackedTxs txInitiators =
     List.foldl
         (\initiator ( accTxSentry, accCmd, accTrackedTxs ) ->
             initiateUserTx accTxSentry accTrackedTxs initiator
-                |> TupleHelpers.tuple3MapSecond
+                |> tuple3MapSecond
                     (\newCmd ->
                         Cmd.batch
                             [ accCmd
@@ -1193,197 +1105,7 @@ addTrackedTx userTx notifiers tracker =
     )
 
 
-updateFromPageRoute : Route -> Model -> ( Model, Cmd Msg )
-updateFromPageRoute route model =
-    if model.route == route then
-        ( model
-        , Cmd.none
-        )
-
-    else
-        gotoRoute route model
-
-
-gotoRoute : Route -> Model -> ( Model, Cmd Msg )
-gotoRoute route prevModel =
-    case route of
-        Routing.Home ->
-            let
-                updateResult =
-                    Home.init
-            in
-            ( { prevModel
-                | route = route
-                , submodel = Home updateResult.newModel
-              }
-            , Cmd.map HomeMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        Routing.Sentiment ->
-            let
-                ( sentimentModel, sentimentCmd ) =
-                    Sentiment.init
-            in
-            ( { prevModel
-                | route = route
-                , submodel = Sentiment sentimentModel
-              }
-            , Cmd.map SentimentMsg sentimentCmd
-            )
-
-        Routing.Stats ->
-            let
-                ( statsModel, statsCmd ) =
-                    Time.posixToMillis prevModel.now
-                        |> Stats.init
-            in
-            ( { prevModel
-                | route = route
-                , submodel = Stats statsModel
-              }
-            , Cmd.map StatsMsg statsCmd
-            )
-
-        Routing.Farm ->
-            let
-                ( farmModel, farmCmd ) =
-                    Farm.init
-                        prevModel.wallet
-                        prevModel.now
-            in
-            ( { prevModel
-                | route = route
-                , submodel = Farm farmModel
-              }
-            , Cmd.map FarmMsg farmCmd
-            )
-
-        Routing.DerivedEth ->
-            let
-                ( derivedEthModel, derivedEthCmd ) =
-                    DerivedEth.init
-                        prevModel.wallet
-                        prevModel.now
-            in
-            ( { prevModel
-                | route = route
-                , submodel = DerivedEth derivedEthModel
-              }
-            , Cmd.map DerivedEthMsg derivedEthCmd
-            )
-
-        Routing.NotFound err ->
-            ( { prevModel
-                | route = route
-              }
-                |> addUserNotice UN.routeNotFound
-            , Cmd.none
-            )
-
-
-addUserNotice : UserNotice -> Model -> Model
-addUserNotice notice model =
-    model
-        |> addUserNotices [ notice ]
-
-
-addUserNotices : List UserNotice -> Model -> Model
-addUserNotices notices model =
-    { model
-        | userNotices =
-            List.append
-                model.userNotices
-                notices
-                |> List.Extra.uniqueBy .uniqueLabel
-    }
-
-
-runMsgDown : MsgDown -> Model -> ( Model, Cmd Msg )
-runMsgDown msg prevModel =
-    case prevModel.submodel of
-        BlankInitialSubmodel ->
-            ( prevModel, Cmd.none )
-
-        Home homeModel ->
-            let
-                updateResult =
-                    homeModel |> Home.runMsgDown msg
-
-                newSubmodel =
-                    Home updateResult.newModel
-            in
-            ( { prevModel
-                | submodel = newSubmodel
-              }
-            , Cmd.map HomeMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        Sentiment sentimentModel ->
-            let
-                updateResult =
-                    sentimentModel |> Sentiment.runMsgDown msg
-
-                newSubmodel =
-                    Sentiment updateResult.newModel
-            in
-            ( { prevModel
-                | submodel = newSubmodel
-              }
-            , Cmd.map SentimentMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        Stats statsModel ->
-            let
-                updateResult =
-                    statsModel |> Stats.runMsgDown msg
-
-                newSubmodel =
-                    Stats updateResult.newModel
-            in
-            ( { prevModel
-                | submodel = newSubmodel
-              }
-            , Cmd.map StatsMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        Farm farmModel ->
-            let
-                updateResult =
-                    farmModel
-                        |> Farm.runMsgDown msg
-
-                newSubmodel =
-                    Farm updateResult.newModel
-            in
-            ( { prevModel
-                | submodel = newSubmodel
-              }
-            , Cmd.map FarmMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        DerivedEth derivedEthModel ->
-            let
-                updateResult =
-                    derivedEthModel
-                        |> DerivedEth.runMsgDown msg
-
-                newSubmodel =
-                    DerivedEth updateResult.newModel
-            in
-            ( { prevModel
-                | submodel = newSubmodel
-              }
-            , Cmd.map DerivedEthMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-
-encodeGTag : GTagData -> Json.Decode.Value
+encodeGTag : GTagData -> Decoder.Value
 encodeGTag gtag =
     Json.Encode.object
         [ ( "event", Json.Encode.string gtag.event )

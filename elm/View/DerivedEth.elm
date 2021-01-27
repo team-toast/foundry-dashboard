@@ -1,29 +1,31 @@
 module View.DerivedEth exposing (view)
 
-import Element exposing (Attribute, Element, alignLeft, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
 import Element.Input
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
-import Html exposing (th)
-import Misc exposing (derivedEthInfoInit)
-import Theme exposing (darkTheme, defaultTheme)
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
+import Misc exposing (derivedEthInfoInit, userInfo)
+import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
 import Types exposing (JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
 import View.Common exposing (..)
-import Wallet exposing (Wallet)
 
 
-view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
-view dProfile maybeUserInfo model =
+view : Model -> Element Msg
+view model =
+    let
+        dProfile =
+            model.dProfile
+    in
     [ titleEl dProfile
     , mainEl
         dProfile
         model.depositAmount
         model.withDrawalAmount
         model.jurisdictionCheckStatus
-        (Wallet.userInfo model.wallet)
+        (userInfo model.wallet)
         model.userDerivedEthInfo
     ]
         |> column
@@ -69,12 +71,7 @@ mainEl : DisplayProfile -> String -> String -> JurisdictionCheckStatus -> Maybe 
 mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUserInfo maybeUserDerivedEthInfo =
     (case maybeUserInfo of
         Nothing ->
-            [ web3ConnectButton dProfile
-                [ Element.centerY
-                , Element.centerX
-                ]
-                MsgUp
-            ]
+            [ text "Loading user info..." ]
 
         Just userInfo ->
             case maybeUserDerivedEthInfo of
@@ -83,7 +80,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
 
                 Just userDerivedEthInfo ->
                     [ case jurisdictionCheckStatus of
-                        Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+                        Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
                             investOrWithdrawEl
                                 dProfile
                                 "Squander your ETH for worthless beans"
@@ -91,7 +88,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
                                 depositAmount
                                 "ETH"
                                 userDerivedEthInfo.ethBalance
-                                DepositAmountChanged
+                                Types.DepositAmountChanged
                                 maybeUserDerivedEthInfo
 
                         _ ->
@@ -105,7 +102,7 @@ mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUser
                         withdrawalAmount
                         "dETH"
                         userDerivedEthInfo.dEthBalance
-                        WithdrawalAmountChanged
+                        Types.WithdrawalAmountChanged
                         maybeUserDerivedEthInfo
                     ]
     )
@@ -449,21 +446,18 @@ msgInsteadOfButton dProfile textToDisplay color =
             ]
 
 
-verifyJurisdictionButtonOrResult :
-    DisplayProfile
-    -> JurisdictionCheckStatus
-    -> Element Msg
+verifyJurisdictionButtonOrResult : DisplayProfile -> JurisdictionCheckStatus -> Element Msg
 verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
     case jurisdictionCheckStatus of
         Types.WaitingForClick ->
-            EH.redButton
+            redButton
                 dProfile
                 [ Element.width Element.fill ]
                 [ "Confirm you are not a US citizen" ]
-                Types.VerifyJurisdictionClicked
+                (EH.Action Types.VerifyJurisdictionClicked)
 
         Types.Checking ->
-            EH.disabledButton
+            disabledButton
                 dProfile
                 [ Element.width Element.fill
                 , Element.Font.color EH.black
@@ -479,17 +473,17 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
                 [ msgInsteadOfButton
                     dProfile
                     "Error verifying jurisdiction."
-                    EH.red
+                    red
                 ]
 
-        Types.Checked ForbiddenJurisdictions ->
+        Types.Checked Types.ForbiddenJurisdictions ->
             msgInsteadOfButton
                 dProfile
                 "Sorry, US citizens and residents are excluded."
-                EH.red
+                red
 
-        Types.Checked JurisdictionsWeArentIntimidatedIntoExcluding ->
+        Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
             msgInsteadOfButton
                 dProfile
                 "Jurisdiction Verified."
-                EH.green
+                green

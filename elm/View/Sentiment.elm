@@ -7,28 +7,32 @@ import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import ElementMarkdown
 import Eth.Types exposing (Address)
 import Eth.Utils
 import FormatFloat
-import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Html.Events
 import Images
 import List.Extra
 import Maybe.Extra
+import Misc exposing (userInfo)
 import Phace
 import Result.Extra
 import Theme
 import TokenValue exposing (TokenValue)
 import Types exposing (Model, MouseoverState, Msg, Poll, PollOption, UserInfo, ValidatedResponse, ValidatedResponseTracker, VoteBarBlock)
-import View.Attrs exposing (maxBarWidth)
 import View.Common exposing (..)
 import View.Farm exposing (commonImageAttributes)
 
 
-view : DisplayProfile -> Maybe UserInfo -> Model -> Element Msg
-view dProfile maybeUserInfo model =
+view : Model -> Element Msg
+view model =
+    let
+        dProfile =
+            model.dProfile
+    in
     Element.el
         [ responsiveVal
             dProfile
@@ -54,7 +58,7 @@ view dProfile maybeUserInfo model =
                     [ titleText dProfile "Foundry Polls"
                     , viewPolls
                         dProfile
-                        maybeUserInfo
+                        (userInfo model.wallet)
                         polls
                         model.validatedResponses
                         model.fryBalances
@@ -643,3 +647,13 @@ viewFryAmount dProfile amount =
         , Element.text <|
             TokenValue.toConciseString amount
         ]
+
+
+maxBarWidth : DisplayProfile -> Int
+maxBarWidth dProfile =
+    case dProfile of
+        Desktop ->
+            200
+
+        Mobile ->
+            125

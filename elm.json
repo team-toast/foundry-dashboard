@@ -15,7 +15,7 @@
             "cmditch/elm-bigint": "2.0.1",
             "cmditch/elm-ethereum": "5.0.0",
             "coinop-logan/elm-format-number": "1.0.0",
-            "coinop-logan/phace": "2.1.0",
+            "coinop-logan/phace": "3.0.1",
             "dillonkearns/elm-graphql": "5.0.3",
             "dillonkearns/elm-markdown": "4.0.2",
             "elm/browser": "1.0.2",

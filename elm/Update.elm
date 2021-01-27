@@ -7,10 +7,11 @@ import Browser.Navigation
 import Config
 import Dict
 import Dict.Extra
+import ElementHelpers as EH exposing (DisplayProfile(..))
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..))
+import Helpers.Tuple exposing (tuple3MapSecond, tuple3Second, tuple3ToList)
 import Json.Decode
 import List.Extra
 import Maybe.Extra
@@ -21,8 +22,8 @@ import Time
 import TokenValue
 import Types exposing (..)
 import Url
-import UserNotice exposing (cantConnectNoWeb3, signingError, unexpectedError, walletError, web3FetchError)
-import UserTx
+import UserNotice exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
+import UserTx exposing (Initiator)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -43,13 +44,87 @@ update msg prevModel =
         UrlChanged url ->
             prevModel |> updateFromPageRoute (url |> Routing.urlToRoute)
 
-        Tick newTime ->
-            ( { prevModel | now = newTime }, Cmd.none )
+        Tick i ->
+            let
+                getTotalValueEntered =
+                    fetchTotalValueEnteredCmd prevModel.currentBucketId
+
+                getEthPrice =
+                    fetchEthPrice
+
+                getDaiPrice =
+                    fetchDaiPrice
+
+                getFryPrice =
+                    fetchFryPrice
+
+                getTeamToast1 =
+                    fetchTeamTokenBalance
+                        Config.fryContractAddress
+                        Config.teamToastAddress1
+                        0
+
+                getTeamToast2 =
+                    fetchTeamTokenBalance
+                        Config.fryContractAddress
+                        Config.teamToastAddress2
+                        1
+
+                getTeamToast3 =
+                    fetchTeamTokenBalance
+                        Config.fryContractAddress
+                        Config.teamToastAddress3
+                        2
+
+                getPermaFrostTokenBalance =
+                    fetchPermaFrostLockedTokenBalance
+
+                getPermaFrostTotalSupply =
+                    fetchPermaFrostTotalSupply
+
+                getBalancerFryBalance =
+                    fetchBalancerPoolFryBalance
+
+                getTreasuryBalance =
+                    fetchTreasuryBalance
+            in
+            ( { prevModel
+                | now = i
+                , currentTime = Time.posixToMillis i
+                , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
+              }
+            , [ getTotalValueEntered
+              , getEthPrice
+              , getDaiPrice
+              , getFryPrice
+              , getTeamToast1
+              , getTeamToast2
+              , getTeamToast3
+              , getPermaFrostTokenBalance
+              , getPermaFrostTotalSupply
+              , getBalancerFryBalance
+              , getTreasuryBalance
+              ]
+                ++ (case userInfo prevModel.wallet of
+                        Nothing ->
+                            []
+
+                        Just _ ->
+                            [ prevModel.wallet
+                                |> fetchDerivedEthBalance
+                            , prevModel.wallet
+                                |> fetchEthBalance
+                            , prevModel.userDerivedEthInfo
+                                |> fetchDethPositionInfo
+                            ]
+                   )
+                |> Cmd.batch
+            )
 
         Resize width _ ->
             ( { prevModel
                 | dProfile =
-                    EH.screenWidthToDisplayProfile width
+                    EH.screenWidthToDisplayProfile 1280 width
               }
             , Cmd.none
             )
@@ -88,15 +163,11 @@ update msg prevModel =
                                     , prevModel.wallet /= OnlyNetwork walletSentry.networkId
                                     )
                     in
-                    { prevModel
+                    ( { prevModel
                         | wallet = newWallet
-                    }
-                        |> (if notifySubmodel then
-                                runMsgDown (UpdateWallet newWallet)
-
-                            else
-                                \model -> ( model, Cmd.none )
-                           )
+                      }
+                    , Cmd.none
+                    )
 
                 Err errStr ->
                     ( prevModel
@@ -231,15 +302,15 @@ update msg prevModel =
             , Cmd.none
             )
 
-        Types.NoOp ->
+        NoOp ->
             ( prevModel, Cmd.none )
 
         FetchedEthPrice fetchResult ->
             case fetchResult of
                 Err error ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok bundle1 ->
                     let
@@ -251,34 +322,34 @@ update msg prevModel =
                                 Nothing ->
                                     Value 0
                     in
-                    UpdateResult
-                        { prevModel
-                            | currentEthPriceUsd =
-                                Just
-                                    v.ethPrice
-                            , circSupply =
-                                calcCircSupply
-                                    prevModel.currentBucketId
-                                    prevModel.teamTokenBalances
-                                    prevModel.permaFrostedTokens
-                            , marketCap =
-                                calcMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    prevModel.circSupply
-                            , fullyDiluted =
-                                calcFullyDilutedMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | currentEthPriceUsd =
+                            Just
+                                v.ethPrice
+                        , circSupply =
+                            calcCircSupply
+                                prevModel.currentBucketId
+                                prevModel.teamTokenBalances
+                                prevModel.permaFrostedTokens
+                        , marketCap =
+                            calcMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                                prevModel.circSupply
+                        , fullyDiluted =
+                            calcFullyDilutedMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                      }
+                    , Cmd.none
+                    )
 
         FetchedDaiPrice fetchResult ->
             case fetchResult of
                 Err error ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok value ->
                     let
@@ -290,34 +361,34 @@ update msg prevModel =
                                 Nothing ->
                                     Value 0
                     in
-                    UpdateResult
-                        { prevModel
-                            | currentDaiPriceEth =
-                                Just
-                                    v.ethPrice
-                            , circSupply =
-                                calcCircSupply
-                                    prevModel.currentBucketId
-                                    prevModel.teamTokenBalances
-                                    prevModel.permaFrostedTokens
-                            , marketCap =
-                                calcMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    prevModel.circSupply
-                            , fullyDiluted =
-                                calcFullyDilutedMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | currentDaiPriceEth =
+                            Just
+                                v.ethPrice
+                        , circSupply =
+                            calcCircSupply
+                                prevModel.currentBucketId
+                                prevModel.teamTokenBalances
+                                prevModel.permaFrostedTokens
+                        , marketCap =
+                            calcMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                                prevModel.circSupply
+                        , fullyDiluted =
+                            calcFullyDilutedMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                      }
+                    , Cmd.none
+                    )
 
         FetchedFryPrice fetchResult ->
             case fetchResult of
                 Err error ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok value ->
                     let
@@ -329,493 +400,439 @@ update msg prevModel =
                                 Nothing ->
                                     Value 0
                     in
-                    UpdateResult
-                        { prevModel
-                            | currentFryPriceEth =
-                                Just
-                                    v.ethPrice
-                            , circSupply =
-                                calcCircSupply
-                                    prevModel.currentBucketId
-                                    prevModel.teamTokenBalances
-                                    prevModel.permaFrostedTokens
-                            , marketCap =
-                                calcMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    prevModel.circSupply
-                            , fullyDiluted =
-                                calcFullyDilutedMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | currentFryPriceEth =
+                            Just
+                                v.ethPrice
+                        , circSupply =
+                            calcCircSupply
+                                prevModel.currentBucketId
+                                prevModel.teamTokenBalances
+                                prevModel.permaFrostedTokens
+                        , marketCap =
+                            calcMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                                prevModel.circSupply
+                        , fullyDiluted =
+                            calcFullyDilutedMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                      }
+                    , Cmd.none
+                    )
 
         FetchedTeamTokens index fetchResult ->
             case fetchResult of
                 Err error ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok value ->
-                    UpdateResult
-                        { prevModel
-                            | teamTokenBalances = Array.set index (Just value) prevModel.teamTokenBalances
-                            , circSupply =
-                                calcCircSupply
-                                    prevModel.currentBucketId
-                                    prevModel.teamTokenBalances
-                                    prevModel.permaFrostedTokens
-                            , marketCap =
-                                calcMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    prevModel.circSupply
-                            , fullyDiluted =
-                                calcFullyDilutedMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | teamTokenBalances = Array.set index (Just value) prevModel.teamTokenBalances
+                        , circSupply =
+                            calcCircSupply
+                                prevModel.currentBucketId
+                                prevModel.teamTokenBalances
+                                prevModel.permaFrostedTokens
+                        , marketCap =
+                            calcMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                                prevModel.circSupply
+                        , fullyDiluted =
+                            calcFullyDilutedMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                      }
+                    , Cmd.none
+                    )
 
         FetchedBalancerFryBalance fetchResult ->
             case fetchResult of
                 Err error ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok value ->
-                    UpdateResult
-                        { prevModel
-                            | balancerFryBalance = Just value
-                            , permaFrostedTokens =
-                                calcPermaFrostedTokens
-                                    (Just value)
-                                    prevModel.permaFrostBalanceLocked
-                                    prevModel.permaFrostTotalSupply
-                            , circSupply =
-                                calcCircSupply
-                                    prevModel.currentBucketId
-                                    prevModel.teamTokenBalances
-                                    prevModel.permaFrostedTokens
-                            , marketCap =
-                                calcMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    prevModel.circSupply
-                            , fullyDiluted =
-                                calcFullyDilutedMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | balancerFryBalance = Just value
+                        , permaFrostedTokens =
+                            calcPermaFrostedTokens
+                                (Just value)
+                                prevModel.permaFrostBalanceLocked
+                                prevModel.permaFrostTotalSupply
+                        , circSupply =
+                            calcCircSupply
+                                prevModel.currentBucketId
+                                prevModel.teamTokenBalances
+                                prevModel.permaFrostedTokens
+                        , marketCap =
+                            calcMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                                prevModel.circSupply
+                        , fullyDiluted =
+                            calcFullyDilutedMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                      }
+                    , Cmd.none
+                    )
 
         FetchedPermaFrostBalanceLocked fetchResult ->
             case fetchResult of
                 Err error ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok value ->
-                    UpdateResult
-                        { prevModel
-                            | permaFrostBalanceLocked = Just value
-                            , permaFrostedTokens =
-                                calcPermaFrostedTokens
-                                    prevModel.balancerFryBalance
-                                    (Just value)
-                                    prevModel.permaFrostTotalSupply
-                            , circSupply =
-                                calcCircSupply
-                                    prevModel.currentBucketId
-                                    prevModel.teamTokenBalances
-                                    prevModel.permaFrostedTokens
-                            , marketCap =
-                                calcMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    prevModel.circSupply
-                            , fullyDiluted =
-                                calcFullyDilutedMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | permaFrostBalanceLocked = Just value
+                        , permaFrostedTokens =
+                            calcPermaFrostedTokens
+                                prevModel.balancerFryBalance
+                                (Just value)
+                                prevModel.permaFrostTotalSupply
+                        , circSupply =
+                            calcCircSupply
+                                prevModel.currentBucketId
+                                prevModel.teamTokenBalances
+                                prevModel.permaFrostedTokens
+                        , marketCap =
+                            calcMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                                prevModel.circSupply
+                        , fullyDiluted =
+                            calcFullyDilutedMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                      }
+                    , Cmd.none
+                    )
 
         FetchedPermaFrostTotalSupply fetchResult ->
             case fetchResult of
                 Err error ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok value ->
-                    UpdateResult
-                        { prevModel
-                            | permaFrostTotalSupply = Just value
-                            , permaFrostedTokens =
-                                calcPermaFrostedTokens
-                                    prevModel.balancerFryBalance
-                                    prevModel.permaFrostBalanceLocked
-                                    (Just value)
-                            , circSupply =
-                                calcCircSupply
-                                    prevModel.currentBucketId
-                                    prevModel.teamTokenBalances
-                                    prevModel.permaFrostedTokens
-                            , marketCap =
-                                calcMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    prevModel.circSupply
-                            , fullyDiluted =
-                                calcFullyDilutedMarketCap
-                                    prevModel.currentFryPriceEth
-                                    prevModel.currentEthPriceUsd
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | permaFrostTotalSupply = Just value
+                        , permaFrostedTokens =
+                            calcPermaFrostedTokens
+                                prevModel.balancerFryBalance
+                                prevModel.permaFrostBalanceLocked
+                                (Just value)
+                        , circSupply =
+                            calcCircSupply
+                                prevModel.currentBucketId
+                                prevModel.teamTokenBalances
+                                prevModel.permaFrostedTokens
+                        , marketCap =
+                            calcMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                                prevModel.circSupply
+                        , fullyDiluted =
+                            calcFullyDilutedMarketCap
+                                prevModel.currentFryPriceEth
+                                prevModel.currentEthPriceUsd
+                      }
+                    , Cmd.none
+                    )
 
         BucketValueEnteredFetched bucketId fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok valueEntered ->
-                    UpdateResult
-                        { prevModel
-                            | currentBucketTotalEntered =
-                                Just
-                                    valueEntered
-                        }
-                        Cmd.none
+                    ( { prevModel
+                        | currentBucketTotalEntered =
+                            Just
+                                valueEntered
+                      }
+                    , Cmd.none
+                    )
 
         FetchedTreasuryBalance fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok valueFetched ->
-                    UpdateResult
-                        { prevModel
-                            | treasuryBalance =
-                                calcTreasuryBalance
-                                    prevModel.currentDaiPriceEth
-                                    prevModel.currentEthPriceUsd
-                                    (Just valueFetched)
-                        }
-                        Cmd.none
-
-        Tick i ->
-            let
-                getTotalValueEntered =
-                    fetchTotalValueEnteredCmd prevModel.currentBucketId
-
-                getEthPrice =
-                    fetchEthPrice
-
-                getDaiPrice =
-                    fetchDaiPrice
-
-                getFryPrice =
-                    fetchFryPrice
-
-                getTeamToast1 =
-                    fetchTeamTokenBalance
-                        Config.fryContractAddress
-                        Config.teamToastAddress1
-                        0
-
-                getTeamToast2 =
-                    fetchTeamTokenBalance
-                        Config.fryContractAddress
-                        Config.teamToastAddress2
-                        1
-
-                getTeamToast3 =
-                    fetchTeamTokenBalance
-                        Config.fryContractAddress
-                        Config.teamToastAddress3
-                        2
-
-                getPermaFrostTokenBalance =
-                    fetchPermaFrostLockedTokenBalance
-
-                getPermaFrostTotalSupply =
-                    fetchPermaFrostTotalSupply
-
-                getBalancerFryBalance =
-                    fetchBalancerPoolFryBalance
-
-                getTreasuryBalance =
-                    fetchTreasuryBalance
-            in
-            UpdateResult
-                { prevModel
-                    | currentTime = Time.posixToMillis i
-                    , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
-                }
-                (Cmd.batch
-                    [ getTotalValueEntered
-                    , getEthPrice
-                    , getDaiPrice
-                    , getFryPrice
-                    , getTeamToast1
-                    , getTeamToast2
-                    , getTeamToast3
-                    , getPermaFrostTokenBalance
-                    , getPermaFrostTotalSupply
-                    , getBalancerFryBalance
-                    , getTreasuryBalance
-                    ]
-                )
+                    ( { prevModel
+                        | treasuryBalance =
+                            calcTreasuryBalance
+                                prevModel.currentDaiPriceEth
+                                prevModel.currentEthPriceUsd
+                                (Just valueFetched)
+                      }
+                    , Cmd.none
+                    )
 
         UpdateNow newNow ->
             if calcTimeLeft newNow <= 0 then
-                UpdateResult
-                    prevModel
-                    Cmd.none
+                ( prevModel
+                , Cmd.none
+                )
 
             else
-                UpdateResult
-                    { prevModel | now = newNow }
-                    Cmd.none
+                ( { prevModel | now = newNow }
+                , Cmd.none
+                )
 
         AmountInputChanged newInput ->
             case prevModel.depositWithdrawUXModel of
                 Just ( depositOrWithdraw, amountInputUXModel ) ->
-                    UpdateResult
-                        { prevModel
-                            | depositWithdrawUXModel =
-                                Just
-                                    ( depositOrWithdraw
-                                    , { amountInputUXModel
-                                        | amountInput = newInput
-                                      }
-                                    )
-                        }
+                    ( { prevModel
+                        | depositWithdrawUXModel =
+                            Just
+                                ( depositOrWithdraw
+                                , { amountInputUXModel
+                                    | amountInput = newInput
+                                  }
+                                )
+                      }
+                    , Cmd.none
+                    )
 
                 Nothing ->
-                    UpdateResult prevModel
+                    ( prevModel, Cmd.none )
 
         UXBack ->
-            UpdateResult
-                { prevModel
-                    | depositWithdrawUXModel = Nothing
-                }
+            ( { prevModel
+                | depositWithdrawUXModel = Nothing
+              }
+            , Cmd.none
+            )
 
         DoUnlock ->
-            UpdateResult
-                prevModel
-                doApproveChainCmdFarm
+            ( prevModel
+            , doApproveChainCmdFarm
+                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            )
 
         StartDeposit defaultValue ->
-            UpdateResult
-                { prevModel
-                    | depositWithdrawUXModel = Just ( Deposit, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
-                }
+            ( { prevModel
+                | depositWithdrawUXModel = Just ( Deposit, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
+              }
+            , Cmd.none
+            )
 
         StartWithdraw defaultValue ->
-            UpdateResult
-                { prevModel
-                    | depositWithdrawUXModel = Just ( Withdraw, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
-                }
+            ( { prevModel
+                | depositWithdrawUXModel = Just ( Withdraw, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
+              }
+            , Cmd.none
+            )
 
         DoExit ->
-            UpdateResult
-                prevModel
-                doExitChainCmdFarm
+            ( prevModel
+            , doExitChainCmdFarm
+                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            )
 
         DoClaimRewards ->
-            UpdateResult
-                prevModel
-                doClaimRewardsFarm
+            ( prevModel
+            , doClaimRewardsFarm
+                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            )
 
         DoDeposit amount ->
-            UpdateResult
-                prevModel
-                [ doDepositChainCmdFarm amount
-                , GTag <|
-                    GTagData
-                        "Deposit Liquidity"
-                        "funnel"
-                        ""
-                        (TokenValue.mul 100 amount
-                            |> TokenValue.toFloatWithWarning
-                            |> floor
-                        )
-                ]
+            ( prevModel
+            , [ doDepositChainCmdFarm amount
+                    |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+              , handleGTag
+                    "Deposit Liquidity"
+                    "funnel"
+                    ""
+                    (TokenValue.mul amount 100
+                        |> TokenValue.toFloatWithWarning
+                        |> floor
+                    )
+              ]
                 |> Cmd.batch
+            )
 
         DoWithdraw amount ->
-            UpdateResult
-                prevModel
-                (doWithdrawChainCmdFarm amount)
+            ( prevModel
+            , doWithdrawChainCmdFarm amount
+                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            )
 
         DepositOrWithdrawSigned depositOrWithdraw amount signResult ->
             case signResult of
                 Ok txHash ->
-                    UpdateResult
-                        { prevModel
-                            | depositWithdrawUXModel = Nothing
-                        }
-                        (case depositOrWithdraw of
-                            Deposit ->
-                                GTag <|
-                                    GTagData
-                                        "Deposit Liquidity Signed"
-                                        "conversion"
-                                        (Eth.Utils.txHashToString txHash)
-                                        (TokenValue.mul 100 amount
-                                            |> TokenValue.toFloatWithWarning
-                                            |> floor
-                                        )
+                    ( { prevModel
+                        | depositWithdrawUXModel = Nothing
+                      }
+                    , case depositOrWithdraw of
+                        Deposit ->
+                            handleGTag
+                                "Deposit Liquidity Signed"
+                                "conversion"
+                                (Eth.Utils.txHashToString txHash)
+                                (TokenValue.mul amount 100
+                                    |> TokenValue.toFloatWithWarning
+                                    |> floor
+                                )
 
-                            Withdraw ->
-                                Cmd.none
-                        )
+                        Withdraw ->
+                            Cmd.none
+                    )
 
                 _ ->
-                    UpdateResult prevModel
+                    ( prevModel, Cmd.none )
 
         RefetchStakingInfoOrApy ->
             if calcTimeLeft prevModel.now <= 0 then
-                UpdateResult
-                    prevModel
-                    Cmd.none
+                ( prevModel
+                , Cmd.none
+                )
 
             else
-                UpdateResult
-                    prevModel
-                    (fetchStakingInfoOrApyCmd prevModel.now prevModel.wallet)
+                ( prevModel
+                , fetchStakingInfoOrApyCmd prevModel.now prevModel.wallet
+                )
 
         StakingInfoFetched fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    UpdateResult
-                        prevModel
-                        (AddUserNotice <| web3FetchError "staking info" httpErr)
+                    ( prevModel
+                        |> (web3FetchError "staking info" httpErr
+                                |> addUserNotice
+                           )
+                    , Cmd.none
+                    )
 
                 Ok ( userStakingInfo, apy ) ->
-                    UpdateResult
-                        { prevModel
-                            | userStakingInfo = Just userStakingInfo
-                            , apy = Just apy
-                        }
+                    ( { prevModel
+                        | userStakingInfo = Just userStakingInfo
+                        , apy = Just apy
+                      }
+                    , Cmd.none
+                    )
 
         ApyFetched fetchResult ->
             if calcTimeLeft prevModel.now <= 0 then
-                UpdateResult prevModel
+                ( prevModel, Cmd.none )
 
             else
                 case fetchResult of
                     Err httpErr ->
-                        UpdateResult
-                            prevModel
-                            (web3FetchError "apy" httpErr
-                                |> AddUserNotice
-                            )
+                        ( prevModel
+                            |> (web3FetchError "apy" httpErr
+                                    |> addUserNotice
+                               )
+                        , Cmd.none
+                        )
 
                     Ok apy ->
-                        UpdateResult
-                            { prevModel
-                                | apy =
-                                    Just apy
-                            }
-                            Cmd.none
+                        ( { prevModel
+                            | apy =
+                                Just apy
+                          }
+                        , Cmd.none
+                        )
 
         VerifyJurisdictionClicked ->
-            UpdateResult
-                { prevModel
-                    | jurisdictionCheckStatus = Checking
-                }
-                [ beginLocationCheck ()
-                , gTag
+            ( { prevModel
+                | jurisdictionCheckStatus = Checking
+              }
+            , [ Ports.beginLocationCheck ()
+              , handleGTag
                     "3a - verify jurisdiction clicked"
                     "funnel"
                     ""
                     0
-                ]
+              ]
                 |> Cmd.batch
+            )
 
         LocationCheckResult decodeResult ->
             let
                 jurisdictionCheckStatus =
                     locationCheckResultToJurisdictionStatus decodeResult
             in
-            UpdateResult
-                { prevModel
-                    | jurisdictionCheckStatus = jurisdictionCheckStatus
-                }
-                (case jurisdictionCheckStatus of
-                    WaitingForClick ->
-                        Cmd.none
+            ( { prevModel
+                | jurisdictionCheckStatus = jurisdictionCheckStatus
+              }
+            , case jurisdictionCheckStatus of
+                WaitingForClick ->
+                    Cmd.none
 
-                    Checking ->
-                        Cmd.none
+                Checking ->
+                    Cmd.none
 
-                    Checked ForbiddenJurisdictions ->
-                        gTag
-                            "jurisdiction not allowed"
-                            "funnel abort"
-                            ""
-                            0
+                Checked ForbiddenJurisdictions ->
+                    handleGTag
+                        "jurisdiction not allowed"
+                        "funnel abort"
+                        ""
+                        0
 
-                    Checked _ ->
-                        gTag
-                            "3b - jurisdiction verified"
-                            "funnel"
-                            ""
-                            0
+                Checked _ ->
+                    handleGTag
+                        "3b - jurisdiction verified"
+                        "funnel"
+                        ""
+                        0
 
-                    Error error ->
-                        gTag
-                            "failed jursidiction check"
-                            "funnel abort"
-                            error
-                            0
-                )
+                Error error ->
+                    handleGTag
+                        "failed jursidiction check"
+                        "funnel abort"
+                        error
+                        0
+            )
 
         RefreshAll ->
-            UpdateResult
-                prevModel
-                (Cmd.batch
-                    [ refreshPollVotesCmd Nothing
-                    , fetchFryBalancesCmd (prevModel.fryBalances |> AddressDict.keys)
-                    ]
-                )
+            ( prevModel
+            , Cmd.batch
+                [ refreshPollVotesCmd Nothing
+                , fetchFryBalancesCmd (prevModel.fryBalances |> AddressDict.keys)
+                ]
+            )
 
         PollsFetched pollsFetchedResult ->
             case pollsFetchedResult of
                 Err httpErr ->
-                    UpdateResult
-                        prevModel
-                        (AddUserNotice <| UN.httpFetchError "fetch polls" httpErr)
+                    ( prevModel
+                        |> (httpFetchError "fetch polls" httpErr |> addUserNotice)
+                    , Cmd.none
+                    )
 
                 Ok polls ->
-                    UpdateResult
-                        { prevModel
-                            | polls = Just polls
-                        }
-                        (refreshPollVotesCmd Nothing)
+                    ( { prevModel
+                        | polls = Just polls
+                      }
+                    , refreshPollVotesCmd Nothing
+                    )
 
         OptionClicked userInfo poll maybePollOptionId ->
             case userInfo of
                 Nothing ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Just val ->
-                    UpdateResult
-                        prevModel
-                        (signResponseCmd val poll maybePollOptionId)
+                    ( prevModel
+                    , signResponseCmd val poll maybePollOptionId
+                    )
 
         Web3SignResultValue jsonVal ->
             let
@@ -824,14 +841,18 @@ update msg prevModel =
             in
             case decodedSignResult of
                 Ok signResult ->
-                    UpdateResult
-                        prevModel
-                        (sendSignedResponseCmd signResult)
+                    ( prevModel
+                    , sendSignedResponseCmd signResult
+                    )
 
                 Err errStr ->
-                    UpdateResult
-                        prevModel
-                        (AddUserNotice <| signingError <| Json.Decode.errorToString errStr)
+                    ( prevModel
+                        |> (Json.Decode.errorToString errStr
+                                |> signingError
+                                |> addUserNotice
+                           )
+                    , Cmd.none
+                    )
 
         Web3ValidateSigResultValue jsonVal ->
             let
@@ -870,12 +891,6 @@ update msg prevModel =
                                     , Nothing
                                     )
 
-                        msgsUp =
-                            maybeUserNotice
-                                |> Maybe.map AddUserNotice
-                                |> List.singleton
-                                |> Maybe.Extra.values
-
                         newBalancesDict =
                             case maybeRespondingAddress of
                                 Nothing ->
@@ -902,53 +917,67 @@ update msg prevModel =
                                     )
                                 |> AddressDict.keys
                                 |> fetchFryBalancesCmd
+
+                        tempModel =
+                            case maybeUserNotice of
+                                Nothing ->
+                                    prevModel
+
+                                Just userNotice ->
+                                    prevModel
+                                        |> (userNotice
+                                                |> addUserNotice
+                                           )
                     in
-                    UpdateResult
-                        { prevModel
-                            | validatedResponses = newValidatedResponses
-                            , maybeValidResponses =
-                                prevModel.maybeValidResponses
-                                    |> Dict.update responseId
-                                        (Maybe.map
-                                            (Tuple.mapFirst
-                                                (always True)
-                                            )
+                    ( { tempModel
+                        | validatedResponses = newValidatedResponses
+                        , maybeValidResponses =
+                            prevModel.maybeValidResponses
+                                |> Dict.update responseId
+                                    (Maybe.map
+                                        (Tuple.mapFirst
+                                            (always True)
                                         )
-                            , fryBalances = newBalancesDict
-                        }
-                        (cmd
-                            ++ msgsUp
-                        )
+                                    )
+                        , fryBalances = newBalancesDict
+                      }
+                    , cmd
+                    )
 
                 Err errStr ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
-                        [ AddUserNotice <| UN.unexpectedError "error decoding signature validation from web3js" errStr
-                        ]
+                    ( prevModel
+                        |> (unexpectedError "error decoding signature validation from web3js" errStr
+                                |> addUserNotice
+                           )
+                    , Cmd.none
+                    )
 
         ResponseSent pollId sendResult ->
             case sendResult of
                 Ok _ ->
-                    UpdateResult
-                        prevModel
-                        (refreshPollVotesCmd <| Just pollId)
+                    ( prevModel
+                    , refreshPollVotesCmd <| Just pollId
+                    )
 
                 Err httpErr ->
-                    UpdateResult
-                        prevModel
-                        (AddUserNotice <|
-                            UN.httpSendError "send response" httpErr
-                        )
+                    ( prevModel
+                        |> (httpSendError "send response" httpErr
+                                |> addUserNotice
+                           )
+                    , Cmd.none
+                    )
 
         SignedResponsesFetched responsesFetchedResult ->
             case responsesFetchedResult of
                 Ok decodedLoggedSignedResponses ->
                     case prevModel.polls of
                         Nothing ->
-                            UpdateResult
-                                prevModel
-                                (AddUserNotice <| UN.unexpectedError "Responses were fetched, but the polls haven't loaded yet!" Nothing)
+                            ( prevModel
+                                |> (unexpectedError "Responses were fetched, but the polls haven't loaded yet!" Nothing
+                                        |> addUserNotice
+                                   )
+                            , Cmd.none
+                            )
 
                         Just polls ->
                             let
@@ -976,257 +1005,239 @@ update msg prevModel =
                                         |> List.map (loggedSignedResponseToResponseToValidate polls)
                                         |> Maybe.Extra.values
                             in
-                            UpdateResult
-                                { prevModel
-                                    | maybeValidResponses = newMaybeValidResponses
-                                }
-                                (validateSignedResponsesCmd responsesToValidate)
+                            ( { prevModel
+                                | maybeValidResponses = newMaybeValidResponses
+                              }
+                            , validateSignedResponsesCmd responsesToValidate
+                            )
 
                 Err decodeErr ->
-                    UpdateResult
-                        prevModel
-                        (AddUserNotice <| UN.unexpectedError "error decoding responses from server" decodeErr)
+                    ( prevModel
+                        |> (unexpectedError "error decoding responses from server" decodeErr
+                                |> addUserNotice
+                           )
+                    , Cmd.none
+                    )
 
         FryBalancesFetched fetchResult ->
             case fetchResult of
                 Ok newFryBalances ->
-                    UpdateResult
-                        { prevModel
-                            | fryBalances =
-                                AddressDict.union
-                                    (newFryBalances
-                                        |> AddressDict.map (always Just)
-                                    )
-                                    prevModel.fryBalances
-                        }
+                    ( { prevModel
+                        | fryBalances =
+                            AddressDict.union
+                                (newFryBalances
+                                    |> AddressDict.map (always Just)
+                                )
+                                prevModel.fryBalances
+                      }
+                    , Cmd.none
+                    )
 
                 Err httpErr ->
-                    UpdateResult
-                        prevModel
-                        (AddUserNotice <| UN.web3FetchError "fetch polls" httpErr)
+                    ( prevModel
+                        |> (web3FetchError "fetch polls" httpErr
+                                |> addUserNotice
+                           )
+                    , Cmd.none
+                    )
 
         SetMouseoverState newState ->
-            UpdateResult
-                { prevModel
-                    | mouseoverState = newState
-                }
+            ( { prevModel
+                | mouseoverState = newState
+              }
+            , Cmd.none
+            )
 
         DepositAmountChanged amount ->
-            UpdateResult
-                { prevModel
-                    | depositAmount = amount
-                }
-                (fetchIssuanceDetail
-                    amount
-                )
+            ( { prevModel
+                | depositAmount = amount
+              }
+            , fetchIssuanceDetail
+                amount
+            )
 
         WithdrawalAmountChanged amount ->
-            UpdateResult
-                { prevModel
-                    | withDrawalAmount = amount
-                }
-                Cmd.none
+            ( { prevModel
+                | withDrawalAmount = amount
+              }
+            , Cmd.none
+            )
 
         DepositClicked amount ->
-            UpdateResult
-                prevModel
-                ((case userInfo prevModel.wallet of
-                    Nothing ->
-                        []
+            ( prevModel
+            , (case userInfo prevModel.wallet of
+                Nothing ->
+                    []
 
-                    Just uInfo ->
-                        [ doDepositChainCmd
-                            uInfo.address
-                            amount
-                        ]
-                 )
-                    ++ [ Common.Msg.GTag <|
-                            GTagData
-                                "Squander ETH"
-                                "funnel"
-                                ""
-                                (TokenValue.mul 100 amount
-                                    |> TokenValue.toFloatWithWarning
-                                    |> floor
-                                )
-                       ]
-                )
+                Just uInfo ->
+                    [ doDepositChainCmd
+                        uInfo.address
+                        amount
+                        |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+                    ]
+              )
+                ++ [ handleGTag
+                        "Squander ETH"
+                        "funnel"
+                        ""
+                        (TokenValue.mul amount 100
+                            |> TokenValue.toFloatWithWarning
+                            |> floor
+                        )
+                   ]
+                |> Cmd.batch
+            )
 
         WithdrawClicked amount ->
-            let
-                userInfo =
-                    prevModel.wallet
-                        |> userInfo
-            in
-            UpdateResult
-                prevModel
-                (case userInfo prevModel.wallet of
-                    Nothing ->
-                        Cmd.none
+            ( prevModel
+            , case userInfo prevModel.wallet of
+                Nothing ->
+                    Cmd.none
 
-                    Just uInfo ->
-                        doWithdrawChainCmd
-                            uInfo.address
-                            amount
-                )
+                Just uInfo ->
+                    doWithdrawChainCmd
+                        uInfo.address
+                        amount
+                        |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            )
 
         UserEthBalanceFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok tokenValue ->
-                    UpdateResult
-                        { prevModel
-                            | userDerivedEthInfo =
-                                (case prevModel.userDerivedEthInfo of
-                                    Nothing ->
-                                        { ethBalance = tokenValue
-                                        , dEthBalance = TokenValue.zero
-                                        , totalCollateralRedeemed = TokenValue.zero
-                                        , redeemFee = TokenValue.zero
-                                        , collateralReturned = TokenValue.zero
-                                        , dEthAllowance = TokenValue.zero
-                                        , actualCollateralAdded = TokenValue.zero
-                                        , depositFee = TokenValue.zero
-                                        , tokensIssued = TokenValue.zero
-                                        }
+                    ( { prevModel
+                        | userDerivedEthInfo =
+                            (case prevModel.userDerivedEthInfo of
+                                Nothing ->
+                                    { ethBalance = tokenValue
+                                    , dEthBalance = TokenValue.zero
+                                    , totalCollateralRedeemed = TokenValue.zero
+                                    , redeemFee = TokenValue.zero
+                                    , collateralReturned = TokenValue.zero
+                                    , dEthAllowance = TokenValue.zero
+                                    , actualCollateralAdded = TokenValue.zero
+                                    , depositFee = TokenValue.zero
+                                    , tokensIssued = TokenValue.zero
+                                    }
 
-                                    Just oldUserDerivedEthInfoModel ->
-                                        { oldUserDerivedEthInfoModel
-                                            | ethBalance = tokenValue
-                                        }
-                                )
-                                    |> Just
-                        }
-                        Cmd.none
+                                Just oldUserDerivedEthInfoModel ->
+                                    { oldUserDerivedEthInfoModel
+                                        | ethBalance = tokenValue
+                                    }
+                            )
+                                |> Just
+                      }
+                    , Cmd.none
+                    )
 
         UserDerivedEthBalanceFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok tokenValue ->
-                    UpdateResult
-                        { prevModel
-                            | userDerivedEthInfo =
-                                (case prevModel.userDerivedEthInfo of
-                                    Nothing ->
-                                        { ethBalance = TokenValue.zero
-                                        , dEthBalance = tokenValue
-                                        , totalCollateralRedeemed = TokenValue.zero
-                                        , redeemFee = TokenValue.zero
-                                        , collateralReturned = TokenValue.zero
-                                        , dEthAllowance = TokenValue.zero
-                                        , actualCollateralAdded = TokenValue.zero
-                                        , depositFee = TokenValue.zero
-                                        , tokensIssued = TokenValue.zero
-                                        }
+                    ( { prevModel
+                        | userDerivedEthInfo =
+                            (case prevModel.userDerivedEthInfo of
+                                Nothing ->
+                                    { ethBalance = TokenValue.zero
+                                    , dEthBalance = tokenValue
+                                    , totalCollateralRedeemed = TokenValue.zero
+                                    , redeemFee = TokenValue.zero
+                                    , collateralReturned = TokenValue.zero
+                                    , dEthAllowance = TokenValue.zero
+                                    , actualCollateralAdded = TokenValue.zero
+                                    , depositFee = TokenValue.zero
+                                    , tokensIssued = TokenValue.zero
+                                    }
 
-                                    Just oldUserDerivedEthInfoModel ->
-                                        { oldUserDerivedEthInfoModel
-                                            | dEthBalance = tokenValue
-                                        }
-                                )
-                                    |> Just
-                        }
-                        Cmd.none
+                                Just oldUserDerivedEthInfoModel ->
+                                    { oldUserDerivedEthInfoModel
+                                        | dEthBalance = tokenValue
+                                    }
+                            )
+                                |> Just
+                      }
+                    , Cmd.none
+                    )
 
         DerivedEthRedeemableFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok ( totalCollateral, fee, returnedCollateral ) ->
-                    UpdateResult
-                        { prevModel
-                            | userDerivedEthInfo =
-                                (case prevModel.userDerivedEthInfo of
-                                    Nothing ->
-                                        { ethBalance = TokenValue.zero
-                                        , dEthBalance = TokenValue.zero
-                                        , totalCollateralRedeemed = totalCollateral
+                    ( { prevModel
+                        | userDerivedEthInfo =
+                            (case prevModel.userDerivedEthInfo of
+                                Nothing ->
+                                    { ethBalance = TokenValue.zero
+                                    , dEthBalance = TokenValue.zero
+                                    , totalCollateralRedeemed = totalCollateral
+                                    , redeemFee = fee
+                                    , collateralReturned = returnedCollateral
+                                    , dEthAllowance = TokenValue.zero
+                                    , actualCollateralAdded = TokenValue.zero
+                                    , depositFee = TokenValue.zero
+                                    , tokensIssued = TokenValue.zero
+                                    }
+
+                                Just oldUserDerivedEthInfoModel ->
+                                    { oldUserDerivedEthInfoModel
+                                        | totalCollateralRedeemed = totalCollateral
                                         , redeemFee = fee
                                         , collateralReturned = returnedCollateral
-                                        , dEthAllowance = TokenValue.zero
-                                        , actualCollateralAdded = TokenValue.zero
-                                        , depositFee = TokenValue.zero
-                                        , tokensIssued = TokenValue.zero
-                                        }
+                                    }
+                            )
+                                |> Just
+                      }
+                    , Cmd.none
+                    )
 
-                                    Just oldUserDerivedEthInfoModel ->
-                                        { oldUserDerivedEthInfoModel
-                                            | totalCollateralRedeemed = totalCollateral
-                                            , redeemFee = fee
-                                            , collateralReturned = returnedCollateral
-                                        }
-                                )
-                                    |> Just
-                        }
-                        Cmd.none
-
-        VerifyJurisdictionClicked ->
-            UpdateResult
-                { prevModel
-                    | jurisdictionCheckStatus = Checking
-                }
-                [ beginLocationCheck ()
-                , gTag
-                    "3a - verify jurisdiction clicked"
-                    "funnel"
-                    ""
-                    0
-                ]
-                |> Cmd.batch
-
-        LocationCheckResult decodeResult ->
-            let
-                jurisdictionCheckStatus =
-                    locationCheckResultToJurisdictionStatus decodeResult
-            in
-            UpdateResult
-                { prevModel
-                    | jurisdictionCheckStatus = jurisdictionCheckStatus
-                }
-                (case jurisdictionCheckStatus of
-                    WaitingForClick ->
-                        Cmd.none
-
-                    Checking ->
-                        Cmd.none
-
-                    Checked ForbiddenJurisdictions ->
-                        gTag
-                            "jurisdiction not allowed"
-                            "funnel abort"
-                            ""
-                            0
-
-                    Checked _ ->
-                        gTag
-                            "3b - jurisdiction verified"
-                            "funnel"
-                            ""
-                            0
-
-                    Error error ->
-                        gTag
-                            "failed jursidiction check"
-                            "funnel abort"
-                            error
-                            0
-                )
-
+        -- LocationCheckResult decodeResult ->
+        --     let
+        --         jurisdictionCheckStatus =
+        --             locationCheckResultToJurisdictionStatus decodeResult
+        --     in
+        --     ( { prevModel
+        --         | jurisdictionCheckStatus = jurisdictionCheckStatus
+        --       }
+        --     , case jurisdictionCheckStatus of
+        --         WaitingForClick ->
+        --             Cmd.none
+        --         Checking ->
+        --             Cmd.none
+        --         Checked ForbiddenJurisdictions ->
+        --             handleGTag
+        --                 "jurisdiction not allowed"
+        --                 "funnel abort"
+        --                 ""
+        --                 0
+        --         Checked _ ->
+        --             handleGTag
+        --                 "3b - jurisdiction verified"
+        --                 "funnel"
+        --                 ""
+        --                 0
+        --         Error error ->
+        --             handleGTag
+        --                 "failed jursidiction check"
+        --                 "funnel abort"
+        --                 error
+        --                 0
+        --     )
         ApproveTokenSpend ->
-            UpdateResult
-                prevModel
-                Cmd.none
+            ( prevModel
+            , Cmd.none
+            )
 
         DepositSigned signResult ->
             case signResult of
@@ -1243,25 +1254,25 @@ update msg prevModel =
                                 Just val ->
                                     val
                     in
-                    UpdateResult
-                        { prevModel
-                            | depositAmount = ""
-                        }
-                        (gTag
+                    ( { prevModel
+                        | depositAmount = ""
+                      }
+                    , [ handleGTag
                             "Squander ETH Signed"
                             "conversion"
                             (Eth.Utils.txHashToString txHash)
-                            (amount
-                                |> TokenValue.mul 100
+                            (TokenValue.mul amount 100
                                 |> TokenValue.toFloatWithWarning
                                 |> floor
                             )
-                        )
+                      ]
+                        |> Cmd.batch
+                    )
 
                 _ ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
         WithdrawSigned signResult ->
             case signResult of
@@ -1278,97 +1289,76 @@ update msg prevModel =
                                 Just val ->
                                     val
                     in
-                    UpdateResult
-                        { prevModel
-                            | withDrawalAmount = ""
-                        }
-                        (gTag
+                    ( { prevModel
+                        | withDrawalAmount = ""
+                      }
+                    , [ handleGTag
                             "Redeem worthless beans Signed"
                             "conversion"
                             (Eth.Utils.txHashToString txHash)
-                            (amount
-                                |> TokenValue.mul 100
+                            (TokenValue.mul amount 100
                                 |> TokenValue.toFloatWithWarning
                                 |> floor
                             )
-                        )
+                      ]
+                        |> Cmd.batch
+                    )
 
                 _ ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
         FetchUserEthBalance ->
-            UpdateResult
-                prevModel
-                (prevModel.wallet
-                    |> fetchEthBalance
-                )
+            ( prevModel
+            , prevModel.wallet
+                |> fetchEthBalance
+            )
 
         FetchUserDerivedEthBalance ->
-            UpdateResult
-                prevModel
-                (prevModel.wallet
-                    |> fetchDerivedEthBalance
-                )
+            ( prevModel
+            , prevModel.wallet
+                |> fetchDerivedEthBalance
+            )
 
         DerivedEthIssuanceDetailFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
+                    ( prevModel
+                    , Cmd.none
+                    )
 
                 Ok ( actualCollateralAdded, depositFee, tokensIssued ) ->
-                    UpdateResult
-                        { prevModel
-                            | userDerivedEthInfo =
-                                (case prevModel.userDerivedEthInfo of
-                                    Nothing ->
-                                        { ethBalance = TokenValue.zero
-                                        , dEthBalance = TokenValue.zero
-                                        , totalCollateralRedeemed = TokenValue.zero
-                                        , redeemFee = TokenValue.zero
-                                        , collateralReturned = TokenValue.zero
-                                        , dEthAllowance = TokenValue.zero
-                                        , actualCollateralAdded = actualCollateralAdded
+                    ( { prevModel
+                        | userDerivedEthInfo =
+                            (case prevModel.userDerivedEthInfo of
+                                Nothing ->
+                                    { ethBalance = TokenValue.zero
+                                    , dEthBalance = TokenValue.zero
+                                    , totalCollateralRedeemed = TokenValue.zero
+                                    , redeemFee = TokenValue.zero
+                                    , collateralReturned = TokenValue.zero
+                                    , dEthAllowance = TokenValue.zero
+                                    , actualCollateralAdded = actualCollateralAdded
+                                    , depositFee = depositFee
+                                    , tokensIssued = tokensIssued
+                                    }
+
+                                Just oldUserDerivedEthInfoModel ->
+                                    { oldUserDerivedEthInfoModel
+                                        | actualCollateralAdded = actualCollateralAdded
                                         , depositFee = depositFee
                                         , tokensIssued = tokensIssued
-                                        }
-
-                                    Just oldUserDerivedEthInfoModel ->
-                                        { oldUserDerivedEthInfoModel
-                                            | actualCollateralAdded = actualCollateralAdded
-                                            , depositFee = depositFee
-                                            , tokensIssued = tokensIssued
-                                        }
-                                )
-                                    |> Just
-                        }
-                        Cmd.none
-
-        Tick _ ->
-            UpdateResult
-                prevModel
-                ((case userInfo prevModel.wallet of
-                    Nothing ->
-                        []
-
-                    Just _ ->
-                        [ prevModel.wallet
-                            |> fetchDerivedEthBalance
-                        , prevModel.wallet
-                            |> fetchEthBalance
-                        , prevModel.userDerivedEthInfo
-                            |> fetchDethPositionInfo
-                        ]
-                 )
-                    |> Cmd.batch
-                )
+                                    }
+                            )
+                                |> Just
+                      }
+                    , Cmd.none
+                    )
 
         GotoRoute route ->
             prevModel
-                |> Misc.gotoRoute route
+                |> gotoRoute route
                 |> Tuple.mapSecond
                     (\cmd ->
                         Cmd.batch
@@ -1382,7 +1372,8 @@ update msg prevModel =
         ConnectToWeb3 ->
             case prevModel.wallet of
                 Types.NoneDetected ->
-                    ( prevModel |> addUserNotice cantConnectNoWeb3
+                    ( prevModel
+                        |> addUserNotice cantConnectNoWeb3
                     , Cmd.none
                     )
 
@@ -1404,36 +1395,88 @@ update msg prevModel =
             )
 
         AddUserNotice userNotice ->
-            ( prevModel |> addUserNotice userNotice
+            ( prevModel
+                |> addUserNotice userNotice
             , Cmd.none
             )
 
-        GTag gtag ->
-            ( prevModel
-            , Ports.gTagOut (encodeGTag gtag)
+
+gotoRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
+gotoRoute route prevModel =
+    case route of
+        Routing.Home ->
+            ( { prevModel
+                | route = route
+              }
+            , Cmd.none
             )
 
-        NonRepeatingGTag gtag ->
-            let
-                alreadySent =
-                    prevModel.nonRepeatingGTagsSent
-                        |> List.any
-                            (\event ->
-                                event == gtag.event
-                            )
-            in
-            if alreadySent then
-                ( prevModel, Cmd.none )
+        Routing.Sentiment ->
+            ( { prevModel
+                | route = route
+              }
+            , Cmd.none
+            )
 
-            else
-                ( { prevModel
-                    | nonRepeatingGTagsSent =
-                        prevModel.nonRepeatingGTagsSent
-                            |> List.append
-                                [ gtag.event ]
-                  }
-                , Ports.gTagOut (encodeGTag gtag)
-                )
+        Routing.Stats ->
+            ( { prevModel
+                | route = route
+              }
+            , Cmd.none
+            )
 
-        Types.NoOp ->
-            ( prevModel, Cmd.none )
+        Routing.Farm ->
+            ( { prevModel
+                | route = route
+              }
+            , Cmd.none
+            )
+
+        Routing.DerivedEth ->
+            ( { prevModel
+                | route = route
+              }
+            , Cmd.none
+            )
+
+        Routing.NotFound err ->
+            ( { prevModel
+                | route = route
+              }
+                |> addUserNotice routeNotFound
+            , Cmd.none
+            )
+
+
+updateFromPageRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
+updateFromPageRoute route model =
+    if model.route == route then
+        ( model
+        , Cmd.none
+        )
+
+    else
+        gotoRoute route model
+
+
+addUserNotice : UserNotice -> Model -> Model
+addUserNotice notice model =
+    model
+        |> addUserNotices [ notice ]
+
+
+addUserNotices : List UserNotice -> Model -> Model
+addUserNotices notices model =
+    { model
+        | userNotices =
+            List.append
+                model.userNotices
+                notices
+                |> List.Extra.uniqueBy .uniqueLabel
+    }
+
+
+attemptTxInitiate : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> Initiator Msg -> Cmd Msg
+attemptTxInitiate sentry trackedTxs initiator =
+    initiateUserTx sentry trackedTxs initiator
+        |> tuple3Second
