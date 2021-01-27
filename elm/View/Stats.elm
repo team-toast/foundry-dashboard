@@ -117,6 +117,7 @@ statsIcon model =
             [ Element.Border.innerGlow EH.white 1
             , Element.Border.rounded 15
             , Element.centerX
+            , Element.Background.color <| Element.rgba 1 1 1 0.3
             ]
 
         bucketNumberEl =
