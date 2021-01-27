@@ -1,6 +1,6 @@
 module Theme exposing (..)
 
-import Element exposing (Attribute, Color, Element)
+import Element exposing (Attribute, Color, Element, above, centerX, centerY, el, maximum, moveUp, padding, paddingXY, paragraph, rgb, shrink, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -151,25 +151,6 @@ whiteGlowInnerRounded =
     ]
 
 
-
--- daiYellow =
---     yellow
--- dollarGreen =
---     green
--- placeholderTextColor =
---     Element.rgb255 213 217 222
--- mediumGray =
---     Element.rgb255 200 205 210
--- activePhaseBackgroundColor =
---     Element.rgb255 9 32 107
--- permanentTextColor =
---     Element.rgba255 1 31 52 0.8
--- submodelBackgroundColor =
---     Element.rgb 0.95 0.98 1
--- pageBackgroundColor =
---     Element.rgb255 242 243 247
-
-
 blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
 blueButton dProfile attributes text action =
     EH.button dProfile
@@ -228,31 +209,36 @@ redButton dProfile attributes text action =
 
 
 disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg
-disabledButton dProfile attributes text maybeTipText =
-    Element.el
-        ([ Element.Border.rounded 4
-         , EH.responsiveVal
-            dProfile
-            (Element.paddingXY 25 17)
-            (Element.padding 10)
-         , Element.Font.size
-            (EH.responsiveVal
+disabledButton dProfile attributes textToDisplay maybeTipText =
+    (text textToDisplay
+        |> el
+            [ centerY
+            , centerX
+            ]
+    )
+        |> el
+            ([ Element.Border.rounded 4
+             , EH.responsiveVal
                 dProfile
-                18
-                16
-            )
-         , Element.Font.semiBold
-         , Element.Background.color lightGray
-         , Element.Font.center
-         , EH.noSelectText
-         , Element.above <|
-            maybeErrorElement
-                [ Element.moveUp 5 ]
+                (paddingXY 25 17)
+                (padding 10)
+             , Element.Font.size
+                (EH.responsiveVal
+                    dProfile
+                    18
+                    16
+                )
+             , Element.Font.semiBold
+             , Element.Background.color lightGray
+             , Element.Font.center
+             , EH.noSelectText
+             , maybeErrorElement
+                [ moveUp 5 ]
                 maybeTipText
-         ]
-            ++ attributes
-        )
-        (Element.el [ Element.centerY, Element.centerX ] <| Element.text text)
+                |> above
+             ]
+                ++ attributes
+            )
 
 
 maybeErrorElement : List (Attribute msg) -> Maybe String -> Element msg
@@ -262,20 +248,24 @@ maybeErrorElement attributes maybeError =
             Element.none
 
         Just errorString ->
-            Element.el
-                ([ Element.Border.rounded 5
-                 , Element.Border.color softRed
-                 , Element.Border.width 1
-                 , Element.Background.color <| Element.rgb 1 0.4 0.4
-                 , Element.padding 5
-                 , Element.centerX
-                 , Element.centerY
-                 , Element.width (Element.shrink |> Element.maximum 200)
-                 , Element.Font.size 14
-                 ]
-                    ++ attributes
-                )
-                (Element.paragraph
+            ([ text errorString ]
+                |> paragraph
                     []
-                    [ Element.text errorString ]
-                )
+            )
+                |> el
+                    ([ Element.Border.rounded 5
+                     , Element.Border.color softRed
+                     , Element.Border.width 1
+                     , rgb 1 0.4 0.4
+                        |> Element.Background.color
+                     , padding 5
+                     , centerX
+                     , centerY
+                     , width
+                        (shrink
+                            |> maximum 200
+                        )
+                     , Element.Font.size 14
+                     ]
+                        ++ attributes
+                    )
