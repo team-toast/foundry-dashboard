@@ -121,9 +121,9 @@ init flags url key =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     [ Time.every 50 UpdateNow
-    , Time.every 4000 <| always RefreshAll
-    , Time.every 10000 (always RefetchStakingInfoOrApy)
-    , Time.every (1000 * 30) Tick
+    , Time.every (1000 * 4) <| always RefreshAll
+    , Time.every (1000 * 10) (always RefetchStakingInfoOrApy)
+    , Time.every (1000 * 5) Tick
     , Ports.locationCheckResult
         (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
 
