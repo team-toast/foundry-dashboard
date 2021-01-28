@@ -1,6 +1,6 @@
 module Theme exposing (..)
 
-import Element exposing (Attribute, Color, Element, above, centerX, centerY, el, maximum, moveUp, padding, paddingXY, paragraph, rgb, shrink, text, width)
+import Element exposing (Attribute, Color, Element, above, centerX, centerY, el, maximum, moveUp, padding, paddingXY, paragraph, rgb, rgba, shrink, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -269,3 +269,31 @@ maybeErrorElement attributes maybeError =
                      ]
                         ++ attributes
                     )
+
+
+mainContainerBorderAttributes : List (Attribute msg)
+mainContainerBorderAttributes =
+    [ Element.Border.rounded 10
+    , Element.Border.glow EH.white 2
+    ]
+
+
+mainContainerBackgroundAttributes : List (Attribute msg)
+mainContainerBackgroundAttributes =
+    [ rgba 1 1 1 0.1
+        |> Element.Background.color
+    ]
+
+
+childContainerBorderAttributes : List (Attribute msg)
+childContainerBorderAttributes =
+    [ Element.Border.rounded 5
+    , Element.Border.glow lightGray 1
+    ]
+
+
+childContainerBackgroundAttributes : List (Attribute msg)
+childContainerBackgroundAttributes =
+    [ Element.rgba 1 1 1 0.3
+        |> Element.Background.color
+    ]
