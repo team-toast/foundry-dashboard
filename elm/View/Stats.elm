@@ -1,7 +1,7 @@
 module View.Stats exposing (view)
 
 import Config
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, centerX, column, el, fill, height, newTabLink, padding, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -24,12 +24,12 @@ view model =
                     Element.row
 
                 Mobile ->
-                    Element.column
+                    column
     in
     mainEl
-        [ Element.padding 20
-        , Element.spacing 25
-        , Element.centerX
+        [ padding 20
+        , spacing 25
+        , centerX
         ]
         [ statsIcon model
         , viewAddresses model.dProfile
@@ -40,27 +40,26 @@ viewAddresses :
     DisplayProfile
     -> Element Msg
 viewAddresses dProfile =
-    Element.column
-        [ Element.Background.color <| Element.rgba 1 1 1 0.1
-        , Element.width Element.fill
-        , Element.Border.rounded 20
-        , Element.Font.color Theme.lightGray
-        , Element.Border.glow EH.white 2
-        , Element.centerX
-        , Element.padding 10
-        , Element.spacing 10
-        , Element.height Element.fill
-        ]
-        [ Element.el
+    [ text "Foundry Addresses"
+        |> el
             [ Element.Font.size 30
+            , Element.Font.color EH.white
             ]
-          <|
-            Element.text "Foundry Addresses"
-        , viewAddressAndLabel dProfile "FRY token" Config.fryContractAddress
-        , viewAddressAndLabel dProfile "Treasury" Config.treasuryForwarderAddress
-        , viewAddressAndLabel dProfile "Bucket sale" Config.bucketSaleAddress
-        , viewAddressAndLabel dProfile "Multisig" Config.teamToastMultiSigAddress
-        ]
+    , viewAddressAndLabel dProfile "FRY token" Config.fryContractAddress
+    , viewAddressAndLabel dProfile "Treasury" Config.treasuryForwarderAddress
+    , viewAddressAndLabel dProfile "Bucket sale" Config.bucketSaleAddress
+    , viewAddressAndLabel dProfile "Multisig" Config.teamToastMultiSigAddress
+    ]
+        |> column
+            ([ width fill
+             , centerX
+             , padding 10
+             , spacing 10
+             , height fill
+             ]
+                ++ Theme.mainContainerBackgroundAttributes
+                ++ Theme.mainContainerBorderAttributes
+            )
 
 
 viewAddressAndLabel :
@@ -69,13 +68,10 @@ viewAddressAndLabel :
     -> Address
     -> Element Msg
 viewAddressAndLabel dProfile label address =
-    Element.column
-        [ Element.padding 5
-        , Element.spacing 10
-        , Element.height (Element.px 50)
-        , Element.width Element.fill
-        ]
-        [ Element.el
+    [ label
+        ++ ": "
+        |> text
+        |> el
             [ Element.Font.color EH.white
             , Element.Font.size <|
                 responsiveVal
@@ -83,11 +79,20 @@ viewAddressAndLabel dProfile label address =
                     22
                     20
             ]
-          <|
-            Element.text <|
-                label
-                    ++ ": "
-        , Element.el
+    , { url =
+            Config.etherscanBaseUrl
+                ++ (address
+                        |> Eth.Utils.addressToString
+                   )
+      , label =
+            text
+                (address
+                    |> Eth.Utils.addressToString
+                )
+      }
+        |> newTabLink
+            [ Element.Font.color Theme.lightBlue ]
+        |> el
             [ Element.Font.color EH.white
             , Element.Font.size <|
                 responsiveVal
@@ -95,12 +100,13 @@ viewAddressAndLabel dProfile label address =
                     16
                     12
             ]
-          <|
-            Element.newTabLink [ Element.Font.color Theme.lightBlue ]
-                { url = Config.etherscanBaseUrl ++ Eth.Utils.addressToString address
-                , label = Element.text (Eth.Utils.addressToString address)
-                }
-        ]
+    ]
+        |> column
+            [ padding 5
+            , spacing 10
+            , height (Element.px 50)
+            , width fill
+            ]
 
 
 statsIcon : Model -> Element Msg
@@ -111,14 +117,13 @@ statsIcon model =
 
         defaultPadding =
             responsiveVal dProfile 10 7
-                |> Element.padding
+                |> padding
 
         rowBorderStyle =
-            [ Element.Border.innerGlow EH.white 1
-            , Element.Border.rounded 15
-            , Element.centerX
-            , Element.Background.color <| Element.rgba 1 1 1 0.3
-            ]
+            Theme.childContainerBackgroundAttributes
+                ++ Theme.childContainerBorderAttributes
+                ++ [ centerX
+                   ]
 
         bucketNumberEl =
             statsItem
@@ -224,14 +229,14 @@ statsIcon model =
                        )
                 ]
     in
-    Element.column
+    column
         [ Element.Background.color <| Element.rgba 1 1 1 0.1
-        , Element.width Element.fill
+        , width fill
         , Element.Border.rounded 20
         , Element.Font.color Theme.lightGray
         , Element.Border.glow EH.white 2
-        , Element.padding 5
-        , Element.spacing 5
+        , padding 5
+        , spacing 5
         ]
         [ Element.row
             rowBorderStyle
@@ -307,12 +312,12 @@ textLarge :
     -> String
     -> Element Msg
 textLarge dProfile txt =
-    Element.el
+    el
         [ Element.Font.size <| responsiveVal dProfile 16 14
-        , Element.padding <| responsiveVal dProfile 5 2
+        , padding <| responsiveVal dProfile 5 2
         ]
     <|
-        Element.text txt
+        text txt
 
 
 statsItem :
@@ -323,5 +328,5 @@ statsItem :
 statsItem dProfile attributes items =
     items
         |> List.map (textLarge dProfile)
-        |> Element.column
+        |> column
             attributes
