@@ -1,9 +1,13 @@
 module App exposing (main)
 
+import Browser.Events
 import Browser.Hash as Hash
 import Browser.Navigation
 import Config
+import Eth.Net
 import Eth.Sentry.Event exposing (EventSentry)
+import Eth.Sentry.Tx
+import Eth.Sentry.Wallet
 import Json.Decode
 import Misc exposing (emptyModel, fetchAllPollsCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, locationCheckDecoder)
 import Ports
@@ -12,6 +16,7 @@ import Time
 import Types exposing (..)
 import Update
 import Url exposing (Url)
+import UserNotice
 import View
 
 
@@ -40,12 +45,23 @@ init flags url key =
         route =
             Routing.urlToRoute url
 
-        model2 =
-            { model
-                | route = route
-            }
+        ( wallet, walletNotices ) =
+            if flags.networkId == 0 then
+                ( Types.NoneDetected
+                , [ UserNotice.noWeb3Provider ]
+                )
+
+            else
+                ( Eth.Net.toNetworkId flags.networkId
+                    |> Types.OnlyNetwork
+                , []
+                )
     in
-    ( model2
+    ( { model
+        | route = route
+        , wallet = wallet
+        , userNotices = walletNotices
+      }
     , let
         getEthPrice =
             fetchEthPrice
@@ -105,12 +121,21 @@ init flags url key =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     [ Time.every 50 UpdateNow
+    , Time.every 4000 <| always RefreshAll
+    , Time.every 10000 (always RefetchStakingInfoOrApy)
+    , Time.every (1000 * 30) Tick
     , Ports.locationCheckResult
         (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
-    , Time.every 10000 (always RefetchStakingInfoOrApy)
-    , Time.every 5000 Tick
-    , Time.every 4000 <| always RefreshAll
+
+    --- from SmokeSignal
     , Ports.web3SignResult Web3SignResultValue
     , Ports.web3ValidateSigResult Web3ValidateSigResultValue
+    , Ports.walletSentryPort
+        (Eth.Sentry.Wallet.decodeToMsg
+            (Types.WalletStatus << Err)
+            (Types.WalletStatus << Ok)
+        )
+    , Eth.Sentry.Tx.listen model.txSentry
+    , Browser.Events.onResize Types.Resize
     ]
         |> Sub.batch
