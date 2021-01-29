@@ -107,7 +107,8 @@ update msg prevModel =
                     |> fetchDerivedEthBalance
               , prevModel.wallet
                     |> fetchEthBalance
-              , prevModel.userDerivedEthInfo
+              , prevModel.withDrawalAmount
+                    |> TokenValue.fromString
                     |> fetchDethPositionInfo
               ]
                 |> Cmd.batch
@@ -1055,7 +1056,9 @@ update msg prevModel =
             ( { prevModel
                 | withDrawalAmount = amount
               }
-            , Cmd.none
+            , amount
+                |> TokenValue.fromString
+                |> fetchDethPositionInfo
             )
 
         DepositClicked amount ->

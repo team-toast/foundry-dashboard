@@ -1,6 +1,7 @@
 module View.DerivedEth exposing (view)
 
-import Element exposing (Attribute, Color, Element, alignRight, alignTop, centerX, column, el, fill, height, minimum, padding, paddingEach, paragraph, px, row, spacing, text, width)
+import BigInt
+import Element exposing (Attribute, Color, Element, alignRight, alignTop, centerX, column, el, fill, height, maximum, minimum, padding, paddingEach, paragraph, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -81,7 +82,6 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                 "Deposit"
                 depositAmount
                 "ETH"
-                userDerivedEthInfo.ethBalance
                 Types.DepositAmountChanged
                 maybeUserDerivedEthInfo
             , investOrWithdrawEl
@@ -90,7 +90,6 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                 "Redeem"
                 withdrawalAmount
                 "dETH"
-                userDerivedEthInfo.dEthBalance
                 Types.WithdrawalAmountChanged
                 maybeUserDerivedEthInfo
             ]
@@ -110,15 +109,11 @@ investOrWithdrawEl :
     -> String
     -> String
     -> String
-    -> TokenValue
     -> (String -> Msg)
     -> Maybe UserDerivedEthInfo
     -> Element Msg
-investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance msg maybeUserDerivedEthInfo =
+investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUserDerivedEthInfo =
     let
-        inputValid =
-            validateInput inputAmount userBalance
-
         textFontSize =
             Element.Font.size (responsiveVal dProfile 22 16)
 
@@ -143,6 +138,16 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
         userDEthInfo =
             Maybe.withDefault derivedEthInfoInit maybeUserDerivedEthInfo
 
+        userBalance =
+            if tokenName == "ETH" then
+                userDEthInfo.ethBalance
+
+            else
+                userDEthInfo.dEthBalance
+
+        inputValid =
+            validateInput inputAmount userBalance
+
         blockHeightMin =
             responsiveVal dProfile 220 220
     in
@@ -156,8 +161,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
         (tokenName
             ++ " balance: "
             ++ (userBalance
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
+                    |> tokenValueToString
                )
         )
         |> el
@@ -246,7 +250,10 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
                 ++ [ spacing 15
                    , padding 12
                    , centerX
-                   , width fill
+                   , width
+                        (fill
+                            |> minimum (responsiveVal dProfile 550 300)
+                        )
                    , height
                         (fill
                             |> minimum blockHeightMin
@@ -272,26 +279,20 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
         ( val1, val2, val3 ) =
             if tokenName == "ETH" then
                 ( userDEthInfo.actualCollateralAdded
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
+                    |> tokenValueToString
                 , userDEthInfo.depositFee
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
+                    |> tokenValueToString
                 , userDEthInfo.tokensIssued
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
+                    |> tokenValueToString
                 )
 
             else
                 ( userDEthInfo.totalCollateralRedeemed
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
+                    |> tokenValueToString
                 , userDEthInfo.redeemFee
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
+                    |> tokenValueToString
                 , userDEthInfo.collateralReturned
-                    |> TokenValue.toFloatWithWarning
-                    |> String.fromFloat
+                    |> tokenValueToString
                 )
     in
     [ depositRedeemInfoItemEl
@@ -336,7 +337,7 @@ depositRedeemInfoItemEl textFontSize rowLabel rowValue =
 
 
 percentageButtonsEl : DisplayProfile -> (String -> Msg) -> TokenValue -> Element Msg
-percentageButtonsEl dProfile msg2 userBalance =
+percentageButtonsEl dProfile buttonMsg userBalance =
     let
         buttonStyle =
             [ Element.Font.color Theme.almostWhite
@@ -347,10 +348,9 @@ percentageButtonsEl dProfile msg2 userBalance =
         dProfile
         buttonStyle
         "25%"
-        ((TokenValue.toFloatWithWarning userBalance
-            * 0.25
-            |> String.fromFloat
-            |> msg2
+        ((TokenValue.div (TokenValue.mul userBalance 25) 100
+            |> tokenValueToString
+            |> buttonMsg
          )
             |> Just
         )
@@ -358,10 +358,9 @@ percentageButtonsEl dProfile msg2 userBalance =
         dProfile
         buttonStyle
         "50%"
-        ((TokenValue.toFloatWithWarning userBalance
-            * 0.5
-            |> String.fromFloat
-            |> msg2
+        ((TokenValue.div (TokenValue.mul userBalance 50) 100
+            |> tokenValueToString
+            |> buttonMsg
          )
             |> Just
         )
@@ -369,10 +368,9 @@ percentageButtonsEl dProfile msg2 userBalance =
         dProfile
         buttonStyle
         "75%"
-        ((TokenValue.toFloatWithWarning userBalance
-            * 0.75
-            |> String.fromFloat
-            |> msg2
+        ((TokenValue.div (TokenValue.mul userBalance 75) 100
+            |> tokenValueToString
+            |> buttonMsg
          )
             |> Just
         )
@@ -381,9 +379,8 @@ percentageButtonsEl dProfile msg2 userBalance =
         buttonStyle
         "100%"
         ((userBalance
-            |> TokenValue.toFloatWithWarning
-            |> String.fromFloat
-            |> msg2
+            |> tokenValueToString
+            |> buttonMsg
          )
             |> Just
         )
@@ -505,3 +502,20 @@ msgInsteadOfButton dProfile textToDisplay color =
             , Element.Font.italic
             , Element.Font.color color
             ]
+
+
+tokenValueToString : TokenValue -> String
+tokenValueToString tokenValue =
+    let
+        evm =
+            TokenValue.getEvmValue tokenValue
+                |> BigInt.toString
+
+        evmLength =
+            String.length evm
+    in
+    if evmLength <= 18 then
+        "0." ++ String.padRight 18 '0' evm
+
+    else
+        String.left (evmLength - 18) evm ++ "." ++ String.right 18 evm

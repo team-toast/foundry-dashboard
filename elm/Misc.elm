@@ -964,15 +964,15 @@ fetchIssuanceDetail depositAmount =
                 Types.DerivedEthIssuanceDetailFetched
 
 
-fetchDethPositionInfo : Maybe UserDerivedEthInfo -> Cmd Msg
-fetchDethPositionInfo maybeDethInfo =
-    case maybeDethInfo of
+fetchDethPositionInfo : Maybe TokenValue -> Cmd Msg
+fetchDethPositionInfo amount =
+    case amount of
         Nothing ->
             Cmd.none
 
-        Just dEthInfo ->
+        Just dEthVal ->
             Death.getRedeemable
-                dEthInfo.dEthBalance
+                dEthVal
                 Types.DerivedEthRedeemableFetched
 
 

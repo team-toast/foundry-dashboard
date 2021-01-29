@@ -14,6 +14,7 @@ import Misc exposing (emptyModel, fetchAllPollsCmd, fetchBalancerPoolFryBalance,
 import Ports
 import Routing
 import Time
+import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Update
 import Url exposing (Url)
@@ -79,7 +80,8 @@ init flags url key =
             |> fetchDerivedEthBalance
       , model.wallet
             |> fetchEthBalance
-      , model.userDerivedEthInfo
+      , model.withDrawalAmount
+            |> TokenValue.fromString
             |> fetchDethPositionInfo
       ]
         |> Cmd.batch
