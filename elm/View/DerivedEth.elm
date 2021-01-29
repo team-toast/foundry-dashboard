@@ -71,28 +71,47 @@ titleEl dProfile =
 
 mainEl : DisplayProfile -> String -> String -> Maybe UserInfo -> Maybe UserDerivedEthInfo -> Element Msg
 mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEthInfo =
-    (case maybeUserDerivedEthInfo of
+    (case maybeUserInfo of
         Nothing ->
-            [ text "Loading user info..." ]
+            [ web3ConnectButton
+                dProfile
+                ([]
+                    ++ (case dProfile of
+                            Desktop ->
+                                []
 
-        Just userDerivedEthInfo ->
-            [ investOrWithdrawEl
-                dProfile
-                "ETH -> dETH"
-                "Deposit"
-                depositAmount
-                "ETH"
-                Types.DepositAmountChanged
-                maybeUserDerivedEthInfo
-            , investOrWithdrawEl
-                dProfile
-                "dETH -> ETH"
-                "Redeem"
-                withdrawalAmount
-                "dETH"
-                Types.WithdrawalAmountChanged
-                maybeUserDerivedEthInfo
+                            Mobile ->
+                                [ Element.Font.size 10
+                                , Element.padding 5
+                                ]
+                       )
+                )
+                (EH.Action Types.ConnectToWeb3)
             ]
+
+        Just userInfo ->
+            case maybeUserDerivedEthInfo of
+                Nothing ->
+                    [ text "Loading user info..." ]
+
+                Just userDerivedEthInfo ->
+                    [ investOrWithdrawEl
+                        dProfile
+                        "ETH -> dETH"
+                        "Deposit"
+                        depositAmount
+                        "ETH"
+                        Types.DepositAmountChanged
+                        maybeUserDerivedEthInfo
+                    , investOrWithdrawEl
+                        dProfile
+                        "dETH -> ETH"
+                        "Redeem"
+                        withdrawalAmount
+                        "dETH"
+                        Types.WithdrawalAmountChanged
+                        maybeUserDerivedEthInfo
+                    ]
     )
         |> responsiveVal dProfile
             row
