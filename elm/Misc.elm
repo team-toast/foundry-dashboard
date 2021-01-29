@@ -104,7 +104,7 @@ emptyModel key now basePath =
     , userStakingInfo = Nothing
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
-    , farmingIsActive = False
+    , farmingIsActive = True -- Set to true to enable farming interface - False will show inactive message
     }
 
 

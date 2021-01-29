@@ -1,7 +1,7 @@
 module View.Farm exposing (..)
 
 import Config
-import Element exposing (Attribute, Element, el, text)
+import Element exposing (Attribute, Element, alignRight, centerX, column, el, fill, fillPortion, height, padding, paddingEach, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -26,43 +26,47 @@ view model =
         dProfile =
             model.dProfile
     in
-    el
-        [ Element.width Element.fill
-        , Element.paddingEach
-            { top =
-                responsiveVal
-                    dProfile
-                    60
-                    15
-            , bottom = 0
-            , left = 0
-            , right = 0
-            }
+    (if not model.farmingIsActive then
+        [ titleEl dProfile "Farming has ended for now!" ]
+
+     else
+        [ titleEl dProfile "Farming for Fryers!"
+        , subTitleEl dProfile model.now
+        , farmVideoEl dProfile
+        , bodyEl model
+        , verifyJurisdictionErrorEl
+            dProfile
+            model.jurisdictionCheckStatus
+            [ Element.Font.color EH.white ]
         ]
-    <|
-        Element.column
-            [ Element.centerX
-            , Element.spacing <|
+    )
+        |> column
+            [ centerX
+            , spacing <|
                 responsiveVal
                     dProfile
                     40
                     15
-            , Element.height Element.fill
+            , height fill
             ]
-            [ titleEl dProfile
-            , subTitleEl dProfile model.now
-            , farmVideoEl dProfile
-            , bodyEl model
-            , verifyJurisdictionErrorEl
-                dProfile
-                model.jurisdictionCheckStatus
-                [ Element.Font.color EH.white ]
+        |> el
+            [ width fill
+            , paddingEach
+                { top =
+                    responsiveVal
+                        dProfile
+                        60
+                        15
+                , bottom = 0
+                , left = 0
+                , right = 0
+                }
             ]
 
 
-titleEl : DisplayProfile -> Element Msg
-titleEl dProfile =
-    text "Farming for Fryers!"
+titleEl : DisplayProfile -> String -> Element Msg
+titleEl dProfile title =
+    text title
         |> el
             [ Element.Font.size <|
                 responsiveVal
@@ -74,7 +78,7 @@ titleEl dProfile =
                 dProfile
                 Element.Font.bold
                 Element.Font.semiBold
-            , Element.centerX
+            , centerX
             ]
 
 
@@ -101,7 +105,7 @@ subTitleEl dProfile now =
             , Element.Font.color EH.white
             , Element.Font.medium
             , Element.Font.italic
-            , Element.centerX
+            , centerX
             ]
 
 
@@ -116,7 +120,7 @@ farmVideoEl dProfile =
         , Element.Font.color EH.white
         , Element.Font.medium
         , Element.Font.italic
-        , Element.centerX
+        , centerX
         , Element.Font.underline
         ]
     <|
@@ -136,10 +140,10 @@ bodyEl model =
         mainEl =
             case dProfile of
                 EH.Desktop ->
-                    Element.row
+                    row
 
                 EH.Mobile ->
-                    Element.column
+                    column
 
         balancesEl =
             balancesElement
@@ -157,27 +161,27 @@ bodyEl model =
                 model.apy
     in
     mainEl
-        [ Element.centerX
+        [ centerX
         , Element.Background.color <| Element.rgba 1 1 1 0.1
         , Element.Border.rounded 10
         , Element.Border.glow EH.white 2
-        , Element.height <|
-            Element.px <|
+        , height <|
+            px <|
                 responsiveVal
                     dProfile
                     500
                     400
-        , Element.width <|
+        , width <|
             responsiveVal
                 dProfile
-                (Element.px 800)
-                Element.fill
-        , Element.padding <|
+                (px 800)
+                fill
+        , padding <|
             responsiveVal
                 dProfile
                 20
                 10
-        , Element.spacing <|
+        , spacing <|
             responsiveVal
                 dProfile
                 10
@@ -210,7 +214,7 @@ balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo
             View.Common.web3ConnectButton
                 dProfile
                 [ Element.centerY
-                , Element.centerX
+                , centerX
                 ]
                 (EH.Action Types.ConnectToWeb3)
 
@@ -224,14 +228,14 @@ balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo
                         (text "Fetching info...")
 
                 Just userStakingInfo ->
-                    Element.column
-                        [ Element.spacing <|
+                    column
+                        [ spacing <|
                             responsiveVal
                                 dProfile
                                 25
                                 15
                         , Element.alignTop
-                        , Element.height Element.fill
+                        , height fill
                         ]
                         [ maybeGetLiquidityMessageElement
                             dProfile
@@ -261,7 +265,7 @@ apyElement :
 apyElement dProfile now maybeApy =
     el
         ([ Element.alignTop
-         , Element.alignRight
+         , alignRight
          , Element.Font.size <|
             responsiveVal
                 dProfile
@@ -288,14 +292,14 @@ apyElement dProfile now maybeApy =
                     mainEl =
                         case dProfile of
                             EH.Desktop ->
-                                Element.column
+                                column
 
                             EH.Mobile ->
-                                Element.row
+                                row
                 in
                 mainEl
-                    [ Element.spacing 5
-                    , Element.padding 5
+                    [ spacing 5
+                    , padding 5
                     , Element.Background.color <| Element.rgba 1 1 1 0.3
                     , Element.Border.rounded 5
                     , Element.Border.glow Theme.lightGray 1
@@ -305,7 +309,7 @@ apyElement dProfile now maybeApy =
                       <|
                         text "Current APY: "
                     , el
-                        [ Element.centerX
+                        [ centerX
                         , Element.Font.color EH.black
                         , Element.Font.semiBold
                         ]
@@ -332,15 +336,15 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
             && TokenValue.isZero stakingInfo.unstaked
             && TokenValue.isZero stakingInfo.claimableRewards
     then
-        Element.row
-            [ Element.centerX
+        row
+            [ centerX
             , Element.Font.size <|
                 responsiveVal
                     dProfile
                     20
                     15
             , Element.Background.color <| Element.rgba 1 1 1 0.9
-            , Element.padding 10
+            , padding 10
             , Element.Border.rounded 5
             ]
             [ Element.newTabLink
@@ -411,7 +415,7 @@ unstakedRowUX dProfile now jurisdictionCheckStatus stakingInfo maybeDepositAmoun
             in
             rowUXStyles dProfile isInput
     in
-    Element.row
+    row
         rowStyles
         (case jurisdictionCheckStatus of
             Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
@@ -500,7 +504,7 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
                 dProfile
                 isInput
     in
-    Element.row
+    row
         rowStyles
         [ balanceOutputOrInput
             dProfile
@@ -566,7 +570,7 @@ rewardsRowUX dProfile now stakingInfo =
         availableRewards =
             calcAvailableRewards stakingInfo now
     in
-    Element.row
+    row
         (rowUXStyles
             dProfile
             False
@@ -591,15 +595,15 @@ rowUXStyles :
     -> Bool
     -> List (Element.Attribute Msg)
 rowUXStyles dProfile isInput =
-    [ Element.spacing <|
+    [ spacing <|
         responsiveVal
             dProfile
             30
             15
-    , Element.width Element.fill
-    , Element.padding 5
-    , Element.height <|
-        Element.px <|
+    , width fill
+    , padding 5
+    , height <|
+        px <|
             responsiveVal
                 dProfile
                 50
@@ -631,21 +635,21 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                 150
                 75
     in
-    Element.row
-        [ Element.spacing <| responsiveVal dProfile 10 6
+    row
+        [ spacing <| responsiveVal dProfile 10 6
         , Element.Font.size <| responsiveVal dProfile 26 16
         , Element.Background.color <| Element.rgba 1 1 1 0.2
         , Element.Font.color EH.black
-        , Element.padding 5
+        , padding 5
         ]
         [ case maybeAmountUXModel of
             Just amountUXModel ->
                 let
                     inputStyles =
-                        [ Element.width <|
-                            Element.px amountElWidth
+                        [ width <|
+                            px amountElWidth
                         , Element.Background.color <| Element.rgba 1 1 1 0.3
-                        , Element.padding 0
+                        , padding 0
                         , Element.Border.width 0
                         ]
                             ++ (if validateInput amountUXModel.amountInput balance == Nothing then
@@ -667,8 +671,8 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
 
             Nothing ->
                 el
-                    [ Element.width <|
-                        Element.px amountElWidth
+                    [ width <|
+                        px amountElWidth
                     , Element.clip
                     ]
                     (text <|
@@ -676,19 +680,19 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                             balance
                     )
         , el
-            [ Element.width <|
+            [ width <|
                 responsiveVal
                     dProfile
-                    (Element.px 100)
-                    (Element.fillPortion 1)
+                    (px 100)
+                    (fillPortion 1)
             , Element.Font.color
                 color
             , Element.Font.semiBold
-            , Element.alignRight
+            , alignRight
             ]
           <|
-            Element.row
-                [ Element.alignRight ]
+            row
+                [ alignRight ]
                 [ text tokenLabel ]
         ]
 
@@ -764,8 +768,8 @@ buttonsRow :
     -> List (Element Msg)
     -> Element Msg
 buttonsRow dProfile =
-    Element.row
-        [ Element.spacing <| responsiveVal dProfile 10 5
+    row
+        [ spacing <| responsiveVal dProfile 10 5
         ]
 
 
@@ -821,18 +825,18 @@ mainRow :
     -> List (Element Msg)
     -> Element Msg
 mainRow dProfile =
-    Element.column
-        [ Element.spacing 5
+    column
+        [ spacing 5
         , Element.Background.color <| Element.rgba 1 1 1 0.15
-        , Element.padding 10
+        , padding 10
         , Element.Border.rounded 5
         , Element.Border.glow Theme.lightGray 1
         , Element.Font.size <| responsiveVal dProfile 30 24
-        , Element.width <|
+        , width <|
             responsiveVal
                 dProfile
-                (Element.px 420)
-                Element.fill
+                (px 420)
+                fill
         ]
 
 
@@ -843,11 +847,11 @@ rowLabel :
 rowLabel dProfile textToDisplay =
     text textToDisplay
         |> el
-            [ Element.width <|
+            [ width <|
                 responsiveVal
                     dProfile
-                    (Element.px 280)
-                    Element.fill
+                    (px 280)
+                    fill
             , Element.Font.size <|
                 responsiveVal
                     dProfile
@@ -860,10 +864,10 @@ rowLabel dProfile textToDisplay =
 
 commonImageAttributes : DisplayProfile -> List (Attribute msg)
 commonImageAttributes dProfile =
-    [ Element.centerX
+    [ centerX
     , Element.centerY
-    , Element.width <|
-        Element.px <|
+    , width <|
+        px <|
             responsiveVal
                 dProfile
                 40
@@ -989,14 +993,14 @@ actionButtonStyles :
     -> Maybe Msg
     -> List (Element.Attribute Msg)
 actionButtonStyles dProfile maybeHoverText maybeOnClick =
-    [ Element.width <|
-        Element.px <|
+    [ width <|
+        px <|
             responsiveVal
                 dProfile
                 45
                 35
-    , Element.height <|
-        Element.px <|
+    , height <|
+        px <|
             responsiveVal
                 dProfile
                 45
@@ -1027,7 +1031,7 @@ msgInsteadOfButton :
 msgInsteadOfButton dProfile textToDisplay color =
     text textToDisplay
         |> el
-            [ Element.centerX
+            [ centerX
             , Element.Font.size <|
                 responsiveVal
                     dProfile
@@ -1047,23 +1051,23 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
         Types.WaitingForClick ->
             Theme.redButton
                 dProfile
-                [ Element.width Element.fill ]
+                [ width fill ]
                 [ "Confirm you are not a US citizen" ]
                 (EH.Action Types.VerifyJurisdictionClicked)
 
         Types.Checking ->
             Theme.disabledButton
                 dProfile
-                [ Element.width Element.fill
+                [ width fill
                 , Element.Font.color EH.black
                 ]
                 "Verifying Jurisdiction..."
                 Nothing
 
         Types.Error errStr ->
-            Element.column
-                [ Element.spacing 10
-                , Element.width Element.fill
+            column
+                [ spacing 10
+                , width fill
                 ]
                 [ msgInsteadOfButton
                     dProfile
@@ -1092,8 +1096,8 @@ verifyJurisdictionErrorEl :
 verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
     case jurisdictionCheckStatus of
         Types.Error errStr ->
-            Element.column
-                ([ Element.spacing <|
+            column
+                ([ spacing <|
                     responsiveVal
                         dProfile
                         20
