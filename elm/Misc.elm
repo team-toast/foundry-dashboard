@@ -104,6 +104,7 @@ emptyModel key now basePath =
     , userStakingInfo = Nothing
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
+    , farmingIsActive = False
     }
 
 

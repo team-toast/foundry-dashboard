@@ -74,6 +74,7 @@ type alias Model =
     , userStakingInfo : Maybe UserStakingInfo
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
+    , farmingIsActive : Bool
     }
 
 
