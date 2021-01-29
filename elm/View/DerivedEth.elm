@@ -235,8 +235,8 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUs
                         [ width fill
                         , paddingEach
                             { top = 0
-                            , left = 20
-                            , right = 20
+                            , left = responsiveVal dProfile 20 10
+                            , right = responsiveVal dProfile 20 10
                             , bottom = 0
                             }
                         ]
