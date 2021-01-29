@@ -78,7 +78,7 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
         Just userDerivedEthInfo ->
             [ investOrWithdrawEl
                 dProfile
-                "Squander your ETH for worthless beans"
+                "ETH -> dETH"
                 "Deposit"
                 depositAmount
                 "ETH"
@@ -86,7 +86,7 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                 maybeUserDerivedEthInfo
             , investOrWithdrawEl
                 dProfile
-                "Redeem worthless beans for ETH"
+                "dETH -> ETH"
                 "Redeem"
                 withdrawalAmount
                 "dETH"
@@ -149,7 +149,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUs
             validateInput inputAmount userBalance
 
         blockHeightMin =
-            responsiveVal dProfile 220 220
+            responsiveVal dProfile 280 220
     in
     [ text heading
         |> el
@@ -168,26 +168,16 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUs
             [ textFontSize
             , centerX
             ]
-    , responsiveVal dProfile
-        Element.none
-        (percentageButtonsEl
+    , [ percentageButtonsEl
             dProfile
             amountChangedMsg
             userBalance
-        )
-    , [ responsiveVal dProfile
-            (percentageButtonsEl
-                dProfile
-                amountChangedMsg
-                userBalance
-            )
-            Element.none
-      , inputEl
+      , [ inputEl
             dProfile
             inputAmount
             userBalance
             msg
-      , buttonEl
+        , buttonEl
             dProfile
             []
             buttonText
@@ -195,10 +185,21 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUs
                 |> clickedMsg
                 |> Just
             )
+        ]
+            |> row
+                [ centerX
+                , spacing 10
+                ]
       ]
-        |> row
-            [ centerX
+        |> column
+            [ width fill
             , spacing 10
+            , paddingEach
+                { top = 10
+                , left = 0
+                , right = 0
+                , bottom = 10
+                }
             ]
     ]
         ++ (if userBalance == TokenValue.zero then
@@ -252,7 +253,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUs
                    , centerX
                    , width
                         (fill
-                            |> minimum (responsiveVal dProfile 550 300)
+                            |> minimum (responsiveVal dProfile 450 300)
                         )
                    , height
                         (fill
@@ -266,15 +267,15 @@ depositRedeemInfoEl : DisplayProfile -> String -> UserDerivedEthInfo -> Element 
 depositRedeemInfoEl dProfile tokenName userDEthInfo =
     let
         textFontSize =
-            responsiveVal dProfile 16 12
+            responsiveVal dProfile 16 10
                 |> Element.Font.size
 
         ( text1, text2, text3 ) =
             if tokenName == "ETH" then
-                ( "Actual ETH Added:", "Deposit Fee:", "dETH received:" )
+                ( "Actual ETH Added:", "Deposit Fee:", "dETH Received:" )
 
             else
-                ( "Total ETH Redeemable:", "Withdrawal Fee:", "Total ETH received:" )
+                ( "Total ETH Redeemable:", "Withdrawal Fee:", "Total ETH Received:" )
 
         ( val1, val2, val3 ) =
             if tokenName == "ETH" then
@@ -297,12 +298,12 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
     in
     [ depositRedeemInfoItemEl
         textFontSize
-        text1
-        val1
-    , depositRedeemInfoItemEl
-        textFontSize
         text2
         val2
+    , depositRedeemInfoItemEl
+        textFontSize
+        text1
+        val1
     , depositRedeemInfoItemEl
         textFontSize
         text3
@@ -515,7 +516,7 @@ tokenValueToString tokenValue =
             String.length evm
     in
     if evmLength <= 18 then
-        "0." ++ String.padRight 18 '0' evm
+        "0." ++ String.padLeft 18 '0' evm
 
     else
         String.left (evmLength - 18) evm ++ "." ++ String.right 18 evm
