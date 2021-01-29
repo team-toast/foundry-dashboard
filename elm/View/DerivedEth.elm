@@ -1,6 +1,6 @@
 module View.DerivedEth exposing (view)
 
-import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Attribute, Color, Element, alignRight, alignTop, centerX, column, el, fill, height, minimum, padding, paddingEach, paragraph, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -9,7 +9,7 @@ import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Misc exposing (derivedEthInfoInit, userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
-import Types exposing (JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
+import Types exposing (InputValidationResult, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
 import View.Common exposing (..)
 
 
@@ -24,13 +24,12 @@ view model =
         dProfile
         model.depositAmount
         model.withDrawalAmount
-        model.jurisdictionCheckStatus
         (userInfo model.wallet)
         model.userDerivedEthInfo
     ]
         |> column
             [ padding 20
-            , spacing 25
+            , spacing (responsiveVal dProfile 25 10)
             , Element.Font.color EH.white
             , width fill
             ]
@@ -40,12 +39,13 @@ view model =
                     responsiveVal
                         dProfile
                         60
-                        15
+                        10
                 , bottom = 0
                 , left = 0
                 , right = 0
                 }
             , centerX
+            , alignTop
             ]
 
 
@@ -64,55 +64,44 @@ titleEl dProfile =
                 Element.Font.bold
                 Element.Font.semiBold
             , centerX
+            , padding 20
             ]
 
 
-mainEl : DisplayProfile -> String -> String -> JurisdictionCheckStatus -> Maybe UserInfo -> Maybe UserDerivedEthInfo -> Element Msg
-mainEl dProfile depositAmount withdrawalAmount jurisdictionCheckStatus maybeUserInfo maybeUserDerivedEthInfo =
-    (case maybeUserInfo of
+mainEl : DisplayProfile -> String -> String -> Maybe UserInfo -> Maybe UserDerivedEthInfo -> Element Msg
+mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEthInfo =
+    (case maybeUserDerivedEthInfo of
         Nothing ->
             [ text "Loading user info..." ]
 
-        Just userInfo ->
-            case maybeUserDerivedEthInfo of
-                Nothing ->
-                    [ text "Loading user info..." ]
-
-                Just userDerivedEthInfo ->
-                    [ case jurisdictionCheckStatus of
-                        Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
-                            investOrWithdrawEl
-                                dProfile
-                                "Squander your ETH for worthless beans"
-                                "Deposit"
-                                depositAmount
-                                "ETH"
-                                userDerivedEthInfo.ethBalance
-                                Types.DepositAmountChanged
-                                maybeUserDerivedEthInfo
-
-                        _ ->
-                            verifyJurisdictionButtonOrResult
-                                dProfile
-                                jurisdictionCheckStatus
-                    , investOrWithdrawEl
-                        dProfile
-                        "Redeem worthless beans for ETH"
-                        "Redeem"
-                        withdrawalAmount
-                        "dETH"
-                        userDerivedEthInfo.dEthBalance
-                        Types.WithdrawalAmountChanged
-                        maybeUserDerivedEthInfo
-                    ]
+        Just userDerivedEthInfo ->
+            [ investOrWithdrawEl
+                dProfile
+                "Squander your ETH for worthless beans"
+                "Deposit"
+                depositAmount
+                "ETH"
+                userDerivedEthInfo.ethBalance
+                Types.DepositAmountChanged
+                maybeUserDerivedEthInfo
+            , investOrWithdrawEl
+                dProfile
+                "Redeem worthless beans for ETH"
+                "Redeem"
+                withdrawalAmount
+                "dETH"
+                userDerivedEthInfo.dEthBalance
+                Types.WithdrawalAmountChanged
+                maybeUserDerivedEthInfo
+            ]
     )
-        |> column
-            (Theme.whiteGlowOuterRounded
-                ++ [ spacing 20
-                   , padding 20
-                   , centerX
-                   ]
-            )
+        |> responsiveVal dProfile
+            row
+            column
+            [ spacing 20
+            , padding 20
+            , centerX
+            ]
 
 
 investOrWithdrawEl :
@@ -131,23 +120,19 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
             validateInput inputAmount userBalance
 
         textFontSize =
-            Element.Font.size (responsiveVal dProfile 20 14)
+            Element.Font.size (responsiveVal dProfile 22 16)
 
-        msg2 =
+        headingFontSize =
+            Element.Font.size (responsiveVal dProfile 28 18)
+
+        ( amountChangedMsg, clickedMsg ) =
             if tokenName == "ETH" then
-                Types.DepositAmountChanged
+                ( Types.DepositAmountChanged, Types.DepositClicked )
 
             else
-                Types.WithdrawalAmountChanged
+                ( Types.WithdrawalAmountChanged, Types.WithdrawClicked )
 
-        msg3 =
-            if tokenName == "ETH" then
-                Types.DepositClicked
-
-            else
-                Types.WithdrawClicked
-
-        msg3Amount =
+        msgAmount =
             case TokenValue.fromString inputAmount of
                 Nothing ->
                     TokenValue.zero
@@ -157,124 +142,60 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
 
         userDEthInfo =
             Maybe.withDefault derivedEthInfoInit maybeUserDerivedEthInfo
+
+        blockHeightMin =
+            responsiveVal dProfile 220 220
     in
     [ text heading
         |> el
-            [ textFontSize
+            [ headingFontSize
             , Element.Font.semiBold
             , centerX
             ]
-    , if tokenName == "dETH" then
-        [ text "Your dETH position:"
-        , text
-            (tokenName
-                ++ " balance: "
-                ++ (userBalance
-                        |> TokenValue.toFloatWithWarning
-                        |> String.fromFloat
-                   )
-            )
-            |> el
-                [ textFontSize ]
-        , text
-            ("ETH Redeemable: "
-                ++ (userDEthInfo.totalCollateralRedeemed
-                        |> TokenValue.toFloatWithWarning
-                        |> String.fromFloat
-                   )
-            )
-            |> el
-                [ textFontSize ]
-        , text
-            ("Redeem Fee: "
-                ++ (userDEthInfo.redeemFee
-                        |> TokenValue.toFloatWithWarning
-                        |> String.fromFloat
-                   )
-            )
-            |> el
-                [ textFontSize ]
-        , text
-            ("ETH Returned: "
-                ++ (userDEthInfo.collateralReturned
-                        |> TokenValue.toFloatWithWarning
-                        |> String.fromFloat
-                   )
-            )
-            |> el
-                [ textFontSize ]
-        ]
-            |> column
-                (Theme.whiteGlowInnerRounded
-                    ++ [ padding 20
-                       , spacing 5
-                       , centerX
-                       ]
-                )
-
-      else
-        text
-            (tokenName
-                ++ " balance: "
-                ++ (userBalance
-                        |> TokenValue.toFloatWithWarning
-                        |> String.fromFloat
-                   )
-            )
-            |> el
-                [ textFontSize
-                , centerX
-                ]
-    , [ buttonEl
+    , text
+        (tokenName
+            ++ " balance: "
+            ++ (userBalance
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+               )
+        )
+        |> el
+            [ textFontSize
+            , centerX
+            ]
+    , responsiveVal dProfile
+        Element.none
+        (percentageButtonsEl
             dProfile
-            "25%"
-            ((TokenValue.toFloatWithWarning userBalance
-                * 0.25
-                |> String.fromFloat
-                |> msg2
-             )
-                |> Just
+            amountChangedMsg
+            userBalance
+        )
+    , [ responsiveVal dProfile
+            (percentageButtonsEl
+                dProfile
+                amountChangedMsg
+                userBalance
             )
+            Element.none
+      , inputEl
+            dProfile
+            inputAmount
+            userBalance
+            msg
       , buttonEl
             dProfile
-            "50%"
-            ((TokenValue.toFloatWithWarning userBalance
-                * 0.5
-                |> String.fromFloat
-                |> msg2
-             )
-                |> Just
-            )
-      , buttonEl
-            dProfile
-            "75%"
-            ((TokenValue.toFloatWithWarning userBalance
-                * 0.75
-                |> String.fromFloat
-                |> msg2
-             )
-                |> Just
-            )
-      , buttonEl
-            dProfile
-            "100%"
-            ((userBalance
-                |> TokenValue.toFloatWithWarning
-                |> String.fromFloat
-                |> msg2
-             )
+            []
+            buttonText
+            (msgAmount
+                |> clickedMsg
                 |> Just
             )
       ]
         |> row
-            [ spacing 10
-            , centerX
+            [ centerX
+            , spacing 10
             ]
-    , inputEl
-        dProfile
-        inputAmount
-        userBalance
-        msg
     ]
         ++ (if userBalance == TokenValue.zero then
                 [ Element.rgba 1 0 0 0.8
@@ -283,62 +204,194 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName userBalance
                         ("Your " ++ tokenName ++ " balance is zero")
                 ]
 
-            else if inputValid == Nothing || Maybe.withDefault TokenValue.zero inputValid == TokenValue.zero then
+            else if inputValid == Types.InputGreaterThan then
                 [ Element.rgba 1 0 0 0.8
                     |> msgInsteadOfButton
                         dProfile
-                        ("Min 0, Max "
-                            ++ (userBalance
-                                    |> TokenValue.toFloatWithWarning
-                                    |> String.fromFloat
-                               )
-                        )
+                        "Value too high!"
+                ]
+
+            else if inputValid == Types.InputLessThan then
+                [ Element.rgba 1 0 0 0.8
+                    |> msgInsteadOfButton
+                        dProfile
+                        "Value too low!"
                 ]
 
             else
-                [ text
-                    ("Actual ETH Added: "
-                        ++ (userDEthInfo.actualCollateralAdded
-                                |> TokenValue.toFloatWithWarning
-                                |> String.fromFloat
-                           )
-                    )
-                    |> el
-                        [ textFontSize ]
-                , text
-                    ("Deposit Fee: "
-                        ++ (userDEthInfo.depositFee
-                                |> TokenValue.toFloatWithWarning
-                                |> String.fromFloat
-                           )
-                    )
-                    |> el
-                        [ textFontSize ]
-                , text
-                    ("dETH received: "
-                        ++ (userDEthInfo.tokensIssued
-                                |> TokenValue.toFloatWithWarning
-                                |> String.fromFloat
-                           )
-                    )
-                    |> el
-                        [ textFontSize ]
-                , buttonEl
+                []
+           )
+        ++ (if inputValid == Types.InputValid then
+                [ depositRedeemInfoEl
                     dProfile
-                    buttonText
-                    (msg3Amount
-                        |> msg3
-                        |> Just
-                    )
+                    tokenName
+                    userDEthInfo
+                    |> el
+                        [ width fill
+                        , paddingEach
+                            { top = 0
+                            , left = 20
+                            , right = 20
+                            , bottom = 0
+                            }
+                        ]
                 ]
+
+            else
+                []
            )
         |> column
-            (Theme.whiteGlowInnerRounded
-                ++ [ spacing 10
+            (Theme.mainContainerBorderAttributes
+                ++ Theme.mainContainerBackgroundAttributes
+                ++ [ spacing 15
                    , padding 12
                    , centerX
+                   , width fill
+                   , height
+                        (fill
+                            |> minimum blockHeightMin
+                        )
                    ]
             )
+
+
+depositRedeemInfoEl : DisplayProfile -> String -> UserDerivedEthInfo -> Element Msg
+depositRedeemInfoEl dProfile tokenName userDEthInfo =
+    let
+        textFontSize =
+            responsiveVal dProfile 16 12
+                |> Element.Font.size
+
+        ( text1, text2, text3 ) =
+            if tokenName == "ETH" then
+                ( "Actual ETH Added:", "Deposit Fee:", "dETH received:" )
+
+            else
+                ( "Total ETH Redeemable:", "Withdrawal Fee:", "Total ETH received:" )
+
+        ( val1, val2, val3 ) =
+            if tokenName == "ETH" then
+                ( userDEthInfo.actualCollateralAdded
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+                , userDEthInfo.depositFee
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+                , userDEthInfo.tokensIssued
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+                )
+
+            else
+                ( userDEthInfo.totalCollateralRedeemed
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+                , userDEthInfo.redeemFee
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+                , userDEthInfo.collateralReturned
+                    |> TokenValue.toFloatWithWarning
+                    |> String.fromFloat
+                )
+    in
+    [ depositRedeemInfoItemEl
+        textFontSize
+        text1
+        val1
+    , depositRedeemInfoItemEl
+        textFontSize
+        text2
+        val2
+    , depositRedeemInfoItemEl
+        textFontSize
+        text3
+        val3
+    ]
+        |> column
+            ([ width fill
+             , spacing 5
+             , padding 5
+             ]
+                ++ Theme.childContainerBackgroundAttributes
+                ++ Theme.childContainerBorderAttributes
+            )
+
+
+depositRedeemInfoItemEl : Attribute Msg -> String -> String -> Element Msg
+depositRedeemInfoItemEl textFontSize rowLabel rowValue =
+    [ text
+        rowLabel
+        |> el
+            [ textFontSize ]
+    , text
+        rowValue
+        |> el
+            [ textFontSize
+            , alignRight
+            ]
+    ]
+        |> row
+            [ width fill
+            ]
+
+
+percentageButtonsEl : DisplayProfile -> (String -> Msg) -> TokenValue -> Element Msg
+percentageButtonsEl dProfile msg2 userBalance =
+    let
+        buttonStyle =
+            [ Element.Font.color Theme.almostWhite
+            , Element.Font.size (responsiveVal dProfile 14 12)
+            ]
+    in
+    [ buttonEl
+        dProfile
+        buttonStyle
+        "25%"
+        ((TokenValue.toFloatWithWarning userBalance
+            * 0.25
+            |> String.fromFloat
+            |> msg2
+         )
+            |> Just
+        )
+    , buttonEl
+        dProfile
+        buttonStyle
+        "50%"
+        ((TokenValue.toFloatWithWarning userBalance
+            * 0.5
+            |> String.fromFloat
+            |> msg2
+         )
+            |> Just
+        )
+    , buttonEl
+        dProfile
+        buttonStyle
+        "75%"
+        ((TokenValue.toFloatWithWarning userBalance
+            * 0.75
+            |> String.fromFloat
+            |> msg2
+         )
+            |> Just
+        )
+    , buttonEl
+        dProfile
+        buttonStyle
+        "100%"
+        ((userBalance
+            |> TokenValue.toFloatWithWarning
+            |> String.fromFloat
+            |> msg2
+         )
+            |> Just
+        )
+    ]
+        |> row
+            [ spacing 12
+            , centerX
+            ]
 
 
 inputEl :
@@ -355,18 +408,28 @@ inputEl dProfile inputAmount userBalance msg =
                 150
                 100
 
+        amountElHeight =
+            responsiveVal
+                dProfile
+                30
+                23
+
+        inputValid =
+            validateInput inputAmount userBalance
+
         inputStyles =
             [ px amountElWidth
                 |> width
-            , px 30
+            , px amountElHeight
                 |> height
             , Element.rgba 1 1 1 0.3
                 |> Element.Background.color
             , padding 3
             , Element.Border.width 0
             , centerX
+            , Element.Font.size (responsiveVal dProfile 20 14)
             ]
-                ++ (if validateInput inputAmount userBalance == Nothing then
+                ++ (if inputValid /= Types.InputUndefined && inputValid /= Types.InputValid then
                         [ Element.Border.width 2
                         , Element.Border.color <| Theme.darkRed
                         ]
@@ -391,51 +454,49 @@ inputEl dProfile inputAmount userBalance msg =
 
 buttonEl :
     DisplayProfile
+    -> List (Attribute Msg)
     -> String
     -> Maybe Msg
     -> Element Msg
-buttonEl dProfile buttonLabel msg =
+buttonEl dProfile attributes buttonLabel msg =
     { onPress = msg
     , label = text buttonLabel
     }
         |> Element.Input.button
-            [ padding 5
-            , Element.Border.rounded 5
-            , Element.Border.glow Theme.lightGray 1
-            , centerX
-            , Element.Background.color Theme.darkerBlue
-            ]
-
-
-validateInput :
-    String
-    -> TokenValue
-    -> Maybe TokenValue
-validateInput input max =
-    TokenValue.fromString input
-        |> Maybe.andThen
-            (\val ->
-                if TokenValue.compare val TokenValue.zero == LT then
-                    Nothing
-
-                else if TokenValue.compare val max == GT then
-                    Nothing
-
-                else
-                    Just val
+            ([ padding 5
+             , Element.Border.rounded 5
+             , Element.Border.glow Theme.lightGray 1
+             , centerX
+             , Element.Font.size (responsiveVal dProfile 18 12)
+             ]
+                ++ Theme.childContainerBackgroundAttributes
+                ++ attributes
             )
 
 
-msgInsteadOfButton :
-    DisplayProfile
-    -> String
-    -> Element.Color
-    -> Element Msg
+validateInput : String -> TokenValue -> InputValidationResult
+validateInput input max =
+    case TokenValue.fromString input of
+        Nothing ->
+            Types.InputUndefined
+
+        Just val ->
+            if TokenValue.compare val TokenValue.zero == LT then
+                Types.InputLessThan
+
+            else if TokenValue.compare val max == GT then
+                Types.InputGreaterThan
+
+            else
+                Types.InputValid
+
+
+msgInsteadOfButton : DisplayProfile -> String -> Color -> Element Msg
 msgInsteadOfButton dProfile textToDisplay color =
     [ text textToDisplay ]
         |> paragraph []
         |> el
-            [ Element.centerX
+            [ centerX
             , Element.Font.size <|
                 responsiveVal
                     dProfile
@@ -444,46 +505,3 @@ msgInsteadOfButton dProfile textToDisplay color =
             , Element.Font.italic
             , Element.Font.color color
             ]
-
-
-verifyJurisdictionButtonOrResult : DisplayProfile -> JurisdictionCheckStatus -> Element Msg
-verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
-    case jurisdictionCheckStatus of
-        Types.WaitingForClick ->
-            redButton
-                dProfile
-                [ Element.width Element.fill ]
-                [ "Confirm you are not a US citizen" ]
-                (EH.Action Types.VerifyJurisdictionClicked)
-
-        Types.Checking ->
-            disabledButton
-                dProfile
-                [ Element.width Element.fill
-                , Element.Font.color EH.black
-                ]
-                "Verifying Jurisdiction..."
-                Nothing
-
-        Types.Error errStr ->
-            [ msgInsteadOfButton
-                dProfile
-                "Error verifying jurisdiction."
-                red
-            ]
-                |> Element.column
-                    [ Element.spacing 10
-                    , Element.width Element.fill
-                    ]
-
-        Types.Checked Types.ForbiddenJurisdictions ->
-            msgInsteadOfButton
-                dProfile
-                "Sorry, US citizens and residents are excluded."
-                red
-
-        Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
-            msgInsteadOfButton
-                dProfile
-                "Jurisdiction Verified."
-                green

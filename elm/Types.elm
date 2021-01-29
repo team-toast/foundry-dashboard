@@ -299,3 +299,10 @@ type alias VoteBarBlock =
     , address : Address
     , amount : TokenValue
     }
+
+
+type InputValidationResult
+    = InputValid
+    | InputLessThan
+    | InputGreaterThan
+    | InputUndefined

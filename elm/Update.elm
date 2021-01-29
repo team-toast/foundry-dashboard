@@ -87,79 +87,29 @@ update msg prevModel =
                     )
 
         Tick i ->
-            let
-                getTotalValueEntered =
-                    fetchTotalValueEnteredCmd prevModel.currentBucketId
-
-                getEthPrice =
-                    fetchEthPrice
-
-                getDaiPrice =
-                    fetchDaiPrice
-
-                getFryPrice =
-                    fetchFryPrice
-
-                getTeamToast1 =
-                    fetchTeamTokenBalance
-                        Config.fryContractAddress
-                        Config.teamToastAddress1
-                        0
-
-                getTeamToast2 =
-                    fetchTeamTokenBalance
-                        Config.fryContractAddress
-                        Config.teamToastAddress2
-                        1
-
-                getTeamToast3 =
-                    fetchTeamTokenBalance
-                        Config.fryContractAddress
-                        Config.teamToastAddress3
-                        2
-
-                getPermaFrostTokenBalance =
-                    fetchPermaFrostLockedTokenBalance
-
-                getPermaFrostTotalSupply =
-                    fetchPermaFrostTotalSupply
-
-                getBalancerFryBalance =
-                    fetchBalancerPoolFryBalance
-
-                getTreasuryBalance =
-                    fetchTreasuryBalance
-            in
             ( { prevModel
                 | now = i
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , [ getTotalValueEntered
-              , getEthPrice
-              , getDaiPrice
-              , getFryPrice
-              , getTeamToast1
-              , getTeamToast2
-              , getTeamToast3
-              , getPermaFrostTokenBalance
-              , getPermaFrostTotalSupply
-              , getBalancerFryBalance
-              , getTreasuryBalance
+            , [ fetchTotalValueEnteredCmd prevModel.currentBucketId
+              , fetchEthPrice
+              , fetchDaiPrice
+              , fetchFryPrice
+              , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress1 2
+              , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress2 2
+              , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress3 2
+              , fetchPermaFrostLockedTokenBalance
+              , fetchPermaFrostTotalSupply
+              , fetchBalancerPoolFryBalance
+              , fetchTreasuryBalance
+              , prevModel.wallet
+                    |> fetchDerivedEthBalance
+              , prevModel.wallet
+                    |> fetchEthBalance
+              , prevModel.userDerivedEthInfo
+                    |> fetchDethPositionInfo
               ]
-                ++ (case userInfo prevModel.wallet of
-                        Nothing ->
-                            []
-
-                        Just _ ->
-                            [ prevModel.wallet
-                                |> fetchDerivedEthBalance
-                            , prevModel.wallet
-                                |> fetchEthBalance
-                            , prevModel.userDerivedEthInfo
-                                |> fetchDethPositionInfo
-                            ]
-                   )
                 |> Cmd.batch
             )
 
@@ -208,7 +158,10 @@ update msg prevModel =
                     ( { prevModel
                         | wallet = newWallet
                       }
-                    , Cmd.none
+                    , [ fetchDerivedEthBalance newWallet
+                      , fetchEthBalance newWallet
+                      ]
+                        |> Cmd.batch
                     )
 
                 Err errStr ->
