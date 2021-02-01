@@ -1,7 +1,7 @@
 module View.Farm exposing (..)
 
 import Config
-import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingEach, px, rgba, row, spacing, text, width)
+import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, minimum, padding, paddingEach, px, rgba, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -137,7 +137,7 @@ bodyEl model =
     mainEl
         ([ centerX
          , height <| px <| responsiveVal dProfile 500 400
-         , width <| responsiveVal dProfile (px 800) fill
+         , width <| responsiveVal dProfile (px 800) (fill |> minimum 300)
          , padding <| responsiveVal dProfile 20 10
          , spacing <| responsiveVal dProfile 10 5
          ]
@@ -244,28 +244,29 @@ apyElement dProfile maybeApy =
                 |> el
                     [ centerX
                     , Element.Font.color Theme.almostWhite
-                    , Element.Font.size 26
                     ]
             ]
                 |> mainEl
                     ([ spacing 5
                      , padding 5
                      ]
-                        ++ Theme.childContainerBackgroundAttributes
-                        ++ Theme.childContainerBorderAttributes
+                        ++ Theme.mainContainerBackgroundAttributes
+                        ++ Theme.mainContainerBorderAttributes
                     )
     )
         |> el
             ([ alignTop
              , alignRight
-             , Element.Font.size <| responsiveVal dProfile 30 15
+             , Element.Font.size <| responsiveVal dProfile 30 16
              ]
                 ++ (case dProfile of
                         EH.Desktop ->
                             []
 
                         EH.Mobile ->
-                            [ Element.Font.semiBold ]
+                            [ Element.Font.semiBold
+                            , Element.paddingEach { top = 0, left = 0, right = 0, bottom = 10 }
+                            ]
                    )
             )
 
@@ -677,7 +678,7 @@ buttonsRow :
     -> Element Msg
 buttonsRow dProfile =
     row
-        [ spacing <| responsiveVal dProfile 10 5
+        [ spacing <| responsiveVal dProfile 8 5
         ]
 
 
@@ -734,14 +735,14 @@ mainRow :
     -> Element Msg
 mainRow dProfile =
     column
-        [ spacing 5
-        , Element.Background.color <| rgba 1 1 1 0.15
-        , padding 10
-        , Element.Border.rounded 5
-        , Element.Border.glow Theme.lightGray 1
-        , Element.Font.size <| responsiveVal dProfile 30 24
-        , width <| responsiveVal dProfile (px 420) fill
-        ]
+        ([ spacing 5
+         , padding 10
+         , Element.Font.size <| responsiveVal dProfile 30 24
+         , width <| responsiveVal dProfile (px 420) fill
+         ]
+            ++ Theme.mainContainerBorderAttributes
+            ++ Theme.mainContainerBackgroundAttributes
+        )
 
 
 rowLabel :
