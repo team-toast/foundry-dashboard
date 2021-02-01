@@ -48,11 +48,11 @@ basicTheme =
     , linkTextColor = blue
     , linkTextColorAgainstBackground = Element.rgb 0.4 0.6 1
     , emphasizedTextColor = EH.white
-    , postBodyTextColor = EH.black
-    , messageInputPlaceholderTextColor = darkGray
-    , loadingTextColor = darkGray
+    , postBodyTextColor = EH.white
+    , messageInputPlaceholderTextColor = almostWhite
+    , loadingTextColor = almostWhite
     , errorTextColor = softRed
-    , appStatusTextColor = darkGray
+    , appStatusTextColor = almostWhite
     , daiBurnedBackground = lightRed
     , daiBurnedTextIsWhite = False
     , daiTippedBackground = lightGreen
@@ -135,20 +135,6 @@ commonShadow =
         , blur = 10
         , color = darkGray
         }
-
-
-whiteGlowOuterRounded : List (Attribute msg)
-whiteGlowOuterRounded =
-    [ Element.Border.rounded 10
-    , Element.Border.glow EH.white 5
-    ]
-
-
-whiteGlowInnerRounded : List (Attribute msg)
-whiteGlowInnerRounded =
-    [ Element.Border.rounded 10
-    , Element.Border.innerGlow EH.white 5
-    ]
 
 
 blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg

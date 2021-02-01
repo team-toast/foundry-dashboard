@@ -694,15 +694,9 @@ update msg prevModel =
                     ( prevModel, Cmd.none )
 
         RefetchStakingInfoOrApy ->
-            if calcTimeLeft prevModel.now <= 0 then
-                ( prevModel
-                , Cmd.none
-                )
-
-            else
-                ( prevModel
-                , fetchStakingInfoOrApyCmd prevModel.now prevModel.wallet
-                )
+            ( prevModel
+            , fetchStakingInfoOrApyCmd prevModel.now prevModel.wallet
+            )
 
         StakingInfoFetched fetchResult ->
             case fetchResult of
@@ -723,26 +717,22 @@ update msg prevModel =
                     )
 
         ApyFetched fetchResult ->
-            if calcTimeLeft prevModel.now <= 0 then
-                ( prevModel, Cmd.none )
+            case fetchResult of
+                Err httpErr ->
+                    ( prevModel
+                        |> (web3FetchError "apy" httpErr
+                                |> addUserNotice
+                           )
+                    , Cmd.none
+                    )
 
-            else
-                case fetchResult of
-                    Err httpErr ->
-                        ( prevModel
-                            |> (web3FetchError "apy" httpErr
-                                    |> addUserNotice
-                               )
-                        , Cmd.none
-                        )
-
-                    Ok apy ->
-                        ( { prevModel
-                            | apy =
-                                Just apy
-                          }
-                        , Cmd.none
-                        )
+                Ok apy ->
+                    ( { prevModel
+                        | apy =
+                            Just apy
+                      }
+                    , Cmd.none
+                    )
 
         VerifyJurisdictionClicked ->
             ( { prevModel
