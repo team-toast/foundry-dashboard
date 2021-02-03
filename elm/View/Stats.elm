@@ -1,7 +1,7 @@
 module View.Stats exposing (view)
 
 import Config
-import Element exposing (Attribute, Element, centerX, column, el, fill, height, newTabLink, padding, spacing, text, width)
+import Element exposing (Attribute, Element, alignRight, centerX, column, el, fill, height, minimum, newTabLink, padding, paddingEach, paddingXY, px, row, spaceEvenly, spacing, spacingXY, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -31,7 +31,7 @@ view model =
         , spacing 25
         , centerX
         ]
-        [ statsIcon model
+        [ statsEl model
         , viewAddresses model.dProfile
         ]
 
@@ -52,7 +52,6 @@ viewAddresses dProfile =
     ]
         |> column
             ([ width fill
-             , centerX
              , padding 10
              , spacing 10
              , height fill
@@ -109,160 +108,215 @@ viewAddressAndLabel dProfile label address =
             ]
 
 
-statsIcon : Model -> Element Msg
-statsIcon model =
+statsEl : Model -> Element Msg
+statsEl model =
     let
         dProfile =
             model.dProfile
 
-        defaultPadding =
-            responsiveVal dProfile 10 7
-                |> padding
+        bucketNumber =
+            intTextOrLoadingText model.currentBucketId
 
-        rowBorderStyle =
-            Theme.childContainerBackgroundAttributes
-                ++ Theme.childContainerBorderAttributes
-                ++ [ centerX
-                   ]
-
-        bucketNumberEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "BUCKET #"
-                , intTextOrLoadingText model.currentBucketId
-                ]
-
-        timeLeftEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "TIME LEFT"
-                , getBucketRemainingTimeText
-                    model.currentBucketId
-                    model.currentTime
-                ]
-
-        bucketPriceEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "BUCKET $"
-                , "$ "
-                    ++ calcEffectivePricePerToken
-                        model.currentBucketTotalEntered
-                        model.currentDaiPriceEth
+        uniswapPrice =
+            "$ "
+                ++ (maybeFloatMultiply
+                        model.currentFryPriceEth
                         model.currentEthPriceUsd
-                ]
+                        |> floatTextOrLoadingText
+                   )
 
-        uniswapPriceEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "UNISWAP $"
-                , "$ "
-                    ++ (maybeFloatMultiply
-                            model.currentFryPriceEth
-                            model.currentEthPriceUsd
-                            |> floatTextOrLoadingText
-                       )
-                ]
+        bucketPrice =
+            "$ "
+                ++ calcEffectivePricePerToken
+                    model.currentBucketTotalEntered
+                    model.currentDaiPriceEth
+                    model.currentEthPriceUsd
 
-        circSupplyEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "CIRC SUPPLY"
-                , model.circSupply
-                    |> floatTextOrLoadingText
-                ]
+        timeLeft =
+            getBucketRemainingTimeText
+                model.currentBucketId
+                model.currentTime
 
-        permaFrostEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "PERMA-FROSTED"
-                , model.permaFrostedTokens
-                    |> tokenValueTextOrLoadingText
-                ]
+        circulatingSupply =
+            model.circSupply
+                |> floatTextOrLoadingText
 
-        totalSupplyEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "TOTAL SUPPLY"
-                , Config.fryTotalSupply
-                    |> Just
-                    |> intTextOrLoadingText
-                ]
+        totalSupply =
+            Config.fryTotalSupply
+                |> Just
+                |> intTextOrLoadingText
 
-        marketCapEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "MARKET CAP"
-                , "$ "
-                    ++ (model.marketCap
-                            |> floatTextOrLoadingText
-                       )
-                ]
+        marketCap =
+            "$ "
+                ++ (model.marketCap
+                        |> floatTextOrLoadingText
+                   )
 
-        fullyDilutedEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "FULLY DILUTED"
-                , "$ "
-                    ++ (model.fullyDiluted
-                            |> floatTextOrLoadingText
-                       )
-                ]
+        fullyDilutedMarketCap =
+            "$ "
+                ++ (model.fullyDiluted
+                        |> floatTextOrLoadingText
+                   )
 
-        treasuryBalanceEl =
-            statsItem
-                dProfile
-                [ defaultPadding ]
-                [ "TREASURY BALANCE"
-                , "$ "
-                    ++ (model.treasuryBalance
-                            |> tokenValueTextOrLoadingText
-                       )
-                ]
+        treasuryBalance =
+            "$ "
+                ++ (model.treasuryBalance
+                        |> tokenValueTextOrLoadingText
+                   )
+
+        permafrostDollars =
+            "$ "
+                ++ calcEffectivePricePerToken
+                    model.permaFrostedTokens
+                    model.currentFryPriceEth
+                    model.currentEthPriceUsd
     in
-    column
-        [ Element.Background.color <| Element.rgba 1 1 1 0.1
-        , width fill
-        , Element.Border.rounded 20
-        , Element.Font.color Theme.lightGray
-        , Element.Border.glow EH.white 2
-        , padding 5
-        , spacing 5
-        ]
-        [ Element.row
-            rowBorderStyle
-            [ bucketNumberEl
-            , timeLeftEl
+    case dProfile of
+        Mobile ->
+            [ "Price"
+                |> statsHeading dProfile
+            , [ statsRowItem dProfile "Bucket $" bucketPrice
+              , statsRowItem dProfile "UniSwap $" uniswapPrice
+              ]
+                |> statsRow
+            , "Supply"
+                |> statsHeading dProfile
+            , [ statsRowItem dProfile "Circulating" circulatingSupply
+              , statsRowItem dProfile "Total" totalSupply
+              ]
+                |> statsRow
+            , "Market Cap"
+                |> statsHeading dProfile
+            , [ statsRowItem dProfile "Circulating" marketCap
+              , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap
+              ]
+                |> statsRow
+            , "Sale"
+                |> statsHeading dProfile
+            , [ statsRowItem dProfile "Bucket #" bucketNumber
+              , statsRowItem dProfile "Time Left" timeLeft
+              ]
+                |> statsRow
+            , "Treasury"
+                |> statsHeading dProfile
+            , [ statsRowItem dProfile "Balance $" treasuryBalance ]
+                |> statsRow
+            , "Liquidity"
+                |> statsHeading dProfile
+            , [ statsRowItem dProfile "Permafrost $" permafrostDollars ]
+                |> statsRow
             ]
-        , Element.row
-            rowBorderStyle
-            [ bucketPriceEl
-            , uniswapPriceEl
+                |> column
+                    ([ width fill
+                     , Element.Font.color Theme.lightGray
+                     , padding 10
+                     , spacing 10
+                     ]
+                        ++ Theme.mainContainerBackgroundAttributes
+                        ++ Theme.mainContainerBorderAttributes
+                    )
+
+        Desktop ->
+            [ [ "Price"
+                    |> statsHeading dProfile
+              , [ statsRowItem dProfile "Bucket $" bucketPrice
+                , statsRowItem dProfile "UniSwap $" uniswapPrice
+                ]
+                    |> statsRow
+              , "Supply"
+                    |> statsHeading dProfile
+              , [ statsRowItem dProfile "Circulating" circulatingSupply
+                , statsRowItem dProfile "Total" totalSupply
+                ]
+                    |> statsRow
+              , "Market Cap"
+                    |> statsHeading dProfile
+              , [ statsRowItem dProfile "Circulating" marketCap
+                , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap
+                ]
+                    |> statsRow
+              ]
+                |> column
+                    [ width (300 |> px)
+                    , Element.Font.color Theme.lightGray
+                    , padding 10
+                    , spacing 10
+                    ]
+            , [ "Sale"
+                    |> statsHeading dProfile
+              , [ statsRowItem dProfile "Bucket #" bucketNumber
+                , statsRowItem dProfile "Time Left" timeLeft
+                ]
+                    |> statsRow
+              , "Treasury"
+                    |> statsHeading dProfile
+              , [ statsRowItem dProfile "Balance $" treasuryBalance ]
+                    |> statsRow
+              , "Liquidity"
+                    |> statsHeading dProfile
+              , [ statsRowItem dProfile "Permafrost $" permafrostDollars ]
+                    |> statsRow
+              ]
+                |> column
+                    [ width (300 |> px)
+                    , Element.Font.color Theme.lightGray
+                    , padding 10
+                    , spacing 10
+                    ]
             ]
-        , Element.row
-            rowBorderStyle
-            [ marketCapEl
-            , fullyDilutedEl
+                |> row
+                    ([ width fill
+                     , spacingXY 15 0
+                     ]
+                        ++ Theme.mainContainerBackgroundAttributes
+                        ++ Theme.mainContainerBorderAttributes
+                    )
+
+
+statsRowItem : DisplayProfile -> String -> String -> Element Msg
+statsRowItem dProfile label value =
+    [ label
+        |> textLarger dProfile
+    , value
+        |> textLarge dProfile
+        |> el
+            [ alignRight, Element.Font.color Theme.lightGray ]
+    ]
+        |> column [ Element.Font.color Theme.almostWhite ]
+
+
+statsRow : List (Element Msg) -> Element Msg
+statsRow items =
+    [ items
+        |> row
+            ([ width fill
+             , spaceEvenly
+             , padding 5
+             ]
+                ++ Theme.childContainerBorderAttributes
+                ++ Theme.mainContainerBackgroundAttributes
+            )
+    ]
+        |> row
+            [ paddingEach
+                { top = 5
+                , left = 10
+                , right = 0
+                , bottom = 10
+                }
+            , width fill
             ]
-        , Element.row
-            rowBorderStyle
-            [ circSupplyEl
-            , permaFrostEl
-            , totalSupplyEl
+
+
+statsHeading : DisplayProfile -> String -> Element Msg
+statsHeading dProfile label =
+    label
+        |> text
+        |> el
+            [ responsiveVal dProfile 30 26
+                |> Element.Font.size
+            , Element.Font.color EH.white
             ]
-        , Element.row
-            rowBorderStyle
-            [ treasuryBalanceEl ]
-        ]
 
 
 tokenValueTextOrLoadingText :
@@ -312,21 +366,24 @@ textLarge :
     -> String
     -> Element Msg
 textLarge dProfile txt =
-    el
-        [ Element.Font.size <| responsiveVal dProfile 16 14
-        , padding <| responsiveVal dProfile 5 2
-        ]
-    <|
-        text txt
+    text txt
+        |> el
+            [ responsiveVal dProfile 16 14
+                |> Element.Font.size
+            , responsiveVal dProfile 5 2
+                |> padding
+            ]
 
 
-statsItem :
+textLarger :
     DisplayProfile
-    -> List (Attribute Msg)
-    -> List String
+    -> String
     -> Element Msg
-statsItem dProfile attributes items =
-    items
-        |> List.map (textLarge dProfile)
-        |> column
-            attributes
+textLarger dProfile txt =
+    text txt
+        |> el
+            [ responsiveVal dProfile 22 18
+                |> Element.Font.size
+            , responsiveVal dProfile 5 2
+                |> padding
+            ]
