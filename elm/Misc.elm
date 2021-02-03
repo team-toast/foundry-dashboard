@@ -424,6 +424,34 @@ calcPermaFrostedTokens balancerFryBalance permaFrostBalanceLocked permaFrostTota
             Nothing
 
 
+calcPermafrostedTokensValue : Maybe TokenValue -> Maybe Float -> Maybe Float -> Maybe TokenValue
+calcPermafrostedTokensValue nrTokens tokenEthPrice ethUsdPrice =
+    case nrTokens of
+        Just tokens ->
+            case tokenEthPrice of
+                Just ethPrice ->
+                    case ethUsdPrice of
+                        Just usdPrice ->
+                            ((tokens
+                                |> TokenValue.toFloatWithWarning
+                             )
+                                * ethPrice
+                                * usdPrice
+                                * 2
+                            )
+                                |> TokenValue.fromFloatWithWarning
+                                |> Just
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
 calcTreasuryBalance : Maybe Float -> Maybe Float -> Maybe TokenValue -> Maybe TokenValue
 calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
     case daiPriceInEth of

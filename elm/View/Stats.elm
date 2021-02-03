@@ -1,14 +1,12 @@
 module View.Stats exposing (view)
 
 import Config
-import Element exposing (Attribute, Element, alignRight, centerX, column, el, fill, height, minimum, newTabLink, padding, paddingEach, paddingXY, px, row, spaceEvenly, spacing, spacingXY, text, width)
-import Element.Background
-import Element.Border
+import Element exposing (Element, alignRight, centerX, column, el, fill, height, newTabLink, padding, paddingEach, px, row, spaceEvenly, spacing, spacingXY, text, width)
 import Element.Font
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Misc exposing (calcEffectivePricePerToken, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
+import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
 import Theme
 import TokenValue exposing (TokenValue)
 import Types exposing (Model, Msg)
@@ -166,10 +164,16 @@ statsEl model =
 
         permafrostDollars =
             "$ "
-                ++ calcEffectivePricePerToken
-                    model.permaFrostedTokens
-                    model.currentFryPriceEth
-                    model.currentEthPriceUsd
+                ++ (calcPermafrostedTokensValue
+                        model.permaFrostedTokens
+                        model.currentFryPriceEth
+                        model.currentEthPriceUsd
+                        |> tokenValueTextOrLoadingText
+                   )
+
+        permafrostedTokens =
+            model.permaFrostedTokens
+                |> tokenValueTextOrLoadingText
     in
     case dProfile of
         Mobile ->
@@ -203,7 +207,8 @@ statsEl model =
                 |> statsRow
             , "Liquidity"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Permafrost $" permafrostDollars ]
+            , [ statsRowItem dProfile "Permafrost $" permafrostDollars
+              ]
                 |> statsRow
             ]
                 |> column
@@ -254,7 +259,8 @@ statsEl model =
                     |> statsRow
               , "Liquidity"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Permafrost $" permafrostDollars ]
+              , [ statsRowItem dProfile "Permafrost $" permafrostDollars
+                ]
                     |> statsRow
               ]
                 |> column
