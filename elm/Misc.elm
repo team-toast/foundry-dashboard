@@ -1,7 +1,7 @@
 module Misc exposing (..)
 
 import AddressDict
-import Array exposing (Array)
+import Array exposing (Array, fromList)
 import Browser.Navigation
 import Config
 import Contracts.BucketSale.Wrappers as BucketSaleWrappers exposing (getTotalValueEnteredForBucket)
@@ -62,6 +62,9 @@ emptyModel key now basePath =
             ( Types.NoneDetected
             , [ noWeb3Provider ]
             )
+
+        arr =
+            fromList [ TokenValue.zero, TokenValue.zero, TokenValue.zero ]
     in
     { navKey = key
     , basePath = basePath
@@ -87,7 +90,7 @@ emptyModel key now basePath =
     , marketCap = Nothing
     , fullyDiluted = Nothing
     , permaFrostedTokens = Nothing
-    , teamTokenBalances = Array.empty
+    , teamTokenBalances = Array.initialize 3 (always Nothing)
     , balancerFryBalance = Nothing
     , permaFrostTotalSupply = Nothing
     , permaFrostBalanceLocked = Nothing

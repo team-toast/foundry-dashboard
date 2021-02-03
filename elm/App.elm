@@ -68,8 +68,8 @@ init flags url key =
     , [ fetchEthPrice
       , fetchDaiPrice
       , fetchFryPrice
-      , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress1 2
-      , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress2 2
+      , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress1 0
+      , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress2 1
       , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress3 2
       , fetchPermaFrostLockedTokenBalance
       , fetchPermaFrostTotalSupply
