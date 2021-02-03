@@ -510,15 +510,14 @@ validateInput input max =
 
 msgInsteadOfButton : DisplayProfile -> String -> Color -> Element Msg
 msgInsteadOfButton dProfile textToDisplay color =
-    [ text textToDisplay ]
+    [ textToDisplay
+        |> text
+    ]
         |> paragraph []
         |> el
             [ centerX
-            , Element.Font.size <|
-                responsiveVal
-                    dProfile
-                    18
-                    12
+            , responsiveVal dProfile 18 12
+                |> Element.Font.size
             , Element.Font.italic
             , Element.Font.color color
             ]
@@ -528,14 +527,26 @@ tokenValueToString : TokenValue -> String
 tokenValueToString tokenValue =
     let
         evm =
-            TokenValue.getEvmValue tokenValue
+            tokenValue
+                |> TokenValue.getEvmValue
                 |> BigInt.toString
 
         evmLength =
-            String.length evm
+            evm
+                |> String.length
     in
     if evmLength <= 18 then
-        "0." ++ String.padLeft 18 '0' evm
+        evm
+            |> String.padLeft 18 '0'
+            |> (++) "0."
 
     else
-        String.left (evmLength - 18) evm ++ "." ++ String.right 18 evm
+        evm
+            |> String.right 18
+            |> (++)
+                "."
+            |> (++)
+                (evm
+                    |> String.left
+                        (evmLength - 18)
+                )
