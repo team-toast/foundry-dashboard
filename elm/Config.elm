@@ -107,7 +107,7 @@ bucketSaleTokensPerBucket =
 
 uniswapGraphQL : String
 uniswapGraphQL =
-    "https://cors-anywhere.herokuapp.com/https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2"
+    "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2"
 
 
 saleStarted : Int
