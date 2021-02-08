@@ -1,7 +1,7 @@
 module View.Stats exposing (view)
 
 import Config
-import Element exposing (Element, alignRight, centerX, column, el, fill, height, newTabLink, padding, paddingEach, px, row, spaceEvenly, spacing, spacingXY, text, width)
+import Element exposing (Element, alignRight, alignTop, centerX, column, el, fill, height, image, newTabLink, padding, paddingEach, px, row, spaceEvenly, spacing, spacingXY, text, width)
 import Element.Font
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (Address)
@@ -179,35 +179,36 @@ statsEl model =
         Mobile ->
             [ "Price"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Bucket $" bucketPrice
-              , statsRowItem dProfile "UniSwap $" uniswapPrice
+            , [ statsRowItem dProfile "Bucket" bucketPrice False
+              , statsRowItem dProfile "UniSwap" uniswapPrice False
               ]
                 |> statsRow
             , "Supply"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Circulating" circulatingSupply
-              , statsRowItem dProfile "Total" totalSupply
+            , [ statsRowItem dProfile "Circulating" circulatingSupply True
+              , statsRowItem dProfile "Total" totalSupply True
               ]
                 |> statsRow
             , "Market Cap"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Circulating" marketCap
-              , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap
+            , [ statsRowItem dProfile "Circulating" marketCap False
+              , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap False
               ]
                 |> statsRow
             , "Sale"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Bucket #" bucketNumber
-              , statsRowItem dProfile "Time Left" timeLeft
+            , [ statsRowItem dProfile "Bucket #" bucketNumber False
+              , statsRowItem dProfile "Time Left" timeLeft False
               ]
                 |> statsRow
             , "Treasury"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Balance $" treasuryBalance ]
+            , [ statsRowItem dProfile "Balance" treasuryBalance False
+              ]
                 |> statsRow
             , "Liquidity"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Permafrost $" permafrostDollars
+            , [ statsRowItem dProfile "Permafrost" permafrostDollars False
               ]
                 |> statsRow
             ]
@@ -224,20 +225,20 @@ statsEl model =
         Desktop ->
             [ [ "Price"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Bucket $" bucketPrice
-                , statsRowItem dProfile "UniSwap $" uniswapPrice
+              , [ statsRowItem dProfile "Bucket" bucketPrice False
+                , statsRowItem dProfile "UniSwap" uniswapPrice False
                 ]
                     |> statsRow
               , "Supply"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Circulating" circulatingSupply
-                , statsRowItem dProfile "Total" totalSupply
+              , [ statsRowItem dProfile "Circulating" circulatingSupply True
+                , statsRowItem dProfile "Total" totalSupply True
                 ]
                     |> statsRow
               , "Market Cap"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Circulating" marketCap
-                , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap
+              , [ statsRowItem dProfile "Circulating" marketCap False
+                , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap False
                 ]
                     |> statsRow
               ]
@@ -246,20 +247,22 @@ statsEl model =
                     , Element.Font.color Theme.lightGray
                     , padding 10
                     , spacing 10
+                    , height fill
                     ]
             , [ "Sale"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Bucket #" bucketNumber
-                , statsRowItem dProfile "Time Left" timeLeft
+              , [ statsRowItem dProfile "Bucket #" bucketNumber False
+                , statsRowItem dProfile "Time Left" timeLeft False
                 ]
                     |> statsRow
               , "Treasury"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Balance $" treasuryBalance ]
+              , [ statsRowItem dProfile "Balance" treasuryBalance False
+                ]
                     |> statsRow
               , "Liquidity"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Permafrost $" permafrostDollars
+              , [ statsRowItem dProfile "Permafrost" permafrostDollars False
                 ]
                     |> statsRow
               ]
@@ -268,6 +271,7 @@ statsEl model =
                     , Element.Font.color Theme.lightGray
                     , padding 10
                     , spacing 10
+                    , height fill
                     ]
             ]
                 |> row
@@ -279,25 +283,42 @@ statsEl model =
                     )
 
 
-statsRowItem : DisplayProfile -> String -> String -> Element Msg
-statsRowItem dProfile label value =
-    [ label
-        |> textLarger dProfile
-    , value
-        |> textLarge dProfile
-        |> el
-            [ alignRight, Element.Font.color Theme.lightGray ]
+statsRowItem : DisplayProfile -> String -> String -> Bool -> Element Msg
+statsRowItem dProfile label value showFryIcon =
+    [ if showFryIcon then
+        { src = "img/poll-choice-mouseover.svg", description = "FRY Logo" }
+            |> image
+                [ 20
+                    |> px
+                    |> height
+                ]
+
+      else
+        Element.none
     ]
-        |> column [ Element.Font.color Theme.almostWhite ]
+        |> (++)
+            [ label
+                |> textLarge dProfile
+            , value
+                |> textLarge dProfile
+                |> el
+                    [ alignRight, Element.Font.color Theme.lightGray ]
+            ]
+        |> row
+            [ Element.Font.color Theme.almostWhite
+            , width fill
+            ]
 
 
 statsRow : List (Element Msg) -> Element Msg
 statsRow items =
     [ items
-        |> row
+        |> column
             ([ width fill
              , spaceEvenly
              , padding 5
+             , height fill
+             , alignTop
              ]
                 ++ Theme.childContainerBorderAttributes
                 ++ Theme.mainContainerBackgroundAttributes
@@ -311,6 +332,7 @@ statsRow items =
                 , bottom = 10
                 }
             , width fill
+            , height fill
             ]
 
 
@@ -374,7 +396,7 @@ textLarge :
 textLarge dProfile txt =
     text txt
         |> el
-            [ responsiveVal dProfile 16 14
+            [ responsiveVal dProfile 18 14
                 |> Element.Font.size
             , responsiveVal dProfile 5 2
                 |> padding
