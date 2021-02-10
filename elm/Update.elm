@@ -1404,17 +1404,6 @@ gotoRoute route prevModel =
             )
 
 
-updateFromPageRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
-updateFromPageRoute route model =
-    if model.route == route then
-        ( model
-        , Cmd.none
-        )
-
-    else
-        gotoRoute route model
-
-
 addUserNotice : UserNotice -> Model -> Model
 addUserNotice notice model =
     model
