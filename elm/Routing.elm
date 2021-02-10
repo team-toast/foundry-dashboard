@@ -1,9 +1,6 @@
 module Routing exposing (..)
 
-import Common.Types exposing (..)
 import Eth.Types exposing (Address, Hex)
-import Eth.Utils
-import Result.Extra
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
@@ -15,6 +12,7 @@ type Route
     | Sentiment
     | Stats
     | Farm
+    | DerivedEth
     | NotFound String
 
 
@@ -25,6 +23,7 @@ routeParser =
         , Parser.map Sentiment (Parser.s "sentiment")
         , Parser.map Stats (Parser.s "stats")
         , Parser.map Farm (Parser.s "farm")
+        , Parser.map DerivedEth (Parser.s "deth")
         ]
 
 
@@ -41,15 +40,20 @@ routeToString basePath route =
                     Builder.relative
                         [ "#", "sentiment" ]
                         []
-                
+
                 Stats ->
                     Builder.relative
                         [ "#", "stats" ]
                         []
-                
+
                 Farm ->
                     Builder.relative
-                        [ "#", "farm"]
+                        [ "#", "farm" ]
+                        []
+
+                DerivedEth ->
+                    Builder.relative
+                        [ "#", "deth" ]
                         []
 
                 NotFound _ ->

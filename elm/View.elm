@@ -1,89 +1,87 @@
-module View exposing (root)
+module View exposing (view)
 
 import Browser
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
-import Common.View exposing (..)
-import Dict exposing (Dict)
-import Dict.Extra
-import Element exposing (Attribute, Element)
+import Element exposing (Element, column, el, row)
 import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
-import Element.Input
-import Element.Lazy
-import ElementMarkdown
-import Eth.Types exposing (Address, Hex, TxHash)
-import Eth.Utils
-import Farm.View as Farm
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
+import Eth.Types exposing (TxHash)
 import Helpers.Eth as EthHelpers
-import Helpers.List as ListHelpers
-import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
-import Home.View as Home
+import Html exposing (Html)
 import Html.Attributes
 import Images
-import Json.Decode
-import List.Extra
 import Maybe.Extra
-import MaybeDebugLog exposing (maybeDebugLog)
-import Phace
-import Routing exposing (Route)
-import Sentiment.View as Sentiment
-import Stats.View as Stats
+import Misc exposing (userInfo)
+import Routing
 import Theme exposing (defaultTheme)
-import Time
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import UserTx
-import Wallet exposing (Wallet)
+import View.Common exposing (..)
+import View.DerivedEth as DerivedEth
+import View.Farm as Farm
+import View.Home as Home
+import View.Sentiment as Sentiment
+import View.Stats as Stats
 
 
-root : Model -> Browser.Document Msg
-root model =
+view : Model -> Browser.Document Msg
+view model =
     { title = "Dashboard - Foundry"
     , body =
-        [ Element.layout
-            ([ Element.width Element.fill
-             , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-             , Element.Events.onClick ClickHappened
-             , Element.Font.family
+        viewPage model
+            |> render model
+            |> List.singleton
+    }
+
+
+render : Model -> Element Msg -> Html Msg
+render model =
+    modals model
+        |> List.map Element.inFront
+        |> (++)
+            [ Element.width Element.fill
+            , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+            , Element.Events.onClick ClickHappened
+            , Element.Font.family
                 [ Element.Font.typeface "DM Sans"
                 , Element.Font.sansSerif
                 ]
-             ]
-                ++ List.map Element.inFront (modals model)
-            )
-          <|
-            body model
-        ]
-    }
+            ]
+        |> Element.layoutWith
+            { options =
+                [ Element.focusStyle
+                    { borderColor = Nothing
+                    , backgroundColor = Nothing
+                    , shadow = Nothing
+                    }
+                ]
+            }
 
 
 modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ if not model.cookieConsentGranted then
-            Just <| viewCookieConsentModal model.dProfile
-
-           else
+        [ if model.cookieConsentGranted then
             Nothing
-         ]
-            ++ List.map Just
-                (userNoticeEls
-                    model.dProfile
-                    model.userNotices
-                )
-        )
+
+          else
+            viewCookieConsentModal model.dProfile
+                |> Just
+        ]
+        ++ userNoticeEls
+            model.dProfile
+            model.userNotices
 
 
 viewCookieConsentModal : DisplayProfile -> Element Msg
 viewCookieConsentModal dProfile =
-    Element.row
+    row
         [ Element.alignBottom
         , responsiveVal dProfile Element.centerX (Element.width Element.fill)
         , Element.Border.roundEach
@@ -118,13 +116,16 @@ viewCookieConsentModal dProfile =
                 }
             , Element.text "."
             ]
-        , Theme.blueButton dProfile [] [ "Understood" ] CookieConsentGranted
+        , Theme.blueButton dProfile
+            []
+            [ "Understood" ]
+            (EH.Action CookieConsentGranted)
         ]
 
 
-body : Model -> Element Msg
-body model =
-    Element.column
+viewPage : Model -> Element Msg
+viewPage model =
+    column
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.appBackground
         , Element.height Element.fill
@@ -133,50 +134,43 @@ body model =
             model.dProfile
             model.trackedTxs
             model.trackedTxsExpanded
-            (Wallet.userInfo model.wallet)
+            (userInfo model.wallet)
             model.showAddressId
-        , case model.submodel of
-            BlankInitialSubmodel ->
-                Element.none
-
-            Home homeModel ->
-                Element.map HomeMsg <|
-                    Home.view
-                        model.dProfile
-                        (Wallet.userInfo model.wallet)
-                        homeModel
-
-            Sentiment sentimentModel ->
-                Element.map SentimentMsg <|
-                    Sentiment.view
-                        model.dProfile
-                        (Wallet.userInfo model.wallet)
-                        sentimentModel
-
-            Stats statsModel ->
-                Element.map StatsMsg <|
-                    Stats.view
-                        model.dProfile
-                        (Wallet.userInfo model.wallet)
-                        statsModel
-
-            Farm farmModel ->
-                Element.map FarmMsg <|
-                    Farm.view
-                        model.dProfile
-                        farmModel
+        , viewBody model
         ]
 
 
+viewBody : Model -> Element Msg
+viewBody model =
+    case model.route of
+        Routing.Home ->
+            Home.view model
+
+        Routing.Farm ->
+            Farm.view model
+
+        Routing.Sentiment ->
+            Sentiment.view model
+
+        Routing.DerivedEth ->
+            DerivedEth.view model
+
+        Routing.Stats ->
+            Stats.view model
+
+        _ ->
+            Sentiment.view model
+
+
 header :
-    EH.DisplayProfile
+    DisplayProfile
     -> UserTx.Tracker Msg
     -> Bool
     -> Maybe UserInfo
     -> Maybe PhaceIconId
     -> Element Msg
 header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
-    Element.row
+    row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
         , Element.padding <|
@@ -197,7 +191,7 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
             Desktop ->
                 [ logoBlock dProfile
                 , (Maybe.map
-                    (Element.el
+                    (el
                         [ Element.alignTop
                         , Element.alignRight
                         ]
@@ -206,62 +200,47 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
                     maybeTxTracker dProfile trackedTxsExpanded trackedTxs
                   )
                     |> Maybe.withDefault Element.none
-                , Element.el
-                    [ Element.centerY
-                    , Element.alignRight
-                    ]
-                  <|
-                    connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                    |> el
+                        [ Element.centerY
+                        , Element.alignRight
+                        ]
                 ]
 
             Mobile ->
-                [ Element.column
-                    [ Element.alignTop
-                    , Element.alignLeft
-                    ]
-                    [ Element.el
+                [ [ logoBlock dProfile
+                        |> el
+                            [ Element.alignTop
+                            , Element.alignLeft
+                            ]
+                  , maybeTxTracker dProfile trackedTxsExpanded trackedTxs
+                        |> Maybe.map
+                            (el
+                                [ Element.alignTop
+                                , Element.alignRight
+                                ]
+                            )
+                        |> Maybe.withDefault Element.none
+                  ]
+                    |> column
                         [ Element.alignTop
                         , Element.alignLeft
                         ]
-                      <|
-                        logoBlock dProfile
-                    , (Maybe.map
-                        (Element.el
-                            [ Element.alignTop
-                            , Element.alignRight
-                            ]
-                        )
-                       <|
-                        maybeTxTracker dProfile trackedTxsExpanded trackedTxs
-                      )
-                        |> Maybe.withDefault Element.none
-                    ]
-                , Element.el
-                    [ Element.centerY
-                    , Element.alignRight
-                    ]
-                  <|
-                    connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                    |> el
+                        [ Element.centerY
+                        , Element.alignRight
+                        ]
                 ]
         )
 
 
-logoBlock : EH.DisplayProfile -> Element Msg
+logoBlock :
+    DisplayProfile
+    -> Element Msg
 logoBlock dProfile =
-    Element.row
-        [ Element.height Element.fill
-        , Element.padding <|
-            responsiveVal
-                dProfile
-                10
-                7
-        , Element.spacing <|
-            responsiveVal
-                dProfile
-                20
-                10
-        ]
-        [ Images.toElement
+    [ Images.fryIcon
+        |> Images.toElement
             [ Element.centerY
             , Element.width <|
                 Element.px <|
@@ -270,10 +249,8 @@ logoBlock dProfile =
                         60
                         30
             ]
-            Images.fryIcon
-        , Element.column
-            [ Element.spacing 5 ]
-            [ Element.el
+    , [ Element.text "Foundry Dashboard"
+            |> el
                 [ Element.Font.color EH.white
                 , Element.Font.size <|
                     responsiveVal
@@ -283,9 +260,11 @@ logoBlock dProfile =
                 , Element.Font.bold
                 , Element.centerY
                 ]
-              <|
-                Element.text "Foundry Dashboard"
-            , Element.newTabLink
+      , { url = "https://foundrydao.com"
+        , label =
+            Element.text "What is Foundry?"
+        }
+            |> Element.newTabLink
                 [ Element.alignLeft
                 , Element.Background.color Theme.blue
                 , Element.paddingXY 10 3
@@ -297,15 +276,30 @@ logoBlock dProfile =
                         18
                         10
                 ]
-                { url = "https://foundrydao.com"
-                , label =
-                    Element.text "What is Foundry?"
-                }
+      ]
+        |> column
+            [ Element.spacing 5 ]
+    ]
+        |> row
+            [ Element.height Element.fill
+            , Element.padding <|
+                responsiveVal
+                    dProfile
+                    10
+                    7
+            , Element.spacing <|
+                responsiveVal
+                    dProfile
+                    20
+                    10
             ]
-        ]
 
 
-connectButtonOrPhace : DisplayProfile -> Maybe UserInfo -> Maybe PhaceIconId -> Element Msg
+connectButtonOrPhace :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> Maybe PhaceIconId
+    -> Element Msg
 connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
     case maybeUserInfo of
         Nothing ->
@@ -322,7 +316,7 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
                                 ]
                        )
                 )
-                MsgUp
+                (EH.Action Types.ConnectToWeb3)
 
         Just userInfo ->
             phaceElement
@@ -330,12 +324,12 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
                 userInfo.address
                 (showAddressInfo == Just UserPhace)
                 dProfile
-                (MsgUp <| ShowOrHideAddress UserPhace)
+                (ShowOrHideAddress UserPhace)
                 Types.NoOp
 
 
 userNoticeEls :
-    EH.DisplayProfile
+    DisplayProfile
     -> List UserNotice
     -> List (Element Msg)
 userNoticeEls dProfile notices =
@@ -343,7 +337,7 @@ userNoticeEls dProfile notices =
         []
 
     else
-        [ Element.column
+        [ column
             [ Element.moveLeft <|
                 EH.responsiveVal
                     dProfile
@@ -378,7 +372,7 @@ userNoticeEls dProfile notices =
                 |> List.filter (\( _, notice ) -> notice.align == UN.BottomRight)
                 |> List.map (userNotice dProfile)
             )
-        , Element.column
+        , column
             [ Element.moveRight <|
                 EH.responsiveVal
                     dProfile
@@ -413,7 +407,7 @@ userNoticeEls dProfile notices =
 
 
 userNotice :
-    EH.DisplayProfile
+    DisplayProfile
     -> ( Int, UserNotice )
     -> Element Msg
 userNotice dProfile ( id, notice ) =
@@ -449,7 +443,7 @@ userNotice dProfile ( id, notice ) =
                 EH.black
                 (DismissNotice id)
     in
-    Element.el
+    el
         [ Element.Background.color color
         , Element.Border.rounded <|
             EH.responsiveVal
@@ -483,14 +477,18 @@ userNotice dProfile ( id, notice ) =
                             paragraphLines
                         )
                 )
-            |> Element.column
+            |> column
                 [ Element.spacing 4
                 , Element.width Element.fill
                 ]
         )
 
 
-maybeTxTracker : DisplayProfile -> Bool -> UserTx.Tracker Msg -> Maybe (Element Msg)
+maybeTxTracker :
+    DisplayProfile
+    -> Bool
+    -> UserTx.Tracker Msg
+    -> Maybe (Element Msg)
 maybeTxTracker dProfile showExpanded trackedTxs =
     if List.isEmpty trackedTxs then
         Nothing
@@ -529,7 +527,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                     |> TupleHelpers.mapEachTuple3
                         (Maybe.map
                             (\n ->
-                                Element.el
+                                el
                                     [ Element.Font.color <| trackedTxMiningColor ]
                                 <|
                                     Element.text <|
@@ -539,7 +537,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
                         (Maybe.map
                             (\n ->
-                                Element.el
+                                el
                                     [ Element.Font.color <| trackedTxSuccessColor ]
                                 <|
                                     Element.text <|
@@ -549,7 +547,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
                         (Maybe.map
                             (\n ->
-                                Element.el
+                                el
                                     [ Element.Font.color <| trackedTxFailedColor ]
                                 <|
                                     Element.text <|
@@ -564,10 +562,10 @@ maybeTxTracker dProfile showExpanded trackedTxs =
 
         else
             Just <|
-                Element.el
+                el
                     [ Element.below <|
                         if showExpanded then
-                            Element.el
+                            el
                                 [ Element.alignRight
                                 , Element.alignTop
                                 ]
@@ -578,7 +576,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                             Element.none
                     ]
                 <|
-                    Element.column
+                    column
                         [ Element.Border.rounded 5
                         , Element.Border.width 2
                         , Element.Border.color Theme.blue
@@ -611,9 +609,11 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
 
 
-trackedTxsColumn : UserTx.Tracker Msg -> Element Msg
+trackedTxsColumn :
+    UserTx.Tracker Msg
+    -> Element Msg
 trackedTxsColumn trackedTxs =
-    Element.column
+    column
         [ Element.Background.color <| Theme.lightBlue
         , Element.Border.rounded 3
         , Element.Border.glow
@@ -645,7 +645,12 @@ trackedTxsColumn trackedTxs =
         )
 
 
-viewTrackedTxRow : Int -> UserTx.TxInfo -> TxHash -> UserTx.SignedTxStatus -> Element Msg
+viewTrackedTxRow :
+    Int
+    -> UserTx.TxInfo
+    -> TxHash
+    -> UserTx.SignedTxStatus
+    -> Element Msg
 viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
     let
         etherscanLink label =
@@ -669,7 +674,7 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                             ++ " ETHFRY"
 
                     UserTx.StakingWithdraw amount ->
-                        "Withrdaw "
+                        "Withdraw "
                             ++ TokenValue.toConciseString amount
                             ++ " ETHFRY"
 
@@ -679,53 +684,12 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                     UserTx.StakingExit ->
                         "Exit Farming"
 
-        -- case ( trackedTx.txInfo, trackedTx.status ) of
-        --     ( UnlockTx, _ ) ->
-        --         Element.text "Unlock DAI"
-        --     ( TipTx postId amount, _ ) ->
-        --         Element.row
-        --             []
-        --             [ Element.text "Tip "
-        --             , Element.el
-        --                 [ Element.Font.color defaultTheme.linkTextColor
-        --                 , Element.pointer
-        --                 , Element.Events.onClick <|
-        --                     MsgUp <|
-        --                         GotoRoute <|
-        --                             Routing.ViewContext <|
-        --                                 Post.ForPost postId
-        --                 ]
-        --                 (Element.text "Post")
-        --             ]
-        --     ( BurnTx postId amount, _ ) ->
-        --         Element.row
-        --             []
-        --             [ Element.text "Burn for "
-        --             , Element.el
-        --                 [ Element.Font.color defaultTheme.linkTextColor
-        --                 , Element.pointer
-        --                 , Element.Events.onClick <|
-        --                     MsgUp <|
-        --                         GotoRoute <|
-        --                             Routing.ViewContext <|
-        --                                 Post.ForPost postId
-        --                 ]
-        --                 (Element.text "Post")
-        --             ]
-        --     ( PostTx _, Mined _ ) ->
-        --         Element.text "Post"
-        --     ( PostTx draft, _ ) ->
-        --         Element.row
-        --             [ Element.spacing 8
-        --             ]
-        --             [ Element.text "Post"
-        --             , Element.el
-        --                 [ Element.Font.color defaultTheme.linkTextColor
-        --                 , Element.pointer
-        --                 , Element.Events.onClick <| ViewDraft <| Just draft
-        --                 ]
-        --                 (Element.text "(View Draft)")
-        --             ]
+                    UserTx.DEthRedeem ->
+                        "Redeem dETH"
+
+                    UserTx.DEthDeposit ->
+                        "Squander ETH"
+
         statusEl =
             case signedTxStatus of
                 UserTx.Mining ->
@@ -737,7 +701,7 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                 UserTx.Success txReceipt ->
                     etherscanLink "Mined"
     in
-    Element.row
+    row
         [ Element.width <| Element.px 300
         , Element.Background.color
             (signedTxStatusToColor signedTxStatus
@@ -751,11 +715,13 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
         , Element.Font.size 20
         ]
         [ titleEl
-        , Element.el [ Element.alignRight ] <| statusEl
+        , el [ Element.alignRight ] <| statusEl
         ]
 
 
-signedTxStatusToColor : UserTx.SignedTxStatus -> Element.Color
+signedTxStatusToColor :
+    UserTx.SignedTxStatus
+    -> Element.Color
 signedTxStatusToColor signedStatus =
     case signedStatus of
         UserTx.Mining ->

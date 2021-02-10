@@ -1,27 +1,25 @@
 module Types exposing (..)
 
+import AddressDict exposing (AddressDict)
 import Array exposing (Array)
 import Browser
 import Browser.Navigation
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
 import Dict exposing (Dict)
+import ElementHelpers as EH
+import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
-import Farm.Types as Farm
-import Helpers.Element as EH
-import Home.Types as Home
+import Graphql.Http
+import Http
+import Json.Decode
 import Routing exposing (Route)
-import Sentiment.Types as Sentiment
-import Stats.Types as Stats
 import Time
 import TokenValue exposing (TokenValue)
 import Url exposing (Url)
 import UserNotice exposing (UserNotice)
-import UserTx exposing (TxInfo)
-import Wallet exposing (Wallet)
+import UserTx
 
 
 type alias Flags =
@@ -43,26 +41,46 @@ type alias Model =
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , submodel : Submodel
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : UserTx.Tracker Msg
     , trackedTxsExpanded : Bool
     , nonRepeatingGTagsSent : List String
     , cookieConsentGranted : Bool
+    , currentTime : Int
+    , currentBucketId : Maybe Int
+    , currentBucketTotalEntered : Maybe TokenValue
+    , currentEthPriceUsd : Maybe Float
+    , currentDaiPriceEth : Maybe Float
+    , currentFryPriceEth : Maybe Float
+    , circSupply : Maybe Float
+    , marketCap : Maybe Float
+    , fullyDiluted : Maybe Float
+    , permaFrostedTokens : Maybe TokenValue
+    , teamTokenBalances : Array (Maybe TokenValue)
+    , balancerFryBalance : Maybe TokenValue
+    , permaFrostTotalSupply : Maybe TokenValue
+    , permaFrostBalanceLocked : Maybe TokenValue
+    , treasuryBalance : Maybe TokenValue
+    , userDerivedEthInfo : Maybe UserDerivedEthInfo
+    , jurisdictionCheckStatus : JurisdictionCheckStatus
+    , depositAmount : String
+    , withDrawalAmount : String
+    , polls : Maybe (List Poll)
+    , maybeValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
+    , validatedResponses : ValidatedResponseTracker
+    , fryBalances : AddressDict (Maybe TokenValue)
+    , mouseoverState : MouseoverState
+    , userStakingInfo : Maybe UserStakingInfo
+    , apy : Maybe Float
+    , depositWithdrawUXModel : DepositOrWithdrawUXModel
+    , farmingIsActive : Bool
     }
 
 
-type Submodel
-    = BlankInitialSubmodel
-    | Home Home.Model
-    | Sentiment Sentiment.Model
-    | Stats Stats.Model
-    | Farm Farm.Model
-
-
 type Msg
-    = LinkClicked Browser.UrlRequest
+    = NoOp
+    | LinkClicked Browser.UrlRequest
     | UrlChanged Url
     | Tick Time.Posix
     | EveryFewSeconds
@@ -74,13 +92,218 @@ type Msg
     | ClickHappened
     | ShowExpandedTrackedTxs Bool
     | TxSigned Int (Result String TxHash)
-    -- | TxBroadcast Int (Result String Tx)
     | TxMined Int (Result String TxReceipt)
-    | HomeMsg Home.Msg
-    | SentimentMsg Sentiment.Msg
-    | StatsMsg Stats.Msg
-    | FarmMsg Farm.Msg
-      -- | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
-    | MsgUp MsgUp
-    | NoOp
+    | BucketValueEnteredFetched (Maybe Int) (Result Http.Error TokenValue)
+    | FetchedEthPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
+    | FetchedDaiPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
+    | FetchedFryPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
+    | FetchedTeamTokens Int (Result Http.Error TokenValue)
+    | FetchedPermaFrostBalanceLocked (Result Http.Error TokenValue)
+    | FetchedPermaFrostTotalSupply (Result Http.Error TokenValue)
+    | FetchedBalancerFryBalance (Result Http.Error TokenValue)
+    | FetchedTreasuryBalance (Result Http.Error TokenValue)
+    | DepositAmountChanged String
+    | WithdrawalAmountChanged String
+    | DepositClicked TokenValue
+    | WithdrawClicked TokenValue
+    | UserEthBalanceFetched (Result Http.Error TokenValue)
+    | UserDerivedEthBalanceFetched (Result Http.Error TokenValue)
+    | DerivedEthRedeemableFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
+    | VerifyJurisdictionClicked
+    | LocationCheckResult (Result Json.Decode.Error (Result String LocationInfo))
+    | ApproveTokenSpend
+    | DepositSigned (Result String TxHash)
+    | WithdrawSigned (Result String TxHash)
+    | FetchUserEthBalance
+    | FetchUserDerivedEthBalance
+    | DerivedEthIssuanceDetailFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
+    | GotoRoute Route
+    | ConnectToWeb3
+    | ShowOrHideAddress PhaceIconId
+    | AddUserNotice UserNotice
+    | RefreshAll
+    | PollsFetched (Result Http.Error (List Poll))
+    | OptionClicked (Maybe UserInfo) Poll (Maybe Int)
+    | Web3SignResultValue Json.Decode.Value
+    | Web3ValidateSigResultValue Json.Decode.Value
+    | ResponseSent Int (Result Http.Error ())
+    | SignedResponsesFetched (Result Http.Error (Dict Int SignedResponse))
+    | FryBalancesFetched (Result Http.Error (AddressDict TokenValue))
+    | SetMouseoverState MouseoverState
+    | UpdateNow Time.Posix
+    | AmountInputChanged String
+    | UXBack
+    | StartDeposit TokenValue
+    | DoUnlock
+    | DoDeposit TokenValue
+    | DoClaimRewards
+    | DoExit
+    | StartWithdraw TokenValue
+    | DoWithdraw TokenValue
+    | DepositOrWithdrawSigned DepositOrWithdraw TokenValue (Result String TxHash)
+    | StakingInfoFetched (Result Http.Error ( UserStakingInfo, Float ))
+    | ApyFetched (Result Http.Error Float)
+    | RefetchStakingInfoOrApy
+
+
+type alias Value =
+    { ethPrice : Float
+    }
+
+
+type alias UserInfo =
+    { network : Eth.Net.NetworkId
+    , address : Address
+    }
+
+
+type alias GTagData =
+    { event : String
+    , category : String
+    , label : String
+    , value : Int
+    }
+
+
+type PhaceIconId
+    = UserPhace
+
+
+type alias UserStakingInfo =
+    { unstaked : TokenValue
+    , allowance : TokenValue
+    , staked : TokenValue
+    , claimableRewards : TokenValue
+    , rewardRate : TokenValue
+    , timestamp : Time.Posix
+    }
+
+
+type alias UserDerivedEthInfo =
+    { ethBalance : TokenValue
+    , dEthBalance : TokenValue
+    , totalCollateralRedeemed : TokenValue
+    , redeemFee : TokenValue
+    , collateralReturned : TokenValue
+    , dEthAllowance : TokenValue
+    , actualCollateralAdded : TokenValue
+    , depositFee : TokenValue
+    , tokensIssued : TokenValue
+    }
+
+
+type alias DepositOrWithdrawUXModel =
+    Maybe ( DepositOrWithdraw, AmountUXModel )
+
+
+type alias AmountUXModel =
+    { amountInput : String
+    }
+
+
+type DepositOrWithdraw
+    = Deposit
+    | Withdraw
+
+
+type Jurisdiction
+    = ForbiddenJurisdictions
+    | JurisdictionsWeArentIntimidatedIntoExcluding
+
+
+type JurisdictionCheckStatus
+    = WaitingForClick
+    | Checking
+    | Checked Jurisdiction
+    | Error String
+
+
+type alias LocationInfo =
+    { ipCode : String
+    , geoCode : String
+    }
+
+
+type MouseoverState
+    = None
+    | VoterBlock VoterBlockMouseoverInfo
+
+
+type alias VoterBlockMouseoverInfo =
+    { pollId : Int
+    , pollOptionId : Int
+    , blockId : Int
+    }
+
+
+type alias ValidatedResponseTracker =
+    Dict Int (AddressDict ValidatedResponse)
+
+
+type alias Poll =
+    { id : Int
+    , title : String
+    , question : String
+    , options : List PollOption
+    }
+
+
+type alias PollOption =
+    { id : Int
+    , pollId : Int
+    , name : String
+    }
+
+
+type alias SignedResponse =
+    { address : Address
+    , pollId : Int
+    , maybePollOptionId : Maybe Int
+    , sig : String
+    }
+
+
+type alias ResponseToValidate =
+    { id : Int
+    , data : String
+    , sig : String
+    , address : Address
+    }
+
+
+type alias LoggedSignedResponse =
+    ( Int, SignedResponse )
+
+
+type alias ValidatedResponse =
+    { id : Int
+    , maybePollOptionId : Maybe Int
+    }
+
+
+type SigValidationResult
+    = Valid
+    | Invalid
+
+
+type Wallet
+    = NoneDetected
+    | OnlyNetwork Eth.Net.NetworkId
+    | Active UserInfo
+
+
+type alias VoteBarBlock =
+    { x : Int
+    , width : Int
+    , colorRgb : ( Float, Float, Float )
+    , address : Address
+    , amount : TokenValue
+    }
+
+
+type InputValidationResult
+    = InputValid
+    | InputLessThan
+    | InputGreaterThan
+    | InputUndefined

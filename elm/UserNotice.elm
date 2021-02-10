@@ -83,7 +83,7 @@ cantConnectNoWeb3 =
                 }
           , Element.text ") to Connect."
           ]
-        , [ Element.text "Until you connect, SmokeSignal will operate in read-only mode." ]
+        , [ Element.text "Until you connect, functionality will be reduced." ]
         ]
     , align = BottomRight
     }
@@ -94,7 +94,7 @@ wrongWeb3Network =
     { uniqueLabel = "wrongWeb3Network"
     , noticeType = Error
     , mainParagraphs =
-        [ [ Element.text "SmokeSignal only works on Ethereum mainnet. Make sure your wallet is set to Ethereum mainnet." ]
+        [ [ Element.text "Dashboard only works on Ethereum mainnet. Make sure your wallet is set to Ethereum mainnet." ]
         ]
     , align = BottomRight
     }
@@ -220,6 +220,7 @@ httpFetchError action httpError =
         [ [ Element.text <| "Problem with an http fetch for action '" ++ action ++ "'. More info in the console." ] ]
     , align = BottomRight
     }
+
 
 httpSendError : String -> Http.Error -> UserNotice
 httpSendError action httpError =
