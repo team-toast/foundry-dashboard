@@ -25,6 +25,8 @@ type TxInfo
     | StakingWithdraw TokenValue
     | StakingClaim
     | StakingExit
+    | DEthDeposit
+    | DEthRedeem
 
 
 type alias Tracker msg =

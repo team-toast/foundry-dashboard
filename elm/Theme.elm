@@ -1,10 +1,10 @@
 module Theme exposing (..)
 
-import Element exposing (Attribute, Color, Element)
+import Element exposing (Attribute, Color, Element, above, centerX, centerY, el, maximum, moveUp, padding, paddingXY, paragraph, rgb, rgba, shrink, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
-import Helpers.Element as EH
+import ElementHelpers as EH
 
 
 type alias Theme msg =
@@ -26,9 +26,9 @@ type alias Theme msg =
     , daiBurnedTextIsWhite : Bool
     , daiTippedBackground : Color
     , daiTippedTextIsWhite : Bool
-    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-    , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
+    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+    , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg
     }
 
 
@@ -48,11 +48,11 @@ basicTheme =
     , linkTextColor = blue
     , linkTextColorAgainstBackground = Element.rgb 0.4 0.6 1
     , emphasizedTextColor = EH.white
-    , postBodyTextColor = EH.black
-    , messageInputPlaceholderTextColor = darkGray
-    , loadingTextColor = darkGray
+    , postBodyTextColor = EH.white
+    , messageInputPlaceholderTextColor = almostWhite
+    , loadingTextColor = almostWhite
     , errorTextColor = softRed
-    , appStatusTextColor = darkGray
+    , appStatusTextColor = almostWhite
     , daiBurnedBackground = lightRed
     , daiBurnedTextIsWhite = False
     , daiTippedBackground = lightGreen
@@ -60,20 +60,6 @@ basicTheme =
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
     , disabledActionButton = disabledButton
-    }
-
-
-darkTheme : Theme msg
-darkTheme =
-    { basicTheme
-        | appBackground = veryDarkGray
-        , blockBackground = darkBlue
-        , mainTextColor = almostWhite
-        , emphasizedTextColor = EH.white
-        , loadingTextColor = lightGray
-        , appStatusTextColor = lightGray
-        , daiBurnedBackground = darkRed
-        , daiBurnedTextIsWhite = True
     }
 
 
@@ -87,6 +73,10 @@ darkRed =
 
 darkGray =
     Element.rgb255 150 150 150
+
+
+red =
+    Element.rgb255 226 1 79
 
 
 blue =
@@ -147,27 +137,8 @@ commonShadow =
         }
 
 
-
--- daiYellow =
---     yellow
--- dollarGreen =
---     green
--- placeholderTextColor =
---     Element.rgb255 213 217 222
--- mediumGray =
---     Element.rgb255 200 205 210
--- activePhaseBackgroundColor =
---     Element.rgb255 9 32 107
--- permanentTextColor =
---     Element.rgba255 1 31 52 0.8
--- submodelBackgroundColor =
---     Element.rgb 0.95 0.98 1
--- pageBackgroundColor =
---     Element.rgb255 242 243 247
-
-
-blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-blueButton dProfile attributes text msg =
+blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+blueButton dProfile attributes text action =
     EH.button dProfile
         attributes
         ( Element.rgba 0 0 1 1
@@ -176,11 +147,11 @@ blueButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        action
 
 
-lightBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-lightBlueButton dProfile attributes text msg =
+lightBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+lightBlueButton dProfile attributes text action =
     let
         color =
             Element.rgb255 25 169 214
@@ -193,11 +164,11 @@ lightBlueButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        action
 
 
-inverseBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-inverseBlueButton dProfile attributes text msg =
+inverseBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+inverseBlueButton dProfile attributes text action =
     EH.button dProfile
         attributes
         ( Element.rgba 0 0 1 0.05
@@ -206,11 +177,11 @@ inverseBlueButton dProfile attributes text msg =
         )
         blue
         text
-        msg
+        action
 
 
-redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-redButton dProfile attributes text msg =
+redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+redButton dProfile attributes text action =
     EH.button
         dProfile
         attributes
@@ -220,28 +191,95 @@ redButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        action
 
 
-disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
-disabledButton dProfile attributes text =
-    Element.el
-        ([ Element.Border.rounded 4
-         , EH.responsiveVal
-            dProfile
-            (Element.paddingXY 25 17)
-            (Element.padding 10)
-         , Element.Font.size
-            (EH.responsiveVal
+disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg
+disabledButton dProfile attributes textToDisplay maybeTipText =
+    (text textToDisplay
+        |> el
+            [ centerY
+            , centerX
+            ]
+    )
+        |> el
+            ([ Element.Border.rounded 4
+             , EH.responsiveVal
                 dProfile
-                18
-                16
+                (paddingXY 25 17)
+                (padding 10)
+             , Element.Font.size
+                (EH.responsiveVal
+                    dProfile
+                    18
+                    16
+                )
+             , Element.Font.semiBold
+             , Element.Background.color lightGray
+             , Element.Font.center
+             , EH.noSelectText
+             , maybeErrorElement
+                [ moveUp 5 ]
+                maybeTipText
+                |> above
+             ]
+                ++ attributes
             )
-         , Element.Font.semiBold
-         , Element.Background.color lightGray
-         , Element.Font.center
-         , EH.noSelectText
-         ]
-            ++ attributes
-        )
-        (Element.el [ Element.centerY, Element.centerX ] <| Element.text text)
+
+
+maybeErrorElement : List (Attribute msg) -> Maybe String -> Element msg
+maybeErrorElement attributes maybeError =
+    case maybeError of
+        Nothing ->
+            Element.none
+
+        Just errorString ->
+            ([ text errorString ]
+                |> paragraph
+                    []
+            )
+                |> el
+                    ([ Element.Border.rounded 5
+                     , Element.Border.color softRed
+                     , Element.Border.width 1
+                     , rgb 1 0.4 0.4
+                        |> Element.Background.color
+                     , padding 5
+                     , centerX
+                     , centerY
+                     , width
+                        (shrink
+                            |> maximum 200
+                        )
+                     , Element.Font.size 14
+                     ]
+                        ++ attributes
+                    )
+
+
+mainContainerBorderAttributes : List (Attribute msg)
+mainContainerBorderAttributes =
+    [ Element.Border.rounded 10
+    , Element.Border.glow EH.white 2
+    ]
+
+
+mainContainerBackgroundAttributes : List (Attribute msg)
+mainContainerBackgroundAttributes =
+    [ rgba 1 1 1 0.1
+        |> Element.Background.color
+    ]
+
+
+childContainerBorderAttributes : List (Attribute msg)
+childContainerBorderAttributes =
+    [ Element.Border.rounded 5
+    , Element.Border.glow lightGray 1
+    ]
+
+
+childContainerBackgroundAttributes : List (Attribute msg)
+childContainerBackgroundAttributes =
+    [ Element.rgba 1 1 1 0.3
+        |> Element.Background.color
+    ]

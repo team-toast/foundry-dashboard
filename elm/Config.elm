@@ -12,6 +12,11 @@ testMode =
     False
 
 
+displayProfileBreakpoint : Int
+displayProfileBreakpoint =
+    1150
+
+
 httpProviderUrl : String
 httpProviderUrl =
     if testMode then
@@ -148,3 +153,13 @@ burnAddress =
 balancerPermafrostPool : Address
 balancerPermafrostPool =
     Eth.Utils.unsafeToAddress "0x5277a42ef95eca7637ffa9e69b65a12a089fe12b"
+
+
+derivedEthContractAddress : Address
+derivedEthContractAddress =
+    Eth.Utils.unsafeToAddress "0x5420dFecFaCcDAE68b406ce96079d37743Aa11Ae"
+
+
+ethAddress : Address
+ethAddress =
+    Eth.Utils.unsafeToAddress "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"

@@ -1,21 +1,17 @@
-module Common.View exposing (..)
+module View.Common exposing (..)
 
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
-import Element.Events
 import Element.Font
 import Element.Input
+import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Time as TimeHelpers
 import Phace
-import Routing exposing (Route)
-import Theme exposing (defaultTheme)
+import Theme exposing (defaultTheme, redButton)
 import Time
 
 
@@ -34,17 +30,24 @@ shortenedHash hash =
             ++ String.right 4 hashStr
 
 
-web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
-web3ConnectButton dProfile attrs msgMapper =
-    defaultTheme.emphasizedActionButton
+web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> EH.ButtonAction msg -> Element msg
+web3ConnectButton dProfile attrs action =
+    redButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        (msgMapper ConnectToWeb3)
+        action
 
 
-phaceElement : Bool -> Address -> Bool -> DisplayProfile -> msg -> msg -> Element msg
-phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg =
+phaceElement :
+    Bool
+    -> Address
+    -> Bool
+    -> DisplayProfile
+    -> msg
+    -> msg
+    -> Element msg
+phaceElement addressHangToRight userAddress showAddress dProfile onClick noOpMsg =
     let
         phaceWidth =
             responsiveVal dProfile 100 30
@@ -70,7 +73,7 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
                         , Element.Border.color EH.black
                         , EH.onClickNoPropagation noOpMsg
                         ]
-                        (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+                        (Element.text <| Eth.Utils.addressToChecksumString userAddress)
 
                 Mobile ->
                     -- delay processing because addressToChecksumString is expensive!
@@ -88,19 +91,11 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
                         , Element.Border.color EH.black
                         , EH.onClickNoPropagation noOpMsg
                         ]
-                        (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+                        (Element.text <| Eth.Utils.addressToChecksumString userAddress)
     in
-    Element.el
-        (if showAddress then
-            [ Element.inFront <| addressOutputEl ()
-            , Element.alignTop
-            ]
-
-         else
-            [ Element.alignTop ]
-        )
-    <|
-        Element.el
+    Phace.fromEthAddress userAddress phaceWidth phaceHeight
+        |> Element.html
+        |> Element.el
             [ Element.Border.rounded 10
             , Element.clip
             , Element.pointer
@@ -108,12 +103,21 @@ phaceElement addressHangToRight fromAddress showAddress dProfile onClick noOpMsg
             , Element.Border.width 2
             , Element.Border.color EH.black
             ]
-        <|
-            Element.html
-                (Phace.fromEthAddress fromAddress)
+        |> Element.el
+            (if showAddress then
+                [ Element.inFront <| addressOutputEl ()
+                , Element.alignTop
+                ]
+
+             else
+                [ Element.alignTop ]
+            )
 
 
-loadingElement : List (Attribute msg) -> Maybe String -> Element msg
+loadingElement :
+    List (Attribute msg)
+    -> Maybe String
+    -> Element msg
 loadingElement attrs maybeString =
     Element.el
         ([ Element.Font.italic
@@ -125,7 +129,9 @@ loadingElement attrs maybeString =
         (Element.text <| Maybe.withDefault "loading..." maybeString)
 
 
-emphasizedText : String -> Element msg
+emphasizedText :
+    String
+    -> Element msg
 emphasizedText =
     Element.el
         [ Element.Font.bold
@@ -134,7 +140,10 @@ emphasizedText =
         << Element.text
 
 
-daiSymbol : Bool -> List (Attribute msg) -> Element msg
+daiSymbol :
+    Bool
+    -> List (Attribute msg)
+    -> Element msg
 daiSymbol isWhite attributes =
     Element.image attributes
         { src =
@@ -147,7 +156,10 @@ daiSymbol isWhite attributes =
         }
 
 
-appStatusMessage : Element.Color -> String -> Element msg
+appStatusMessage :
+    Element.Color
+    -> String
+    -> Element msg
 appStatusMessage color errStr =
     Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
         Element.paragraph
@@ -163,7 +175,9 @@ appStatusMessage color errStr =
             [ Element.text errStr ]
 
 
-posixToString : Time.Posix -> String
+posixToString :
+    Time.Posix
+    -> String
 posixToString t =
     let
         z =
@@ -181,7 +195,9 @@ posixToString t =
         ++ " (UTC)"
 
 
-subheaderAttributes : DisplayProfile -> List (Attribute msg)
+subheaderAttributes :
+    DisplayProfile
+    -> List (Attribute msg)
 subheaderAttributes dProfile =
     [ Element.paddingXY 0 <|
         responsiveVal
@@ -197,7 +213,9 @@ subheaderAttributes dProfile =
     ]
 
 
-commonFontSize : DisplayProfile -> Int
+commonFontSize :
+    DisplayProfile
+    -> Int
 commonFontSize dProfile =
     case dProfile of
         Desktop ->
@@ -211,7 +229,9 @@ maxContentColWidth =
     1000
 
 
-renderContentOrError : String -> Element msg
+renderContentOrError :
+    String
+    -> Element msg
 renderContentOrError content =
     let
         renderResult =
@@ -237,7 +257,12 @@ renderContentOrError content =
                         ++ errStr
 
 
-daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
+daiAmountInput :
+    DisplayProfile
+    -> List (Attribute msg)
+    -> String
+    -> (String -> msg)
+    -> Element msg
 daiAmountInput dProfile attributes currentInput onChange =
     Element.Input.text
         [ Element.width <|
