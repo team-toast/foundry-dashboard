@@ -44,8 +44,8 @@ import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
 
 
-emptyModel : Browser.Navigation.Key -> Time.Posix -> String -> Model
-emptyModel key now basePath =
+emptyModel : Browser.Navigation.Key -> Time.Posix -> String -> Bool -> Model
+emptyModel key now basePath cookieConsent =
     let
         txSentry =
             TxSentry.init
@@ -79,7 +79,7 @@ emptyModel key now basePath =
     , trackedTxs = []
     , trackedTxsExpanded = False
     , nonRepeatingGTagsSent = []
-    , cookieConsentGranted = False
+    , cookieConsentGranted = cookieConsent
     , currentTime = Time.posixToMillis now
     , currentBucketId = Nothing
     , currentBucketTotalEntered = Nothing

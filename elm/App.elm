@@ -6,7 +6,7 @@ import Browser.Navigation
 import Config
 import ElementHelpers exposing (screenWidthToDisplayProfile)
 import Eth.Net
-import Eth.Sentry.Event exposing (EventSentry)
+import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx
 import Eth.Sentry.Wallet
 import Json.Decode
@@ -16,7 +16,7 @@ import Routing
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import Update
+import Update exposing (gotoRoute)
 import Url exposing (Url)
 import UserNotice
 import View
@@ -38,7 +38,7 @@ init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
         model =
-            emptyModel key now flags.basePath
+            emptyModel key now flags.basePath flags.cookieConsent
 
         now =
             flags.nowInMillis
@@ -58,6 +58,9 @@ init flags url key =
                     |> Types.OnlyNetwork
                 , []
                 )
+
+        ( eventSentry, eventSentryCmd ) =
+            EventSentry.init EventSentryMsg Config.httpProviderUrl
     in
     ( { model
         | route = route
@@ -83,6 +86,9 @@ init flags url key =
       , model.withDrawalAmount
             |> TokenValue.fromString
             |> fetchDethPositionInfo
+      , Browser.Navigation.pushUrl
+            model.navKey
+            (Routing.routeToString model.basePath Routing.Stats)
       ]
         |> Cmd.batch
     )
@@ -92,8 +98,8 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     [ Time.every 50 UpdateNow
     , Time.every (1000 * 4) <| always RefreshAll
-    , Time.every (1000 * 10) (always RefetchStakingInfoOrApy)
-    , Time.every (1000 * 30) Tick
+    , Time.every (1000 * 1) (always RefetchStakingInfoOrApy)
+    , Time.every (1000 * 1) Tick
     , Ports.locationCheckResult
         (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
 
