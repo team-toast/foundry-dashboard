@@ -4,7 +4,8 @@
         "elm",
         "elm-submodules/helpers",
         "elm-submodules/tokenvalue",
-        "elm-submodules/element-helpers"
+        "elm-submodules/element-helpers",
+        "elm-submodules/gtags"
     ],
     "elm-version": "0.19.1",
     "dependencies": {

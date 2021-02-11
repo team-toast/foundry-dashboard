@@ -7,3 +7,6 @@
 [submodule "elm-submodules/helpers"]
 	path = elm-submodules/helpers
 	url = https://github.com/team-toast/elm-helpers
+[submodule "elm-submodules/gtags"]
+	path = elm-submodules/gtags
+	url = https://github.com/team-toast/elm-gtags

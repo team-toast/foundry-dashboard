@@ -158,14 +158,6 @@ type alias UserInfo =
     }
 
 
-type alias GTagData =
-    { event : String
-    , category : String
-    , label : String
-    , value : Int
-    }
-
-
 type PhaceIconId
     = UserPhace
 

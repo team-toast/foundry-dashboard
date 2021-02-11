@@ -11,6 +11,7 @@ import ElementHelpers as EH exposing (DisplayProfile(..))
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Utils
+import GTag exposing (GTagData, gTagOut)
 import Helpers.Tuple exposing (tuple3MapSecond, tuple3Second, tuple3ToList)
 import Json.Decode
 import List.Extra
@@ -281,13 +282,12 @@ update msg prevModel =
               }
             , Cmd.batch
                 [ Ports.consentToCookies ()
-                , Ports.gTagOut <|
-                    encodeGTag <|
-                        GTagData
-                            "accept cookies"
-                            ""
-                            ""
-                            0
+                , gTagOut <|
+                    GTagData
+                        "accept cookies"
+                        Nothing
+                        Nothing
+                        Nothing
                 ]
             )
 
@@ -651,14 +651,17 @@ update msg prevModel =
             ( prevModel
             , [ doDepositChainCmdFarm amount
                     |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
-              , handleGTag
-                    "Deposit Liquidity"
-                    "funnel"
-                    ""
-                    (TokenValue.mul amount 100
-                        |> TokenValue.toFloatWithWarning
-                        |> floor
-                    )
+              , gTagOut <|
+                    GTagData
+                        "Deposit Liquidity"
+                        (Just "funnel")
+                        Nothing
+                        (Just
+                            (TokenValue.mul amount 100
+                                |> TokenValue.toFloatWithWarning
+                                |> floor
+                            )
+                        )
               ]
                 |> Cmd.batch
             )
@@ -677,14 +680,17 @@ update msg prevModel =
                       }
                     , case depositOrWithdraw of
                         Deposit ->
-                            handleGTag
-                                "Deposit Liquidity Signed"
-                                "conversion"
-                                (Eth.Utils.txHashToString txHash)
-                                (TokenValue.mul amount 100
-                                    |> TokenValue.toFloatWithWarning
-                                    |> floor
-                                )
+                            gTagOut <|
+                                GTagData
+                                    "Deposit Liquidity Signed"
+                                    (Just "conversion")
+                                    (Just <| Eth.Utils.txHashToString txHash)
+                                    (Just
+                                        (TokenValue.mul amount 100
+                                            |> TokenValue.toFloatWithWarning
+                                            |> floor
+                                        )
+                                    )
 
                         Withdraw ->
                             Cmd.none
@@ -739,11 +745,12 @@ update msg prevModel =
                 | jurisdictionCheckStatus = Checking
               }
             , [ Ports.beginLocationCheck ()
-              , handleGTag
-                    "3a - verify jurisdiction clicked"
-                    "funnel"
-                    ""
-                    0
+              , gTagOut <|
+                    GTagData
+                        "3a - verify jurisdiction clicked"
+                        (Just "funnel")
+                        Nothing
+                        Nothing
               ]
                 |> Cmd.batch
             )
@@ -764,25 +771,28 @@ update msg prevModel =
                     Cmd.none
 
                 Checked ForbiddenJurisdictions ->
-                    handleGTag
-                        "jurisdiction not allowed"
-                        "funnel abort"
-                        ""
-                        0
+                    gTagOut <|
+                        GTagData
+                            "jurisdiction not allowed"
+                            (Just "funnel abort")
+                            Nothing
+                            Nothing
 
                 Checked _ ->
-                    handleGTag
-                        "3b - jurisdiction verified"
-                        "funnel"
-                        ""
-                        0
+                    gTagOut <|
+                        GTagData
+                            "3b - jurisdiction verified"
+                            (Just "funnel")
+                            Nothing
+                            Nothing
 
                 Error error ->
-                    handleGTag
-                        "failed jursidiction check"
-                        "funnel abort"
-                        error
-                        0
+                    gTagOut <|
+                        GTagData
+                            "failed jursidiction check"
+                            (Just "funnel abort")
+                            Nothing
+                            Nothing
             )
 
         RefreshAll ->
@@ -1064,14 +1074,17 @@ update msg prevModel =
                         |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
                     ]
               )
-                ++ [ handleGTag
-                        "Squander ETH"
-                        "funnel"
-                        ""
-                        (TokenValue.mul amount 100
-                            |> TokenValue.toFloatWithWarning
-                            |> floor
-                        )
+                ++ [ gTagOut <|
+                        GTagData
+                            "Squander ETH"
+                            (Just "funnel")
+                            Nothing
+                            (Just
+                                (TokenValue.mul amount 100
+                                    |> TokenValue.toFloatWithWarning
+                                    |> floor
+                                )
+                            )
                    ]
                 |> Cmd.batch
             )
@@ -1213,14 +1226,17 @@ update msg prevModel =
                     ( { prevModel
                         | depositAmount = ""
                       }
-                    , [ handleGTag
-                            "Squander ETH Signed"
-                            "conversion"
-                            (Eth.Utils.txHashToString txHash)
-                            (TokenValue.mul amount 100
-                                |> TokenValue.toFloatWithWarning
-                                |> floor
-                            )
+                    , [ gTagOut <|
+                            GTagData
+                                "Squander ETH Signed"
+                                (Just "conversion")
+                                (Just <| Eth.Utils.txHashToString txHash)
+                                (Just
+                                    (TokenValue.mul amount 100
+                                        |> TokenValue.toFloatWithWarning
+                                        |> floor
+                                    )
+                                )
                       ]
                         |> Cmd.batch
                     )
@@ -1248,14 +1264,17 @@ update msg prevModel =
                     ( { prevModel
                         | withDrawalAmount = ""
                       }
-                    , [ handleGTag
-                            "Redeem worthless beans Signed"
-                            "conversion"
-                            (Eth.Utils.txHashToString txHash)
-                            (TokenValue.mul amount 100
-                                |> TokenValue.toFloatWithWarning
-                                |> floor
-                            )
+                    , [ gTagOut <|
+                            GTagData
+                                "Redeem worthless beans Signed"
+                                (Just "conversion")
+                                (Just <| Eth.Utils.txHashToString txHash)
+                                (Just
+                                    (TokenValue.mul amount 100
+                                        |> TokenValue.toFloatWithWarning
+                                        |> floor
+                                    )
+                                )
                       ]
                         |> Cmd.batch
                     )

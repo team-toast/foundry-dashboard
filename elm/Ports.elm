@@ -15,9 +15,6 @@ port txOut : Json.Decode.Value -> Cmd msg
 port txIn : (Json.Decode.Value -> msg) -> Sub msg
 
 
-port gTagOut : Json.Decode.Value -> Cmd msg
-
-
 port consentToCookies : () -> Cmd msg
 
 

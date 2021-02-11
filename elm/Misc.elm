@@ -38,7 +38,7 @@ import Routing
 import Set
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (GTagData, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Value, Wallet)
+import Types exposing (Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Value, Wallet)
 import Url.Builder
 import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
@@ -478,17 +478,6 @@ calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
 
         _ ->
             Nothing
-
-
-handleGTag : String -> String -> String -> Int -> Cmd Msg
-handleGTag event category label value =
-    GTagData
-        event
-        category
-        label
-        value
-        |> encodeGTag
-        |> Ports.gTagOut
 
 
 fetchStakingInfoOrApyCmd : Time.Posix -> Wallet -> Cmd Msg
@@ -1135,13 +1124,3 @@ addTrackedTx userTx notifiers tracker =
         tracker
         [ newTrackedTx ]
     )
-
-
-encodeGTag : GTagData -> Decoder.Value
-encodeGTag gtag =
-    Json.Encode.object
-        [ ( "event", Json.Encode.string gtag.event )
-        , ( "category", Json.Encode.string gtag.category )
-        , ( "label", Json.Encode.string gtag.label )
-        , ( "value", Json.Encode.int gtag.value )
-        ]
