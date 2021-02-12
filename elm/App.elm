@@ -86,9 +86,13 @@ init flags url key =
       , model.withDrawalAmount
             |> TokenValue.fromString
             |> fetchDethPositionInfo
-      , Browser.Navigation.pushUrl
-            model.navKey
-            (Routing.routeToString model.basePath Routing.Stats)
+      , if route == Routing.Home then
+            Browser.Navigation.pushUrl
+                model.navKey
+                (Routing.routeToString model.basePath Routing.Stats)
+
+        else
+            Cmd.none
       ]
         |> Cmd.batch
     )
