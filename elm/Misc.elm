@@ -107,7 +107,7 @@ emptyModel key now basePath cookieConsent =
     , userStakingInfo = Nothing
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
-    , farmingIsActive = True -- Set to true to enable farming interface - False will show inactive message
+    , farmingIsActive = False -- Set to true to enable farming interface - False will show inactive message
     }
 
 
