@@ -145,6 +145,7 @@ type Msg
     | StakingInfoFetched (Result Http.Error ( UserStakingInfo, Float ))
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
+    | Navigate Route
 
 
 type alias Value =

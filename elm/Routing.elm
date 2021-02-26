@@ -66,3 +66,27 @@ routeToString basePath route =
 urlToRoute : Url -> Route
 urlToRoute url =
     Maybe.withDefault (NotFound "url not found") (Parser.parse routeParser url)
+
+
+routeName :
+    Route
+    -> String
+routeName route =
+    case route of
+        Home ->
+            "Home"
+
+        Stats ->
+            "Stats"
+
+        Sentiment ->
+            "Sentiment"
+
+        Farm ->
+            "Farm"
+
+        DerivedEth ->
+            "dEth"
+
+        NotFound _ ->
+            "o_O"

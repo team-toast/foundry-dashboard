@@ -1,11 +1,13 @@
 module View exposing (view)
 
 import Browser
-import Element exposing (Element, alignBottom, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, newTabLink, padding, paddingXY, paragraph, row, spacing, text, width)
+import Browser.Navigation
+import Element exposing (Element, alignBottom, alignRight, alignTop, below, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, link, maximum, newTabLink, none, padding, paddingXY, paragraph, rgba, row, scrollbarY, shrink, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (TxHash)
 import Helpers.Eth as EthHelpers
@@ -16,11 +18,12 @@ import Images
 import List exposing (map)
 import Maybe.Extra
 import Misc exposing (userInfo)
-import Routing
+import Routing exposing (Route, routeName, routeToString)
 import Theme exposing (defaultTheme)
 import TokenValue
 import Tuple3
 import Types exposing (..)
+import Update exposing (gotoRoute)
 import UserNotice as UN exposing (UserNotice)
 import UserTx
 import View.Common exposing (..)
@@ -97,7 +100,7 @@ viewCookieConsentModal dProfile =
         , Element.Background.color <| Theme.darkBlue
         , Element.Font.color EH.white
         , Element.Border.glow
-            (Element.rgba 0 0 0 0.2)
+            (rgba 0 0 0 0.2)
             10
         ]
         [ paragraph
@@ -134,12 +137,7 @@ viewPage model =
         , Element.Background.color defaultTheme.appBackground
         , height fill
         ]
-        [ header
-            model.dProfile
-            model.trackedTxs
-            model.trackedTxsExpanded
-            (userInfo model.wallet)
-            model.showAddressId
+        [ header model
         , viewBody model
         ]
 
@@ -167,13 +165,13 @@ viewBody model =
 
 
 header :
-    DisplayProfile
-    -> UserTx.Tracker Msg
-    -> Bool
-    -> Maybe UserInfo
-    -> Maybe PhaceIconId
+    Model
     -> Element Msg
-header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
+header model =
+    let
+        dProfile =
+            model.dProfile
+    in
     row
         [ width fill
         , Element.Background.color defaultTheme.headerBackground
@@ -194,46 +192,47 @@ header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
         (case dProfile of
             Desktop ->
                 [ logoBlock dProfile
+                , navigateButtons model
                 , (Maybe.map
                     (el
-                        [ Element.alignTop
-                        , Element.alignRight
+                        [ alignTop
+                        , alignRight
                         ]
                     )
                    <|
-                    maybeTxTracker dProfile trackedTxsExpanded trackedTxs
+                    maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
                   )
-                    |> Maybe.withDefault Element.none
-                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                    |> Maybe.withDefault none
+                , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
                     |> el
                         [ Element.centerY
-                        , Element.alignRight
+                        , alignRight
                         ]
                 ]
 
             Mobile ->
                 [ [ logoBlock dProfile
                         |> el
-                            [ Element.alignTop
+                            [ alignTop
                             , Element.alignLeft
                             ]
-                  , maybeTxTracker dProfile trackedTxsExpanded trackedTxs
+                  , maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
                         |> Maybe.map
                             (el
-                                [ Element.alignTop
-                                , Element.alignRight
+                                [ alignTop
+                                , alignRight
                                 ]
                             )
-                        |> Maybe.withDefault Element.none
+                        |> Maybe.withDefault none
                   ]
                     |> column
-                        [ Element.alignTop
+                        [ alignTop
                         , Element.alignLeft
                         ]
-                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
                     |> el
                         [ Element.centerY
-                        , Element.alignRight
+                        , alignRight
                         ]
                 ]
         )
@@ -246,12 +245,12 @@ logoBlock dProfile =
     [ Images.fryIcon
         |> Images.toElement
             [ Element.centerY
-            , width <|
-                Element.px <|
-                    responsiveVal
-                        dProfile
-                        60
-                        30
+            , responsiveVal
+                dProfile
+                60
+                30
+                |> Element.px
+                |> width
             ]
     , [ text "Foundry Dashboard"
             |> el
@@ -274,29 +273,85 @@ logoBlock dProfile =
                 , paddingXY 10 3
                 , Element.Border.rounded 4
                 , Element.Font.color EH.white
-                , Element.Font.size <|
-                    responsiveVal
-                        dProfile
-                        18
-                        10
+                , responsiveVal
+                    dProfile
+                    18
+                    10
+                    |> Element.Font.size
                 ]
       ]
         |> column
             [ spacing 5 ]
     ]
         |> row
-            [ height fill
-            , padding <|
-                responsiveVal
-                    dProfile
-                    10
-                    7
-            , spacing <|
-                responsiveVal
-                    dProfile
-                    20
-                    10
+            [ fill
+                |> height
+            , responsiveVal
+                dProfile
+                10
+                7
+                |> padding
+            , responsiveVal
+                dProfile
+                20
+                10
+                |> spacing
             ]
+
+
+navigateButtons :
+    Model
+    -> Element Msg
+navigateButtons model =
+    [ --  navigationButton
+      --     Routing.Home
+      --     model
+      -- ,
+      navigationButton
+        Routing.Sentiment
+        model
+    , navigationButton
+        Routing.Farm
+        model
+    , navigationButton
+        Routing.Stats
+        model
+    , navigationButton
+        Routing.DerivedEth
+        model
+    ]
+        |> row
+            [ spacing 20
+            , centerX
+            , Element.Font.color EH.white
+            , Element.Font.size 30
+            ]
+
+
+navigationButton :
+    Route
+    -> Model
+    -> Element Msg
+navigationButton route model =
+    { onPress =
+        Navigate route
+            |> Just
+    , label =
+        routeName route
+            |> String.toUpper
+            |> text
+    }
+        |> Element.Input.button
+            ((if route == model.route then
+                Theme.childContainerBackgroundAttributes
+                    ++ Theme.childContainerBorderAttributes
+
+              else
+                Theme.mainContainerBackgroundAttributes
+                    ++ Theme.mainContainerBorderAttributes
+             )
+                ++ [ padding 10 ]
+            )
 
 
 connectButtonOrPhace :
@@ -357,7 +412,7 @@ userNoticeEls dProfile notices =
                     dProfile
                     10
                     5
-            , Element.alignRight
+            , alignRight
             , alignBottom
             , width <|
                 Element.px <|
@@ -389,7 +444,7 @@ userNoticeEls dProfile notices =
                     10
                     5
             , Element.alignLeft
-            , Element.alignTop
+            , alignTop
             , width <|
                 Element.px <|
                     EH.responsiveVal
@@ -440,8 +495,8 @@ userNotice dProfile ( id, notice ) =
 
         closeElement =
             EH.closeButton
-                [ Element.alignRight
-                , Element.alignTop
+                [ alignRight
+                , alignTop
                 , Element.moveUp 2
                 ]
                 EH.black
@@ -461,7 +516,7 @@ userNotice dProfile ( id, notice ) =
                 3
         , width fill
         , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.15
+        , Element.Border.color <| rgba 0 0 0 0.15
         , EH.subtleShadow
         , EH.onClickNoPropagation Types.NoOp
         ]
@@ -567,17 +622,17 @@ maybeTxTracker dProfile showExpanded trackedTxs =
         else
             Just <|
                 el
-                    [ Element.below <|
+                    [ below <|
                         if showExpanded then
                             el
-                                [ Element.alignRight
-                                , Element.alignTop
+                                [ alignRight
+                                , alignTop
                                 ]
                             <|
                                 trackedTxsColumn trackedTxs
 
                         else
-                            Element.none
+                            none
                     ]
                 <|
                     column
@@ -609,7 +664,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                                 ShowExpandedTrackedTxs True
                         ]
                         (renderedTallyEls
-                            |> map (Maybe.withDefault Element.none)
+                            |> map (Maybe.withDefault none)
                         )
 
 
@@ -621,14 +676,16 @@ trackedTxsColumn trackedTxs =
         [ Element.Background.color <| Theme.lightBlue
         , Element.Border.rounded 3
         , Element.Border.glow
-            (Element.rgba 0 0 0 0.2)
+            (rgba 0 0 0 0.2)
             4
         , padding 10
         , spacing 5
         , EH.onClickNoPropagation Types.NoOp
-        , height (Element.shrink |> Element.maximum 400)
-        , Element.scrollbarY
-        , Element.alignRight
+        , shrink
+            |> maximum 400
+            |> height
+        , scrollbarY
+        , alignRight
         ]
         (trackedTxs
             |> List.indexedMap
@@ -713,13 +770,13 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
             )
         , Element.Border.rounded 2
         , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.3
+        , Element.Border.color <| rgba 0 0 0 0.3
         , padding 4
         , spacing 4
         , Element.Font.size 20
         ]
         [ titleEl
-        , el [ Element.alignRight ] <| statusEl
+        , el [ alignRight ] <| statusEl
         ]
 
 

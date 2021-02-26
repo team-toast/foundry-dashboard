@@ -87,6 +87,61 @@ update msg prevModel =
                     , Cmd.none
                     )
 
+        Navigate route ->
+            case route of
+                Routing.Home ->
+                    ( { prevModel
+                        | route = Routing.Stats
+                      }
+                    , Browser.Navigation.pushUrl
+                        prevModel.navKey
+                        (Routing.routeToString prevModel.basePath Routing.Stats)
+                    )
+
+                Routing.Sentiment ->
+                    ( { prevModel
+                        | route = Routing.Sentiment
+                      }
+                    , Browser.Navigation.pushUrl
+                        prevModel.navKey
+                        (Routing.routeToString prevModel.basePath Routing.Sentiment)
+                    )
+
+                Routing.Stats ->
+                    ( { prevModel
+                        | route = Routing.Stats
+                      }
+                    , Browser.Navigation.pushUrl
+                        prevModel.navKey
+                        (Routing.routeToString prevModel.basePath Routing.Stats)
+                    )
+
+                Routing.Farm ->
+                    ( { prevModel
+                        | route = Routing.Farm
+                      }
+                    , Browser.Navigation.pushUrl
+                        prevModel.navKey
+                        (Routing.routeToString prevModel.basePath Routing.Farm)
+                    )
+
+                Routing.DerivedEth ->
+                    ( { prevModel
+                        | route = Routing.DerivedEth
+                      }
+                    , Browser.Navigation.pushUrl
+                        prevModel.navKey
+                        (Routing.routeToString prevModel.basePath Routing.DerivedEth)
+                    )
+
+                Routing.NotFound err ->
+                    ( { prevModel
+                        | route = Routing.NotFound "url not found"
+                      }
+                        |> addUserNotice routeNotFound
+                    , Cmd.none
+                    )
+
         Tick i ->
             ( { prevModel
                 | now = i
