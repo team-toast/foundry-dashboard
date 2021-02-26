@@ -2,7 +2,7 @@ module View exposing (view)
 
 import Browser
 import Browser.Navigation
-import Element exposing (Element, alignBottom, alignRight, alignTop, below, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, link, maximum, newTabLink, none, padding, paddingXY, paragraph, rgba, row, scrollbarY, shrink, spacing, text, width)
+import Element exposing (Element, alignBottom, alignRight, alignTop, below, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, link, maximum, moveRight, newTabLink, none, padding, paddingXY, paragraph, rgba, row, scrollbarY, shrink, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -172,70 +172,86 @@ header model =
         dProfile =
             model.dProfile
     in
-    row
-        [ width fill
-        , Element.Background.color defaultTheme.headerBackground
-        , padding <|
-            responsiveVal
-                dProfile
-                20
-                10
-        , spacing <|
-            responsiveVal
-                dProfile
-                10
-                5
-        , Element.Border.glow
-            (EH.black |> EH.withAlpha 0.5)
-            5
-        ]
-        (case dProfile of
-            Desktop ->
-                [ logoBlock dProfile
-                , navigateButtons model
-                , (Maybe.map
-                    (el
-                        [ alignTop
-                        , alignRight
-                        ]
-                    )
-                   <|
-                    maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
-                  )
-                    |> Maybe.withDefault none
-                , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
-                    |> el
-                        [ Element.centerY
-                        , alignRight
-                        ]
-                ]
+    case dProfile of
+        Desktop ->
+            [ logoBlock dProfile
+            , navigationButtons model
+            , (Maybe.map
+                (el
+                    [ alignTop
+                    , alignRight
+                    ]
+                )
+               <|
+                maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
+              )
+                |> Maybe.withDefault none
+            , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
+                |> el
+                    [ Element.centerY
+                    , alignRight
+                    ]
+            ]
+                |> row
+                    [ fill
+                        |> width
+                    , Element.Background.color defaultTheme.headerBackground
+                    , responsiveVal dProfile 20 10
+                        |> padding
+                    , responsiveVal dProfile 10 5
+                        |> spacing
+                    , Element.Border.glow
+                        (EH.black |> EH.withAlpha 0.5)
+                        5
+                    ]
 
-            Mobile ->
-                [ [ logoBlock dProfile
-                        |> el
+        Mobile ->
+            [ [ [ logoBlock dProfile
+                    |> el
+                        [ alignTop
+                        , Element.alignLeft
+                        ]
+                , maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
+                    |> Maybe.map
+                        (el
                             [ alignTop
-                            , Element.alignLeft
+                            , alignRight
                             ]
-                  , maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
-                        |> Maybe.map
-                            (el
-                                [ alignTop
-                                , alignRight
-                                ]
-                            )
-                        |> Maybe.withDefault none
-                  ]
+                        )
+                    |> Maybe.withDefault none
+                ]
                     |> column
                         [ alignTop
                         , Element.alignLeft
                         ]
-                , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
+              , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
                     |> el
                         [ Element.centerY
                         , alignRight
                         ]
-                ]
-        )
+              ]
+                |> row
+                    [ fill
+                        |> width
+                    ]
+            , [ navigationButtons model ]
+                |> row
+                    [ fill
+                        |> width
+                    ]
+            ]
+                |> column
+                    [ fill
+                        |> width
+                    , Element.Background.color defaultTheme.headerBackground
+                    , responsiveVal dProfile 20 10
+                        |> padding
+                    , responsiveVal dProfile 10 5
+                        |> spacing
+                    , Element.Border.glow
+                        (EH.black |> EH.withAlpha 0.5)
+                        5
+                    ]
 
 
 logoBlock :
@@ -245,27 +261,23 @@ logoBlock dProfile =
     [ Images.fryIcon
         |> Images.toElement
             [ Element.centerY
-            , responsiveVal
-                dProfile
-                60
-                30
+            , responsiveVal dProfile 60 30
                 |> Element.px
                 |> width
             ]
-    , [ text "Foundry Dashboard"
+    , [ "Foundry Dashboard"
+            |> text
             |> el
                 [ Element.Font.color EH.white
-                , Element.Font.size <|
-                    responsiveVal
-                        dProfile
-                        35
-                        20
+                , responsiveVal dProfile 35 20
+                    |> Element.Font.size
                 , Element.Font.bold
                 , Element.centerY
                 ]
       , { url = "https://foundrydao.com"
         , label =
-            text "What is Foundry?"
+            "What is Foundry?"
+                |> text
         }
             |> newTabLink
                 [ Element.alignLeft
@@ -273,10 +285,7 @@ logoBlock dProfile =
                 , paddingXY 10 3
                 , Element.Border.rounded 4
                 , Element.Font.color EH.white
-                , responsiveVal
-                    dProfile
-                    18
-                    10
+                , responsiveVal dProfile 18 10
                     |> Element.Font.size
                 ]
       ]
@@ -286,23 +295,17 @@ logoBlock dProfile =
         |> row
             [ fill
                 |> height
-            , responsiveVal
-                dProfile
-                10
-                7
+            , responsiveVal dProfile 10 7
                 |> padding
-            , responsiveVal
-                dProfile
-                20
-                10
+            , responsiveVal dProfile 20 10
                 |> spacing
             ]
 
 
-navigateButtons :
+navigationButtons :
     Model
     -> Element Msg
-navigateButtons model =
+navigationButtons model =
     [ --  navigationButton
       --     Routing.Home
       --     model
@@ -321,10 +324,13 @@ navigateButtons model =
         model
     ]
         |> row
-            [ spacing 20
+            [ responsiveVal model.dProfile 20 10
+                |> spacing
             , centerX
             , Element.Font.color EH.white
-            , Element.Font.size 30
+            , responsiveVal model.dProfile 20 10
+                |> Element.Font.size
+            , alignTop
             ]
 
 
@@ -350,7 +356,9 @@ navigationButton route model =
                 Theme.mainContainerBackgroundAttributes
                     ++ Theme.mainContainerBorderAttributes
              )
-                ++ [ padding 10 ]
+                ++ [ responsiveVal model.dProfile 10 5
+                        |> padding
+                   ]
             )
 
 
