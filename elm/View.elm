@@ -1,7 +1,7 @@
 module View exposing (view)
 
 import Browser
-import Element exposing (Element, alignBottom, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, newTabLink, padding, paragraph, row, spacing, text, width)
+import Element exposing (Element, alignBottom, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, newTabLink, padding, paddingXY, paragraph, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
