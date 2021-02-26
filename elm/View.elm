@@ -334,7 +334,10 @@ navigationButtons model =
                         [ centerX ]
 
                     else
-                        [ moveRight 50 ]
+                        [ moveRight 50
+                        , fill
+                            |> width
+                        ]
                    )
             )
 
