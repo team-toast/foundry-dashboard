@@ -324,14 +324,19 @@ navigationButtons model =
         model
     ]
         |> row
-            [ responsiveVal model.dProfile 20 10
+            ([ responsiveVal model.dProfile 20 10
                 |> spacing
-            , centerX
-            , Element.Font.color EH.white
-            , responsiveVal model.dProfile 20 10
+             , Element.Font.color EH.white
+             , responsiveVal model.dProfile 20 10
                 |> Element.Font.size
-            , alignTop
-            ]
+             ]
+                ++ (if model.dProfile == Mobile then
+                        [ centerX ]
+
+                    else
+                        [ moveRight 50 ]
+                   )
+            )
 
 
 navigationButton :
