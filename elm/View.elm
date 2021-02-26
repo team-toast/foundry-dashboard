@@ -1,11 +1,13 @@
 module View exposing (view)
 
 import Browser
-import Element exposing (Element, column, el, row)
+import Browser.Navigation
+import Element exposing (Element, alignBottom, alignRight, alignTop, below, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, link, maximum, moveRight, newTabLink, none, padding, paddingXY, paragraph, rgba, row, scrollbarY, shrink, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (TxHash)
 import Helpers.Eth as EthHelpers
@@ -13,13 +15,15 @@ import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Html.Attributes
 import Images
+import List exposing (map)
 import Maybe.Extra
 import Misc exposing (userInfo)
-import Routing
+import Routing exposing (Route, routeName, routeToString)
 import Theme exposing (defaultTheme)
 import TokenValue
 import Tuple3
 import Types exposing (..)
+import Update exposing (gotoRoute)
 import UserNotice as UN exposing (UserNotice)
 import UserTx
 import View.Common exposing (..)
@@ -43,19 +47,20 @@ view model =
 render : Model -> Element Msg -> Html Msg
 render model =
     modals model
-        |> List.map Element.inFront
+        |> map inFront
         |> (++)
-            [ Element.width Element.fill
-            , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+            [ width fill
+            , Html.Attributes.style "height" "100vh"
+                |> htmlAttribute
             , Element.Events.onClick ClickHappened
             , Element.Font.family
                 [ Element.Font.typeface "DM Sans"
                 , Element.Font.sansSerif
                 ]
             ]
-        |> Element.layoutWith
+        |> layoutWith
             { options =
-                [ Element.focusStyle
+                [ focusStyle
                     { borderColor = Nothing
                     , backgroundColor = Nothing
                     , shadow = Nothing
@@ -82,39 +87,41 @@ modals model =
 viewCookieConsentModal : DisplayProfile -> Element Msg
 viewCookieConsentModal dProfile =
     row
-        [ Element.alignBottom
-        , responsiveVal dProfile Element.centerX (Element.width Element.fill)
+        [ alignBottom
+        , responsiveVal dProfile centerX (width fill)
         , Element.Border.roundEach
             { topLeft = 5
             , topRight = 5
             , bottomLeft = 0
             , bottomRight = 0
             }
-        , Element.padding 15
-        , Element.spacing 15
+        , padding 15
+        , spacing 15
         , Element.Background.color <| Theme.darkBlue
         , Element.Font.color EH.white
         , Element.Border.glow
-            (Element.rgba 0 0 0 0.2)
+            (rgba 0 0 0 0.2)
             10
         ]
-        [ Element.paragraph
-            [ Element.width <| responsiveVal dProfile (Element.px 800) Element.fill
-            , Element.Font.size <| responsiveVal dProfile 20 12
+        [ paragraph
+            [ responsiveVal dProfile (Element.px 800) fill
+                |> width
+            , responsiveVal dProfile 20 12
+                |> Element.Font.size
             ]
-            [ Element.text "Foundry products use cookies and analytics to track behavior patterns, to help zero in on effective marketing strategies. To avoid being tracked in this way, we recommend using the "
-            , Element.newTabLink
+            [ text "Foundry products use cookies and analytics to track behavior patterns, to help zero in on effective marketing strategies. To avoid being tracked in this way, we recommend using the "
+            , newTabLink
                 [ Element.Font.color Theme.blue ]
                 { url = "https://brave.com/"
-                , label = Element.text "Brave browser"
+                , label = text "Brave browser"
                 }
-            , Element.text " or installing the "
-            , Element.newTabLink
+            , text " or installing the "
+            , newTabLink
                 [ Element.Font.color Theme.blue ]
                 { url = "https://tools.google.com/dlpage/gaoptout"
-                , label = Element.text "Google Analytics Opt-Out browser addon"
+                , label = text "Google Analytics Opt-Out browser addon"
                 }
-            , Element.text "."
+            , text "."
             ]
         , Theme.blueButton dProfile
             []
@@ -126,16 +133,11 @@ viewCookieConsentModal dProfile =
 viewPage : Model -> Element Msg
 viewPage model =
     column
-        [ Element.width Element.fill
+        [ width fill
         , Element.Background.color defaultTheme.appBackground
-        , Element.height Element.fill
+        , height fill
         ]
-        [ header
-            model.dProfile
-            model.trackedTxs
-            model.trackedTxsExpanded
-            (userInfo model.wallet)
-            model.showAddressId
+        [ header model
         , viewBody model
         ]
 
@@ -163,76 +165,93 @@ viewBody model =
 
 
 header :
-    DisplayProfile
-    -> UserTx.Tracker Msg
-    -> Bool
-    -> Maybe UserInfo
-    -> Maybe PhaceIconId
+    Model
     -> Element Msg
-header dProfile trackedTxs trackedTxsExpanded maybeUserInfo showAddressId =
-    row
-        [ Element.width Element.fill
-        , Element.Background.color defaultTheme.headerBackground
-        , Element.padding <|
-            responsiveVal
-                dProfile
-                20
-                10
-        , Element.spacing <|
-            responsiveVal
-                dProfile
-                10
-                5
-        , Element.Border.glow
-            (EH.black |> EH.withAlpha 0.5)
-            5
-        ]
-        (case dProfile of
-            Desktop ->
-                [ logoBlock dProfile
-                , (Maybe.map
-                    (el
-                        [ Element.alignTop
-                        , Element.alignRight
-                        ]
-                    )
-                   <|
-                    maybeTxTracker dProfile trackedTxsExpanded trackedTxs
-                  )
-                    |> Maybe.withDefault Element.none
-                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
-                    |> el
-                        [ Element.centerY
-                        , Element.alignRight
-                        ]
-                ]
+header model =
+    let
+        dProfile =
+            model.dProfile
+    in
+    case dProfile of
+        Desktop ->
+            [ logoBlock dProfile
+            , navigationButtons model
+            , (Maybe.map
+                (el
+                    [ alignTop
+                    , alignRight
+                    ]
+                )
+               <|
+                maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
+              )
+                |> Maybe.withDefault none
+            , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
+                |> el
+                    [ Element.centerY
+                    , alignRight
+                    ]
+            ]
+                |> row
+                    [ fill
+                        |> width
+                    , Element.Background.color defaultTheme.headerBackground
+                    , responsiveVal dProfile 20 10
+                        |> padding
+                    , responsiveVal dProfile 10 5
+                        |> spacing
+                    , Element.Border.glow
+                        (EH.black |> EH.withAlpha 0.5)
+                        5
+                    ]
 
-            Mobile ->
-                [ [ logoBlock dProfile
-                        |> el
-                            [ Element.alignTop
-                            , Element.alignLeft
-                            ]
-                  , maybeTxTracker dProfile trackedTxsExpanded trackedTxs
-                        |> Maybe.map
-                            (el
-                                [ Element.alignTop
-                                , Element.alignRight
-                                ]
-                            )
-                        |> Maybe.withDefault Element.none
-                  ]
-                    |> column
-                        [ Element.alignTop
+        Mobile ->
+            [ [ [ logoBlock dProfile
+                    |> el
+                        [ alignTop
                         , Element.alignLeft
                         ]
-                , connectButtonOrPhace dProfile maybeUserInfo showAddressId
+                , maybeTxTracker dProfile model.trackedTxsExpanded model.trackedTxs
+                    |> Maybe.map
+                        (el
+                            [ alignTop
+                            , alignRight
+                            ]
+                        )
+                    |> Maybe.withDefault none
+                ]
+                    |> column
+                        [ alignTop
+                        , Element.alignLeft
+                        ]
+              , connectButtonOrPhace dProfile (userInfo model.wallet) model.showAddressId
                     |> el
                         [ Element.centerY
-                        , Element.alignRight
+                        , alignRight
                         ]
-                ]
-        )
+              ]
+                |> row
+                    [ fill
+                        |> width
+                    ]
+            , [ navigationButtons model ]
+                |> row
+                    [ fill
+                        |> width
+                    ]
+            ]
+                |> column
+                    [ fill
+                        |> width
+                    , Element.Background.color defaultTheme.headerBackground
+                    , responsiveVal dProfile 20 10
+                        |> padding
+                    , responsiveVal dProfile 10 5
+                        |> spacing
+                    , Element.Border.glow
+                        (EH.black |> EH.withAlpha 0.5)
+                        5
+                    ]
 
 
 logoBlock :
@@ -242,57 +261,105 @@ logoBlock dProfile =
     [ Images.fryIcon
         |> Images.toElement
             [ Element.centerY
-            , Element.width <|
-                Element.px <|
-                    responsiveVal
-                        dProfile
-                        60
-                        30
+            , responsiveVal dProfile 60 30
+                |> Element.px
+                |> width
             ]
-    , [ Element.text "Foundry Dashboard"
+    , [ "Foundry Dashboard"
+            |> text
             |> el
                 [ Element.Font.color EH.white
-                , Element.Font.size <|
-                    responsiveVal
-                        dProfile
-                        35
-                        20
+                , responsiveVal dProfile 35 20
+                    |> Element.Font.size
                 , Element.Font.bold
                 , Element.centerY
                 ]
       , { url = "https://foundrydao.com"
         , label =
-            Element.text "What is Foundry?"
+            "What is Foundry?"
+                |> text
         }
-            |> Element.newTabLink
+            |> newTabLink
                 [ Element.alignLeft
                 , Element.Background.color Theme.blue
-                , Element.paddingXY 10 3
+                , paddingXY 10 3
                 , Element.Border.rounded 4
                 , Element.Font.color EH.white
-                , Element.Font.size <|
-                    responsiveVal
-                        dProfile
-                        18
-                        10
+                , responsiveVal dProfile 18 10
+                    |> Element.Font.size
                 ]
       ]
         |> column
-            [ Element.spacing 5 ]
+            [ spacing 5 ]
     ]
         |> row
-            [ Element.height Element.fill
-            , Element.padding <|
-                responsiveVal
-                    dProfile
-                    10
-                    7
-            , Element.spacing <|
-                responsiveVal
-                    dProfile
-                    20
-                    10
+            [ fill
+                |> height
+            , responsiveVal dProfile 10 7
+                |> padding
+            , responsiveVal dProfile 20 10
+                |> spacing
             ]
+
+
+navigationButtons :
+    Model
+    -> Element Msg
+navigationButtons model =
+    [ --  navigationButton
+      --     Routing.Home
+      --     model
+      -- ,
+      navigationButton
+        Routing.Sentiment
+        model
+    , navigationButton
+        Routing.Farm
+        model
+    , navigationButton
+        Routing.Stats
+        model
+    , navigationButton
+        Routing.DerivedEth
+        model
+    ]
+        |> row
+            [ responsiveVal model.dProfile 20 10
+                |> spacing
+            , centerX
+            , Element.Font.color EH.white
+            , responsiveVal model.dProfile 20 10
+                |> Element.Font.size
+            , alignTop
+            ]
+
+
+navigationButton :
+    Route
+    -> Model
+    -> Element Msg
+navigationButton route model =
+    { onPress =
+        Navigate route
+            |> Just
+    , label =
+        routeName route
+            |> String.toUpper
+            |> text
+    }
+        |> Element.Input.button
+            ((if route == model.route then
+                Theme.childContainerBackgroundAttributes
+                    ++ Theme.childContainerBorderAttributes
+
+              else
+                Theme.mainContainerBackgroundAttributes
+                    ++ Theme.mainContainerBorderAttributes
+             )
+                ++ [ responsiveVal model.dProfile 10 5
+                        |> padding
+                   ]
+            )
 
 
 connectButtonOrPhace :
@@ -312,7 +379,7 @@ connectButtonOrPhace dProfile maybeUserInfo showAddressInfo =
 
                             Mobile ->
                                 [ Element.Font.size 10
-                                , Element.padding 5
+                                , padding 5
                                 ]
                        )
                 )
@@ -348,14 +415,14 @@ userNoticeEls dProfile notices =
                     dProfile
                     20
                     5
-            , Element.spacing <|
+            , spacing <|
                 EH.responsiveVal
                     dProfile
                     10
                     5
-            , Element.alignRight
-            , Element.alignBottom
-            , Element.width <|
+            , alignRight
+            , alignBottom
+            , width <|
                 Element.px <|
                     EH.responsiveVal
                         dProfile
@@ -370,7 +437,7 @@ userNoticeEls dProfile notices =
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
                 |> List.filter (\( _, notice ) -> notice.align == UN.BottomRight)
-                |> List.map (userNotice dProfile)
+                |> map (userNotice dProfile)
             )
         , column
             [ Element.moveRight <|
@@ -379,14 +446,14 @@ userNoticeEls dProfile notices =
                     20
                     5
             , Element.moveDown 100
-            , Element.spacing <|
+            , spacing <|
                 EH.responsiveVal
                     dProfile
                     10
                     5
             , Element.alignLeft
-            , Element.alignTop
-            , Element.width <|
+            , alignTop
+            , width <|
                 Element.px <|
                     EH.responsiveVal
                         dProfile
@@ -401,7 +468,7 @@ userNoticeEls dProfile notices =
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
                 |> List.filter (\( _, notice ) -> notice.align == UN.TopLeft)
-                |> List.map (userNotice dProfile)
+                |> map (userNotice dProfile)
             )
         ]
 
@@ -436,8 +503,8 @@ userNotice dProfile ( id, notice ) =
 
         closeElement =
             EH.closeButton
-                [ Element.alignRight
-                , Element.alignTop
+                [ alignRight
+                , alignTop
                 , Element.moveUp 2
                 ]
                 EH.black
@@ -450,25 +517,25 @@ userNotice dProfile ( id, notice ) =
                 dProfile
                 10
                 5
-        , Element.padding <|
+        , padding <|
             EH.responsiveVal
                 dProfile
                 8
                 3
-        , Element.width Element.fill
+        , width fill
         , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.15
+        , Element.Border.color <| rgba 0 0 0 0.15
         , EH.subtleShadow
         , EH.onClickNoPropagation Types.NoOp
         ]
         (notice.mainParagraphs
-            |> List.map (List.map (Element.map never))
+            |> map (map (Element.map never))
             |> List.indexedMap
                 (\pNum paragraphLines ->
-                    Element.paragraph
-                        [ Element.width Element.fill
+                    paragraph
+                        [ width fill
                         , Element.Font.color textColor
-                        , Element.spacing 1
+                        , spacing 1
                         ]
                         (if pNum == 0 then
                             closeElement :: paragraphLines
@@ -478,8 +545,8 @@ userNotice dProfile ( id, notice ) =
                         )
                 )
             |> column
-                [ Element.spacing 4
-                , Element.width Element.fill
+                [ spacing 4
+                , width fill
                 ]
         )
 
@@ -530,7 +597,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                                 el
                                     [ Element.Font.color <| trackedTxMiningColor ]
                                 <|
-                                    Element.text <|
+                                    text <|
                                         String.fromInt n
                                             ++ " TXs mining"
                             )
@@ -540,7 +607,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                                 el
                                     [ Element.Font.color <| trackedTxSuccessColor ]
                                 <|
-                                    Element.text <|
+                                    text <|
                                         String.fromInt n
                                             ++ " TXs mined"
                             )
@@ -550,7 +617,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                                 el
                                     [ Element.Font.color <| trackedTxFailedColor ]
                                 <|
-                                    Element.text <|
+                                    text <|
                                         String.fromInt n
                                             ++ " TXs failed"
                             )
@@ -563,17 +630,17 @@ maybeTxTracker dProfile showExpanded trackedTxs =
         else
             Just <|
                 el
-                    [ Element.below <|
+                    [ below <|
                         if showExpanded then
                             el
-                                [ Element.alignRight
-                                , Element.alignTop
+                                [ alignRight
+                                , alignTop
                                 ]
                             <|
                                 trackedTxsColumn trackedTxs
 
                         else
-                            Element.none
+                            none
                     ]
                 <|
                     column
@@ -581,12 +648,12 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         , Element.Border.width 2
                         , Element.Border.color Theme.blue
                         , Element.Background.color <| Element.rgb 0.2 0.2 0.2
-                        , Element.padding <|
+                        , padding <|
                             responsiveVal
                                 dProfile
                                 10
                                 5
-                        , Element.spacing <|
+                        , spacing <|
                             responsiveVal
                                 dProfile
                                 10
@@ -605,7 +672,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                                 ShowExpandedTrackedTxs True
                         ]
                         (renderedTallyEls
-                            |> List.map (Maybe.withDefault Element.none)
+                            |> map (Maybe.withDefault none)
                         )
 
 
@@ -617,14 +684,16 @@ trackedTxsColumn trackedTxs =
         [ Element.Background.color <| Theme.lightBlue
         , Element.Border.rounded 3
         , Element.Border.glow
-            (Element.rgba 0 0 0 0.2)
+            (rgba 0 0 0 0.2)
             4
-        , Element.padding 10
-        , Element.spacing 5
+        , padding 10
+        , spacing 5
         , EH.onClickNoPropagation Types.NoOp
-        , Element.height (Element.shrink |> Element.maximum 400)
-        , Element.scrollbarY
-        , Element.alignRight
+        , shrink
+            |> maximum 400
+            |> height
+        , scrollbarY
+        , alignRight
         ]
         (trackedTxs
             |> List.indexedMap
@@ -654,16 +723,16 @@ viewTrackedTxRow :
 viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
     let
         etherscanLink label =
-            Element.newTabLink
+            newTabLink
                 [ Element.Font.italic
                 , Element.Font.color defaultTheme.linkTextColor
                 ]
                 { url = EthHelpers.etherscanTxUrl txHash
-                , label = Element.text label
+                , label = text label
                 }
 
         titleEl =
-            Element.text <|
+            text <|
                 case txInfo of
                     UserTx.StakingApprove ->
                         "Enable Farming Deposit"
@@ -702,20 +771,20 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                     etherscanLink "Mined"
     in
     row
-        [ Element.width <| Element.px 300
+        [ width <| Element.px 300
         , Element.Background.color
             (signedTxStatusToColor signedTxStatus
                 |> EH.withAlpha 0.3
             )
         , Element.Border.rounded 2
         , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.3
-        , Element.padding 4
-        , Element.spacing 4
+        , Element.Border.color <| rgba 0 0 0 0.3
+        , padding 4
+        , spacing 4
         , Element.Font.size 20
         ]
         [ titleEl
-        , el [ Element.alignRight ] <| statusEl
+        , el [ alignRight ] <| statusEl
         ]
 
 
