@@ -102,8 +102,8 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     [ Time.every 50 UpdateNow
     , Time.every (1000 * 4) <| always RefreshAll
-    , Time.every (1000 * 1) (always RefetchStakingInfoOrApy)
-    , Time.every (1000 * 1) Tick
+    , Time.every (1000 * 15) (always RefetchStakingInfoOrApy)
+    , Time.every (1000 * 30) Tick
     , Ports.locationCheckResult
         (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
 
