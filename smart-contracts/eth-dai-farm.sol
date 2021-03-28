@@ -655,7 +655,11 @@ contract QueryScript {
     constructor() public {}
 
     // assumes a Uniswap XYZ_ETH pair, where XYZ is reserve0
-    function getData(StakingRewards _rewards, address _staker)
+    function getData(
+        StakingRewards _rewards,
+        IUniswap _pricePair,
+        address _staker
+    )
         public
         view
         returns (
@@ -670,44 +674,38 @@ contract QueryScript {
     {
         _availableBalance = _rewards.stakingToken().balanceOf(_staker);
         _stakedBalance = _rewards.balanceOf(_staker);
-        _allowedBalance = _rewards.stakingToken().allowance(
-            _staker,
-            address(_rewards)
-        );
+        _allowedBalance = _rewards.stakingToken().allowance(_staker,address(_rewards));
         _earned = _rewards.earned(_staker);
         _rewardRate = _rewards.rewardRate();
-
-        (uint256 xyz, uint256 abc, ) =
-            IUniswap(address(_rewards.stakingToken())).getReserves();
-        uint256 stakedValue = sqrt(xyz.mul(abc).mul(getETHUSDPrice())); // sqrt (reserve0 * reserve1 * ethPriceAsUSD)
-        uint256 liquidityValue =
-            stakedValue.mul(_rewards.totalSupply()).div(
-                _rewards.stakingToken().totalSupply()
-            ); // stakedValue * stakeTotal / totalLiquidityTokens
+        
+        uint256 stakedValue = getPoolValue(address(_rewards.stakingToken())).mul(getPricePairValue(_pricePair));
+        uint256 liquidityValue = stakedValue.mul(_rewards.totalSupply()).div(_rewards.stakingToken().totalSupply()); // stakedValue * stakeTotal / totalLiquidityTokens
         _APY = _rewardRate.mul(365 days).mul(100000).div(liquidityValue);
         _rewardRate = _rewardRate.mul(_stakedBalance).div(
             _rewards.totalSupply()
         );
         _timestamp = now;
     }
-
-    // calculate square root
-    function sqrt(uint256 y) internal pure returns (uint256 z) {
-        if (y > 3) {
-            z = y;
-            uint256 x = y / 2 + 1;
-            while (x < z) {
-                z = x;
-                x = (y / x + x) / 2;
-            }
-        } else if (y != 0) {
-            z = 1;
+    
+    function getPoolValue(address _stakingToken) internal view returns (uint256){
+        (uint256 xyz, uint256 abc, ) = IUniswap(_stakingToken).getReserves();
+        if(xyz > abc){
+            return xyz.mul(1e18).div((abc.mul(1e18)));
+        }
+        else{
+              return abc.mul(1e18).div((xyz.mul(1e18)));
+        }
+    }
+    
+    function getPricePairValue(IUniswap _pricePair) internal view returns(uint256){
+        (uint256 _ppReserve0, uint256 _ppReserve1, ) = _pricePair.getReserves();
+        if(_ppReserve1 > _ppReserve0)
+        {
+            return _ppReserve1.mul(1e18).div((_ppReserve0.mul(1e18)));
+        }
+        else{
+            return _ppReserve0.mul(1e18).div((_ppReserve1.mul(1e18)));
         }
     }
 
-    // Get ETH price from Maker Oracle
-    function getETHUSDPrice() public view returns (uint256) {
-        address ethUsdPriceFeed = 0x729D19f657BD0614b4985Cf1D82531c67569197B;
-        return uint256(IMakerPriceFeed(ethUsdPriceFeed).read());
-    }
 }
