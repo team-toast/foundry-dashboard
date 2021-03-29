@@ -123,6 +123,7 @@ bodyEl model =
 
         balancesEl =
             balancesElement
+                (Maybe.withDefault 0 model.networkId)
                 dProfile
                 model.jurisdictionCheckStatus
                 model.now
@@ -159,14 +160,15 @@ bodyEl model =
 
 
 balancesElement :
-    DisplayProfile
+    Int
+    -> DisplayProfile
     -> JurisdictionCheckStatus
     -> Time.Posix
     -> Wallet
     -> Maybe UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
+balancesElement networkId dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
     case userInfo wallet of
         Nothing ->
             View.Common.web3ConnectButton
@@ -188,6 +190,7 @@ balancesElement dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo
 
                 Just userStakingInfo ->
                     [ maybeGetLiquidityMessageElement
+                        networkId
                         dProfile
                         userStakingInfo
                     , unstakedRow
@@ -272,8 +275,8 @@ apyElement dProfile maybeApy =
             )
 
 
-maybeGetLiquidityMessageElement : DisplayProfile -> UserStakingInfo -> Element Msg
-maybeGetLiquidityMessageElement dProfile stakingInfo =
+maybeGetLiquidityMessageElement : Int -> DisplayProfile -> UserStakingInfo -> Element Msg
+maybeGetLiquidityMessageElement networkId dProfile stakingInfo =
     if
         TokenValue.isZero stakingInfo.staked
             && TokenValue.isZero stakingInfo.unstaked
@@ -288,7 +291,7 @@ maybeGetLiquidityMessageElement dProfile stakingInfo =
             ]
             [ Element.newTabLink
                 [ Element.Font.color Theme.blue ]
-                { url = Config.urlToLiquidityPool
+                { url = Config.urlToLiquidityPool networkId
                 , label = text "Obtain ETHFRY Liquidity"
                 }
             , text " to continue."

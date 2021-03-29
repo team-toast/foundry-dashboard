@@ -11,15 +11,16 @@ import TokenValue exposing (TokenValue)
 
 
 fetch :
-    List Address
+    Int
+    -> List Address
     -> (Result Http.Error (AddressDict TokenValue) -> msg)
     -> Cmd msg
-fetch addresses msgConstructor =
+fetch networkId addresses msgConstructor =
     Eth.call
-        Config.httpProviderUrl
+        (Config.httpProviderUrl networkId)
         (Generated.balances Config.erc20BalanceFetchBatchContractAddress
             addresses
-            [ Config.fryContractAddress ]
+            [ Config.fryContractAddress networkId ]
         )
         |> Task.attempt
             (Result.map

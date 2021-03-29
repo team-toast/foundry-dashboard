@@ -10,13 +10,14 @@ import TokenValue exposing (TokenValue)
 
 
 getBalanceCmd :
-    Address
+    Int
+    -> Address
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getBalanceCmd tokenAddress owner msgConstructor =
+getBalanceCmd networkId tokenAddress owner msgConstructor =
     Eth.call
-        httpProviderUrl
+        (httpProviderUrl networkId)
         (ERC20.balanceOf
             tokenAddress
             owner
@@ -26,12 +27,13 @@ getBalanceCmd tokenAddress owner msgConstructor =
 
 
 getTotalSupply :
-    Address
+    Int
+    -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getTotalSupply tokenAddress msgConstructor =
+getTotalSupply networkId tokenAddress msgConstructor =
     Eth.call
-        httpProviderUrl
+        (httpProviderUrl networkId)
         (ERC20.totalSupply
             tokenAddress
         )
@@ -40,12 +42,13 @@ getTotalSupply tokenAddress msgConstructor =
 
 
 getEthBalance :
-    Address
+    Int
+    -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getEthBalance address msgConstructor =
+getEthBalance networkId address msgConstructor =
     Eth.getBalance
-        httpProviderUrl
+        (httpProviderUrl networkId)
         address
         |> Task.attempt
             (Result.map TokenValue.tokenValue >> msgConstructor)

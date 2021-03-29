@@ -30,20 +30,21 @@ view model =
         , centerX
         ]
         [ statsEl model
-        , viewAddresses model.dProfile
+        , viewAddresses (Maybe.withDefault 0 model.networkId) model.dProfile
         ]
 
 
 viewAddresses :
-    DisplayProfile
+    Int
+    -> DisplayProfile
     -> Element Msg
-viewAddresses dProfile =
+viewAddresses networkId dProfile =
     [ text "Foundry Addresses"
         |> el
             [ Element.Font.size 30
             , Element.Font.color EH.white
             ]
-    , viewAddressAndLabel dProfile "FRY token" Config.fryContractAddress
+    , viewAddressAndLabel dProfile "FRY token" (Config.fryContractAddress networkId)
     , viewAddressAndLabel dProfile "Treasury" Config.treasuryForwarderAddress
     , viewAddressAndLabel dProfile "Bucket sale" Config.bucketSaleAddress
     , viewAddressAndLabel dProfile "Multisig" Config.teamToastMultiSigAddress

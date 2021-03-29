@@ -28,10 +28,10 @@ redeem receiver amount =
         |> Eth.toSend
 
 
-getIssuanceDetail : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Cmd msg
-getIssuanceDetail amount msgConstructor =
+getIssuanceDetail : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Int -> Cmd msg
+getIssuanceDetail amount msgConstructor networkId =
     Eth.call
-        Config.httpProviderUrl
+        (Config.httpProviderUrl networkId)
         (Death.calculateIssuanceAmount
             derivedEthContractAddress
             (TokenValue.getEvmValue amount)
@@ -40,10 +40,10 @@ getIssuanceDetail amount msgConstructor =
         |> Task.attempt msgConstructor
 
 
-getRedeemable : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Cmd msg
-getRedeemable amount msgConstructor =
+getRedeemable : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Int -> Cmd msg
+getRedeemable amount msgConstructor networkId =
     Eth.call
-        Config.httpProviderUrl
+        (Config.httpProviderUrl networkId)
         (Death.calculateRedemptionValue
             derivedEthContractAddress
             (TokenValue.getEvmValue amount)

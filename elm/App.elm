@@ -10,7 +10,7 @@ import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx
 import Eth.Sentry.Wallet
 import Json.Decode
-import Misc exposing (emptyModel, fetchAllPollsCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchDethPositionInfo, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, locationCheckDecoder, userInfo)
+import Misc exposing (emptyModel, fetchAllPollsCmd, fetchApyCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchDethPositionInfo, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, locationCheckDecoder, userInfo)
 import Ports
 import Routing
 import Time
@@ -60,32 +60,34 @@ init flags url key =
                 )
 
         ( eventSentry, eventSentryCmd ) =
-            EventSentry.init EventSentryMsg Config.httpProviderUrl
+            EventSentry.init EventSentryMsg <| Config.httpProviderUrl flags.networkId
     in
     ( { model
         | route = route
         , wallet = wallet
         , userNotices = walletNotices
         , dProfile = screenWidthToDisplayProfile Config.displayProfileBreakpoint flags.width
+        , networkId = Just flags.networkId
       }
     , [ fetchEthPrice
-      , fetchDaiPrice
-      , fetchFryPrice
-      , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress1 0
-      , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress2 1
-      , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress3 2
-      , fetchPermaFrostLockedTokenBalance
-      , fetchPermaFrostTotalSupply
-      , fetchBalancerPoolFryBalance
-      , fetchTreasuryBalance
+      , fetchDaiPrice flags.networkId
+      , fetchFryPrice flags.networkId
+      , fetchTeamTokenBalance flags.networkId (Config.fryContractAddress flags.networkId) Config.teamToastAddress1 0
+      , fetchTeamTokenBalance flags.networkId (Config.fryContractAddress flags.networkId) Config.teamToastAddress2 1
+      , fetchTeamTokenBalance flags.networkId (Config.fryContractAddress flags.networkId) Config.teamToastAddress3 2
+      , fetchPermaFrostLockedTokenBalance flags.networkId
+      , fetchPermaFrostTotalSupply flags.networkId
+      , fetchBalancerPoolFryBalance flags.networkId
+      , fetchTreasuryBalance flags.networkId
       , fetchAllPollsCmd
       , model.wallet
-            |> fetchDerivedEthBalance
+            |> fetchDerivedEthBalance flags.networkId
       , model.wallet
-            |> fetchEthBalance
+            |> fetchEthBalance flags.networkId
+      , fetchApyCmd flags.networkId
       , model.withDrawalAmount
             |> TokenValue.fromString
-            |> fetchDethPositionInfo
+            |> fetchDethPositionInfo flags.networkId
       , if route == Routing.Home then
             Browser.Navigation.pushUrl
                 model.navKey
@@ -100,10 +102,10 @@ init flags url key =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    [ Time.every 50 UpdateNow
-    , Time.every (1000 * 4) <| always RefreshAll
+    [ Time.every (1000 * 5) UpdateNow
+    , Time.every (1000 * 5) <| always RefreshAll
     , Time.every (1000 * 15) (always RefetchStakingInfoOrApy)
-    , Time.every (1000 * 30) Tick
+    , Time.every (1000 * 15) Tick
     , Ports.locationCheckResult
         (Json.Decode.decodeValue locationCheckDecoder >> LocationCheckResult)
 

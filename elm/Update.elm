@@ -148,24 +148,26 @@ update msg prevModel =
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , [ fetchTotalValueEnteredCmd prevModel.currentBucketId
+            , [ fetchTotalValueEnteredCmd (Maybe.withDefault 0 prevModel.networkId) prevModel.currentBucketId
               , fetchEthPrice
-              , fetchDaiPrice
-              , fetchFryPrice
-              , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress1 0
-              , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress2 1
-              , fetchTeamTokenBalance Config.fryContractAddress Config.teamToastAddress3 2
-              , fetchPermaFrostLockedTokenBalance
-              , fetchPermaFrostTotalSupply
-              , fetchBalancerPoolFryBalance
-              , fetchTreasuryBalance
+              , fetchDaiPrice <| Maybe.withDefault 0 prevModel.networkId
+              , fetchFryPrice <| Maybe.withDefault 0 prevModel.networkId
+              , fetchTeamTokenBalance (Maybe.withDefault 0 prevModel.networkId) (Config.fryContractAddress <| Maybe.withDefault 0 prevModel.networkId) Config.teamToastAddress1 0
+              , fetchTeamTokenBalance (Maybe.withDefault 0 prevModel.networkId) (Config.fryContractAddress <| Maybe.withDefault 0 prevModel.networkId) Config.teamToastAddress2 1
+              , fetchTeamTokenBalance (Maybe.withDefault 0 prevModel.networkId) (Config.fryContractAddress <| Maybe.withDefault 0 prevModel.networkId) Config.teamToastAddress3 2
+              , fetchPermaFrostLockedTokenBalance <| Maybe.withDefault 0 prevModel.networkId
+              , fetchPermaFrostTotalSupply <| Maybe.withDefault 0 prevModel.networkId
+              , fetchBalancerPoolFryBalance <| Maybe.withDefault 0 prevModel.networkId
+              , fetchTreasuryBalance <| Maybe.withDefault 0 prevModel.networkId
               , prevModel.wallet
-                    |> fetchDerivedEthBalance
+                    |> (fetchDerivedEthBalance <|
+                            Maybe.withDefault 0 prevModel.networkId
+                       )
               , prevModel.wallet
-                    |> fetchEthBalance
+                    |> (fetchEthBalance <| Maybe.withDefault 0 prevModel.networkId)
               , prevModel.withDrawalAmount
                     |> TokenValue.fromString
-                    |> fetchDethPositionInfo
+                    |> (fetchDethPositionInfo <| Maybe.withDefault 0 prevModel.networkId)
               ]
                 |> Cmd.batch
             )
@@ -215,8 +217,8 @@ update msg prevModel =
                     ( { prevModel
                         | wallet = newWallet
                       }
-                    , [ fetchDerivedEthBalance newWallet
-                      , fetchEthBalance newWallet
+                    , [ fetchDerivedEthBalance (Maybe.withDefault 0 prevModel.networkId) newWallet
+                      , fetchEthBalance (Maybe.withDefault 0 prevModel.networkId) newWallet
                       ]
                         |> Cmd.batch
                     )
@@ -672,7 +674,7 @@ update msg prevModel =
 
         DoUnlock ->
             ( prevModel
-            , doApproveChainCmdFarm
+            , doApproveChainCmdFarm (Maybe.withDefault 0 prevModel.networkId)
                 |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
             )
 
@@ -692,19 +694,19 @@ update msg prevModel =
 
         DoExit ->
             ( prevModel
-            , doExitChainCmdFarm
+            , doExitChainCmdFarm (Maybe.withDefault 0 prevModel.networkId)
                 |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
             )
 
         DoClaimRewards ->
             ( prevModel
-            , doClaimRewardsFarm
+            , doClaimRewardsFarm (Maybe.withDefault 0 prevModel.networkId)
                 |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
             )
 
         DoDeposit amount ->
             ( prevModel
-            , [ doDepositChainCmdFarm amount
+            , [ doDepositChainCmdFarm (Maybe.withDefault 0 prevModel.networkId) amount
                     |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
               , gTagOut <|
                     GTagData
@@ -723,7 +725,7 @@ update msg prevModel =
 
         DoWithdraw amount ->
             ( prevModel
-            , doWithdrawChainCmdFarm amount
+            , doWithdrawChainCmdFarm (Maybe.withDefault 0 prevModel.networkId) amount
                 |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
             )
 
@@ -756,7 +758,7 @@ update msg prevModel =
 
         RefetchStakingInfoOrApy ->
             ( prevModel
-            , fetchStakingInfoOrApyCmd prevModel.now prevModel.wallet
+            , fetchStakingInfoOrApyCmd (Maybe.withDefault 0 prevModel.networkId) prevModel.now prevModel.wallet
             )
 
         StakingInfoFetched fetchResult ->
@@ -854,7 +856,7 @@ update msg prevModel =
             ( prevModel
             , Cmd.batch
                 [ refreshPollVotesCmd Nothing
-                , fetchFryBalancesCmd (prevModel.fryBalances |> AddressDict.keys)
+                , fetchFryBalancesCmd (Maybe.withDefault 0 prevModel.networkId) (prevModel.fryBalances |> AddressDict.keys)
                 ]
             )
 
@@ -967,7 +969,7 @@ update msg prevModel =
                                         maybeBalance == Nothing
                                     )
                                 |> AddressDict.keys
-                                |> fetchFryBalancesCmd
+                                |> fetchFryBalancesCmd (Maybe.withDefault 0 prevModel.networkId)
 
                         tempModel =
                             case maybeUserNotice of
@@ -1104,6 +1106,7 @@ update msg prevModel =
                 | depositAmount = amount
               }
             , fetchIssuanceDetail
+                (Maybe.withDefault 0 prevModel.networkId)
                 amount
             )
 
@@ -1113,7 +1116,7 @@ update msg prevModel =
               }
             , amount
                 |> TokenValue.fromString
-                |> fetchDethPositionInfo
+                |> (fetchDethPositionInfo <| Maybe.withDefault 0 prevModel.networkId)
             )
 
         DepositClicked amount ->
@@ -1342,13 +1345,15 @@ update msg prevModel =
         FetchUserEthBalance ->
             ( prevModel
             , prevModel.wallet
-                |> fetchEthBalance
+                |> fetchEthBalance (Maybe.withDefault 0 prevModel.networkId)
             )
 
         FetchUserDerivedEthBalance ->
             ( prevModel
             , prevModel.wallet
-                |> fetchDerivedEthBalance
+                |> (Maybe.withDefault 0 prevModel.networkId
+                        |> fetchDerivedEthBalance
+                   )
             )
 
         DerivedEthIssuanceDetailFetched fetchResult ->

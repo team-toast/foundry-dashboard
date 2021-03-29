@@ -51,12 +51,12 @@ emptyModel key now basePath cookieConsent =
             TxSentry.init
                 ( txOut, txIn )
                 Types.TxSentryMsg
-                Config.httpProviderUrl
+                (Config.httpProviderUrl 0)
 
         ( eventSentry, sentryCmd ) =
             EventSentry.init
                 Types.EventSentryMsg
-                Config.httpProviderUrl
+                (Config.httpProviderUrl 0)
 
         ( wallet, walletNotices ) =
             ( Types.NoneDetected
@@ -107,7 +107,8 @@ emptyModel key now basePath cookieConsent =
     , userStakingInfo = Nothing
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
-    , farmingIsActive = False -- Set to true to enable farming interface - False will show inactive message
+    , farmingIsActive = True -- Set to true to enable farming interface - False will show inactive message
+    , networkId = Nothing
     }
 
 
@@ -147,65 +148,72 @@ fetchEthPrice =
         |> Graphql.Http.send Types.FetchedEthPrice
 
 
-fetchDaiPrice : Cmd Msg
-fetchDaiPrice =
+fetchDaiPrice : Int -> Cmd Msg
+fetchDaiPrice networkId =
     Query.token identity
         { id =
             Id <|
-                Eth.Utils.addressToString Config.daiContractAddress
+                Eth.Utils.addressToString <|
+                    Config.daiContractAddress networkId
         }
         resultToken
         |> Graphql.Http.queryRequest Config.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedDaiPrice
 
 
-fetchFryPrice : Cmd Msg
-fetchFryPrice =
+fetchFryPrice : Int -> Cmd Msg
+fetchFryPrice networkId =
     Query.token identity
         { id =
             Id <|
-                Eth.Utils.addressToString Config.fryContractAddress
+                Eth.Utils.addressToString <|
+                    Config.fryContractAddress networkId
         }
         resultToken
         |> Graphql.Http.queryRequest Config.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedFryPrice
 
 
-fetchTeamTokenBalance : Address -> Address -> Int -> Cmd Msg
-fetchTeamTokenBalance tokenAddress owner index =
+fetchTeamTokenBalance : Int -> Address -> Address -> Int -> Cmd Msg
+fetchTeamTokenBalance networkId tokenAddress owner index =
     ERC20.getBalanceCmd
+        networkId
         tokenAddress
         owner
         (Types.FetchedTeamTokens index)
 
 
-fetchPermaFrostLockedTokenBalance : Cmd Msg
-fetchPermaFrostLockedTokenBalance =
+fetchPermaFrostLockedTokenBalance : Int -> Cmd Msg
+fetchPermaFrostLockedTokenBalance networkId =
     ERC20.getBalanceCmd
+        networkId
         Config.balancerPermafrostPool
         Config.burnAddress
         Types.FetchedPermaFrostBalanceLocked
 
 
-fetchPermaFrostTotalSupply : Cmd Msg
-fetchPermaFrostTotalSupply =
+fetchPermaFrostTotalSupply : Int -> Cmd Msg
+fetchPermaFrostTotalSupply networkId =
     ERC20.getTotalSupply
+        networkId
         Config.balancerPermafrostPool
         Types.FetchedPermaFrostTotalSupply
 
 
-fetchBalancerPoolFryBalance : Cmd Msg
-fetchBalancerPoolFryBalance =
+fetchBalancerPoolFryBalance : Int -> Cmd Msg
+fetchBalancerPoolFryBalance networkId =
     ERC20.getBalanceCmd
-        Config.fryContractAddress
+        networkId
+        (Config.fryContractAddress networkId)
         Config.balancerPermafrostPool
         Types.FetchedBalancerFryBalance
 
 
-fetchTreasuryBalance : Cmd Msg
-fetchTreasuryBalance =
+fetchTreasuryBalance : Int -> Cmd Msg
+fetchTreasuryBalance networkId =
     ERC20.getBalanceCmd
-        Config.daiContractAddress
+        networkId
+        (Config.daiContractAddress networkId)
         Config.treasuryForwarderAddress
         Types.FetchedTreasuryBalance
 
@@ -379,11 +387,12 @@ maybeFloatMultiply val1 val2 =
             Nothing
 
 
-fetchTotalValueEnteredCmd : Maybe Int -> Cmd Msg
-fetchTotalValueEnteredCmd bucketId =
+fetchTotalValueEnteredCmd : Int -> Maybe Int -> Cmd Msg
+fetchTotalValueEnteredCmd networkId bucketId =
     case bucketId of
         Just id ->
             getTotalValueEnteredForBucket
+                networkId
                 id
                 (Just id
                     |> Types.BucketValueEnteredFetched
@@ -480,80 +489,82 @@ calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
             Nothing
 
 
-fetchStakingInfoOrApyCmd : Time.Posix -> Wallet -> Cmd Msg
-fetchStakingInfoOrApyCmd now wallet =
+fetchStakingInfoOrApyCmd : Int -> Time.Posix -> Wallet -> Cmd Msg
+fetchStakingInfoOrApyCmd networkId now wallet =
     case userInfo wallet of
         Just uInfo ->
-            fetchUserStakingInfoCmd uInfo.address
+            fetchUserStakingInfoCmd networkId uInfo.address
 
         Nothing ->
-            fetchApyCmd
+            fetchApyCmd networkId
 
 
-fetchUserStakingInfoCmd : Address -> Cmd Msg
-fetchUserStakingInfoCmd userAddress =
+fetchUserStakingInfoCmd : Int -> Address -> Cmd Msg
+fetchUserStakingInfoCmd networkId userAddress =
     StakingContract.getUserStakingInfo
+        networkId
         userAddress
         Types.StakingInfoFetched
 
 
-fetchApyCmd : Cmd Msg
-fetchApyCmd =
+fetchApyCmd : Int -> Cmd Msg
+fetchApyCmd networkId =
     StakingContract.getApy
+        networkId
         Types.ApyFetched
 
 
-doApproveChainCmdFarm : UserTx.Initiator Msg
-doApproveChainCmdFarm =
+doApproveChainCmdFarm : Int -> UserTx.Initiator Msg
+doApproveChainCmdFarm networkId =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.approveLiquidityToken
+    , send = StakingContract.approveLiquidityToken networkId
     , txInfo = UserTx.StakingApprove
     }
 
 
-doDepositChainCmdFarm : TokenValue -> UserTx.Initiator Msg
-doDepositChainCmdFarm amount =
+doDepositChainCmdFarm : Int -> TokenValue -> UserTx.Initiator Msg
+doDepositChainCmdFarm networkId amount =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Just <| Types.DepositOrWithdrawSigned Types.Deposit amount
         }
-    , send = StakingContract.stake amount
+    , send = StakingContract.stake networkId amount
     , txInfo = UserTx.StakingDeposit amount
     }
 
 
-doWithdrawChainCmdFarm : TokenValue -> UserTx.Initiator Msg
-doWithdrawChainCmdFarm amount =
+doWithdrawChainCmdFarm : Int -> TokenValue -> UserTx.Initiator Msg
+doWithdrawChainCmdFarm networkId amount =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Just <| Types.DepositOrWithdrawSigned Types.Withdraw amount
         }
-    , send = StakingContract.withdraw amount
+    , send = StakingContract.withdraw networkId amount
     , txInfo = UserTx.StakingWithdraw amount
     }
 
 
-doExitChainCmdFarm : UserTx.Initiator Msg
-doExitChainCmdFarm =
+doExitChainCmdFarm : Int -> UserTx.Initiator Msg
+doExitChainCmdFarm networkId =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.exit
+    , send = StakingContract.exit networkId
     , txInfo = UserTx.StakingExit
     }
 
 
-doClaimRewardsFarm : UserTx.Initiator Msg
-doClaimRewardsFarm =
+doClaimRewardsFarm : Int -> UserTx.Initiator Msg
+doClaimRewardsFarm networkId =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.claimRewards
+    , send = StakingContract.claimRewards networkId
     , txInfo = UserTx.StakingClaim
     }
 
@@ -852,9 +863,10 @@ validateSigResultDecoder =
         )
 
 
-fetchFryBalancesCmd : List Address -> Cmd Msg
-fetchFryBalancesCmd addresses =
+fetchFryBalancesCmd : Int -> List Address -> Cmd Msg
+fetchFryBalancesCmd networkId addresses =
     Contracts.FryBalanceFetch.fetch
+        networkId
         addresses
         Types.FryBalancesFetched
 
@@ -948,33 +960,35 @@ encodeSignedResponseForServer signedResponse =
         ]
 
 
-fetchEthBalance : Wallet -> Cmd Msg
-fetchEthBalance wallet =
+fetchEthBalance : Int -> Wallet -> Cmd Msg
+fetchEthBalance networkId wallet =
     case userInfo wallet of
         Nothing ->
             Cmd.none
 
         Just uInfo ->
             ERC20.getEthBalance
+                networkId
                 uInfo.address
                 Types.UserEthBalanceFetched
 
 
-fetchDerivedEthBalance : Wallet -> Cmd Msg
-fetchDerivedEthBalance wallet =
+fetchDerivedEthBalance : Int -> Wallet -> Cmd Msg
+fetchDerivedEthBalance networkId wallet =
     case userInfo wallet of
         Nothing ->
             Cmd.none
 
         Just uInfo ->
             ERC20.getBalanceCmd
+                networkId
                 Config.derivedEthContractAddress
                 uInfo.address
                 Types.UserDerivedEthBalanceFetched
 
 
-fetchIssuanceDetail : String -> Cmd Msg
-fetchIssuanceDetail depositAmount =
+fetchIssuanceDetail : Int -> String -> Cmd Msg
+fetchIssuanceDetail networkId depositAmount =
     case TokenValue.fromString depositAmount of
         Nothing ->
             Cmd.none
@@ -983,10 +997,11 @@ fetchIssuanceDetail depositAmount =
             Death.getIssuanceDetail
                 amount
                 Types.DerivedEthIssuanceDetailFetched
+                networkId
 
 
-fetchDethPositionInfo : Maybe TokenValue -> Cmd Msg
-fetchDethPositionInfo amount =
+fetchDethPositionInfo : Int -> Maybe TokenValue -> Cmd Msg
+fetchDethPositionInfo networkId amount =
     case amount of
         Nothing ->
             Cmd.none
@@ -995,6 +1010,7 @@ fetchDethPositionInfo amount =
             Death.getRedeemable
                 dEthVal
                 Types.DerivedEthRedeemableFetched
+                networkId
 
 
 doDepositChainCmd : Address -> TokenValue -> UserTx.Initiator Msg

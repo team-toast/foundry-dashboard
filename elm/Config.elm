@@ -17,32 +17,46 @@ displayProfileBreakpoint =
     1150
 
 
-httpProviderUrl : String
-httpProviderUrl =
+httpProviderUrl : Int -> String
+httpProviderUrl networkId =
     if testMode then
-        ganacheHttpProviderUrl
+        testModeHttpProviderUrl
 
     else
-        mainnetHttpProviderUrl
+        mainnetHttpProviderUrl networkId
 
 
-mainnetHttpProviderUrl : String
-mainnetHttpProviderUrl =
-    "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+mainnetHttpProviderUrl : Int -> String
+mainnetHttpProviderUrl networkId =
+    if networkId == 1 then
+        "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+
+    else if networkId == 56 then
+        "https://bsc-dataseed4.binance.org/"
+
+    else
+        testModeHttpProviderUrl
 
 
-ganacheHttpProviderUrl : String
-ganacheHttpProviderUrl =
+testModeHttpProviderUrl : String
+testModeHttpProviderUrl =
     "http://localhost:8545"
 
 
-daiContractAddress : Address
-daiContractAddress =
-    if testMode then
-        Eth.Utils.unsafeToAddress "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
+daiContractAddress : Int -> Address
+daiContractAddress networkId =
+    if networkId == 1 then
+        if testMode then
+            Eth.Utils.unsafeToAddress "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
+
+        else
+            Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+
+    else if networkId == 56 then
+        Eth.Utils.unsafeToAddress ""
 
     else
-        Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+        Eth.Utils.unsafeToAddress ""
 
 
 erc20BalanceFetchBatchContractAddress : Address
@@ -50,9 +64,16 @@ erc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
 
 
-fryContractAddress : Address
-fryContractAddress =
-    Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
+fryContractAddress : Int -> Address
+fryContractAddress networkId =
+    if networkId == 1 then
+        Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
+
+    else if networkId == 56 then
+        Eth.Utils.unsafeToAddress "0xc04e039ae8587e71f8024b36d630f841cc2106cc"
+
+    else
+        Eth.Utils.unsafeToAddress ""
 
 
 etherscanBaseUrl : String
@@ -75,24 +96,66 @@ bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
 
 
-stakingContractAddress : Address
-stakingContractAddress =
-    Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
+stakingContractAddress : Int -> Address
+stakingContractAddress networkId =
+    if networkId == 1 then
+        Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
+
+    else if networkId == 56 then
+        Eth.Utils.unsafeToAddress ""
+
+    else
+        Eth.Utils.unsafeToAddress ""
 
 
-stakingLiquidityContractAddress : Address
-stakingLiquidityContractAddress =
-    Eth.Utils.unsafeToAddress "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+stakingLiquidityContractAddress : Int -> Address
+stakingLiquidityContractAddress networkId =
+    if networkId == 1 then
+        Eth.Utils.unsafeToAddress "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+
+    else if networkId == 56 then
+        Eth.Utils.unsafeToAddress "0xe71c65eb18fab7c8dd99598973fd8fa18570fb01"
+
+    else
+        Eth.Utils.unsafeToAddress ""
 
 
-stakingScriptsAddress : Address
-stakingScriptsAddress =
-    Eth.Utils.unsafeToAddress "0xa939728f9cdCdc4EEA16bdF3Aff03AB27036f4c7"
+stakingScriptsAddress : Int -> Address
+stakingScriptsAddress networkId =
+    if networkId == 1 then
+        Eth.Utils.unsafeToAddress "0x59b670e9fA9D0A427751Af201D676719a970857b"
+
+    else if networkId == 56 then
+        Eth.Utils.unsafeToAddress ""
+
+    else
+        Eth.Utils.unsafeToAddress ""
 
 
-urlToLiquidityPool : String
-urlToLiquidityPool =
-    "https://info.uniswap.org/pair/0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+stakingPricePairAddress : Int -> Address
+stakingPricePairAddress networkId =
+    if networkId == 1 then
+        -- DAI/WETH
+        Eth.Utils.unsafeToAddress "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"
+
+    else if networkId == 56 then
+        -- BUSD/BNB
+        Eth.Utils.unsafeToAddress "0x1b96b92314c44b159149f7e0303511fb2fc4774f"
+
+    else
+        Eth.Utils.unsafeToAddress ""
+
+
+urlToLiquidityPool : Int -> String
+urlToLiquidityPool networkId =
+    if networkId == 1 then
+        "https://info.uniswap.org/pair/0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+
+    else if networkId == 56 then
+        ""
+
+    else
+        ""
 
 
 forbiddenJurisdictionCodes : Set String
@@ -102,7 +165,7 @@ forbiddenJurisdictionCodes =
 
 farmingPeriodEnds : Int
 farmingPeriodEnds =
-    1607702381
+    1617702381
 
 
 bucketSaleTokensPerBucket : Int

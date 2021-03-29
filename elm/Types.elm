@@ -75,6 +75,7 @@ type alias Model =
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , farmingIsActive : Bool
+    , networkId : Maybe Int
     }
 
 
