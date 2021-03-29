@@ -672,7 +672,7 @@ contract QueryScript {
             uint256 _timestamp // rewards per second
         )
     {
-         _availableBalance = _rewards.stakingToken().balanceOf(_staker);
+        _availableBalance = _rewards.stakingToken().balanceOf(_staker);
         _stakedBalance = _rewards.balanceOf(_staker);
         _allowedBalance = _rewards.stakingToken().allowance(
             _staker,
@@ -694,7 +694,7 @@ contract QueryScript {
             ); // stakedValue * stakeTotal / totalLiquidityTokens
         }
 
-        if(_APY > 0){
+        if (_APY > 0) {
             _APY = _rewardRate.mul(365 days).mul(100000).div(_APY);
         }
 
@@ -715,11 +715,10 @@ contract QueryScript {
         if (reserve0 == 0 || reserve1 == 0) {
             return 1;
         }
-        if (reserve0 > reserve1) {
+        if (reserve1 > reserve0) {
             return reserve0.mul(100000).div((reserve1.mul(100000)));
         } else {
             return reserve1.mul(100000).div((reserve0.mul(100000)));
         }
     }
-
 }
