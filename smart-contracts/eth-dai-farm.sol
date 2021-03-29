@@ -685,7 +685,6 @@ contract QueryScript {
             getTokenPairValue(IUniswap(address(_rewards.stakingToken()))).mul(
                 getTokenPairValue(_pricePair)
             );
-        _APY = 1;
 
         if (_rewards.stakingToken().totalSupply() > 0) {
             // using _APY here to prevent 'stack to deep'
