@@ -672,39 +672,53 @@ contract QueryScript {
             uint256 _timestamp // rewards per second
         )
     {
-        _availableBalance = _rewards.stakingToken().balanceOf(_staker);
+         _availableBalance = _rewards.stakingToken().balanceOf(_staker);
         _stakedBalance = _rewards.balanceOf(_staker);
-        _allowedBalance = _rewards.stakingToken().allowance(_staker,address(_rewards));
+        _allowedBalance = _rewards.stakingToken().allowance(
+            _staker,
+            address(_rewards)
+        );
         _earned = _rewards.earned(_staker);
         _rewardRate = _rewards.rewardRate();
-        
-        uint256 stakedValue = getPoolValue(address(_rewards.stakingToken())).mul(getPricePairValue(_pricePair));
-        uint256 liquidityValue = stakedValue.mul(_rewards.totalSupply()).div(_rewards.stakingToken().totalSupply()); // stakedValue * stakeTotal / totalLiquidityTokens
-        _APY = _rewardRate.mul(365 days).mul(100000).div(liquidityValue);
-        _rewardRate = _rewardRate.mul(_stakedBalance).div(
-            _rewards.totalSupply()
-        );
+
+        uint256 _stakingTokenValue =
+            getTokenPairValue(IUniswap(address(_rewards.stakingToken()))).mul(
+                getTokenPairValue(_pricePair)
+            );
+        _APY = 1;
+
+        if (_rewards.stakingToken().totalSupply() > 0) {
+            // using _APY here to prevent 'stack to deep'
+            _APY = _stakingTokenValue.mul(_rewards.totalSupply()).mul(2).div(
+                _rewards.stakingToken().totalSupply()
+            ); // stakedValue * stakeTotal / totalLiquidityTokens
+        }
+
+        if(_APY > 0){
+            _APY = _rewardRate.mul(365 days).mul(100000).div(_APY);
+        }
+
+        if (_rewards.totalSupply() > 0) {
+            _rewardRate = _rewardRate.mul(_stakedBalance).div(
+                _rewards.totalSupply()
+            );
+        }
         _timestamp = now;
     }
-    
-    function getPoolValue(address _stakingToken) internal view returns (uint256){
-        (uint256 xyz, uint256 abc, ) = IUniswap(_stakingToken).getReserves();
-        if(xyz > abc){
-            return xyz.mul(1e18).div((abc.mul(1e18)));
+
+    function getTokenPairValue(IUniswap _tokenPair)
+        internal
+        view
+        returns (uint256)
+    {
+        (uint256 reserve0, uint256 reserve1, ) = _tokenPair.getReserves();
+        if (reserve0 == 0 || reserve1 == 0) {
+            return 1;
         }
-        else{
-              return abc.mul(1e18).div((xyz.mul(1e18)));
-        }
-    }
-    
-    function getPricePairValue(IUniswap _pricePair) internal view returns(uint256){
-        (uint256 _ppReserve0, uint256 _ppReserve1, ) = _pricePair.getReserves();
-        if(_ppReserve1 > _ppReserve0)
-        {
-            return _ppReserve1.mul(1e18).div((_ppReserve0.mul(1e18)));
-        }
-        else{
-            return _ppReserve0.mul(1e18).div((_ppReserve1.mul(1e18)));
+        if (reserve0 > reserve1) {
+            return reserve0.mul(100000).div((reserve1.mul(100000)));
+        } else {
+            return reserve1.mul(100000).div((reserve0.mul(100000)));
         }
     }
 
