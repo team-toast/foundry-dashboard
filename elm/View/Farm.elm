@@ -32,7 +32,8 @@ view model =
      else
         [ titleEl dProfile "Farming for Fryers!"
         , subTitleEl dProfile model.now
-        , farmVideoEl dProfile
+
+        --, farmVideoEl dProfile
         , bodyEl model
         , verifyJurisdictionErrorEl
             dProfile
@@ -510,7 +511,7 @@ rewardsRowUX dProfile now stakingInfo =
             Theme.almostWhite
             availableRewards
             Nothing
-            "FRY"
+            "DAI"
         , if TokenValue.isZero <| availableRewards then
             Element.none
 
@@ -828,7 +829,7 @@ exitButton dProfile =
     el
         (actionButtonStyles
             dProfile
-            (Just "Exit with all assets (FRY and ETHFRY)")
+            (Just "Exit with all assets (DAI and ETHFRY)")
             (Just Types.DoExit)
         )
     <|
@@ -846,7 +847,7 @@ claimRewardsButton dProfile =
     el
         (actionButtonStyles
             dProfile
-            (Just "Claim FRY Rewards")
+            (Just "Claim DAI Rewards")
             (Just Types.DoClaimRewards)
         )
     <|
