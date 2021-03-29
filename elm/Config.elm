@@ -102,7 +102,7 @@ stakingContractAddress networkId =
         Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
 
     else if networkId == 56 then
-        Eth.Utils.unsafeToAddress ""
+        Eth.Utils.unsafeToAddress "0xf221605591942857449026364616e78FEd788aD9"
 
     else
         Eth.Utils.unsafeToAddress ""
@@ -126,7 +126,7 @@ stakingScriptsAddress networkId =
         Eth.Utils.unsafeToAddress "0x59b670e9fA9D0A427751Af201D676719a970857b"
 
     else if networkId == 56 then
-        Eth.Utils.unsafeToAddress ""
+        Eth.Utils.unsafeToAddress "0x36BBfB7CF6139578aDb148D89CfdFDADa840aDD3"
 
     else
         Eth.Utils.unsafeToAddress ""
