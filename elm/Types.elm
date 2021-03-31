@@ -29,6 +29,7 @@ type alias Flags =
     , height : Int
     , nowInMillis : Int
     , cookieConsent : Bool
+    , chains : Value
     , ethProviderUrl : String
     , xDaiProviderUrl : String
     , bscProviderUrl : String
@@ -42,8 +43,12 @@ type alias Model =
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
+    , sentries :
+        { xDai : EventSentry Msg
+        , ethereum : EventSentry Msg
+        , bsc : EventSentry Msg
+        }
     , txSentry : TxSentry Msg
-    , eventSentry : EventSentry Msg
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : UserTx.Tracker Msg
@@ -79,6 +84,7 @@ type alias Model =
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , farmingIsActive : Bool
     , networkId : Maybe Int
+    , config : Config
     }
 
 

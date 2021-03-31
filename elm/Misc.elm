@@ -109,6 +109,7 @@ emptyModel key now basePath cookieConsent =
     , depositWithdrawUXModel = Nothing
     , farmingIsActive = True -- Set to true to enable farming interface - False will show inactive message
     , networkId = Nothing
+    , config = Nothing
     }
 
 
