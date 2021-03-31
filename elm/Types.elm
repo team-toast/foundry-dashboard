@@ -29,6 +29,9 @@ type alias Flags =
     , height : Int
     , nowInMillis : Int
     , cookieConsent : Bool
+    , ethProviderUrl : String
+    , xDaiProviderUrl : String
+    , bscProviderUrl : String
     }
 
 
@@ -301,3 +304,31 @@ type InputValidationResult
     | InputLessThan
     | InputGreaterThan
     | InputUndefined
+
+
+type Chain
+    = XDai
+    | Eth
+    | BSC
+
+
+type alias ChainConfig =
+    { chain : Chain
+    , contract : Address
+    , startScanBlock : Int
+    , providerUrl : String
+    }
+
+
+type alias Config =
+    { xDai : ChainConfig
+    , ethereum : ChainConfig
+    , bsc : ChainConfig
+    }
+
+
+type WalletConnectErr
+    = WalletCancel
+    | WalletInProgress
+    | WalletError String
+    | NetworkNotSupported
