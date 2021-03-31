@@ -123,7 +123,7 @@ stakingLiquidityContractAddress networkId =
 stakingScriptsAddress : Int -> Address
 stakingScriptsAddress networkId =
     if networkId == 1 then
-        Eth.Utils.unsafeToAddress "0x59b670e9fA9D0A427751Af201D676719a970857b"
+        Eth.Utils.unsafeToAddress "0xa939728f9cdCdc4EEA16bdF3Aff03AB27036f4c7"
 
     else if networkId == 56 then
         Eth.Utils.unsafeToAddress "0x36BBfB7CF6139578aDb148D89CfdFDADa840aDD3"
