@@ -1,5 +1,5 @@
 /**
- *Submitted for verification at Etherscan.io on 2020-11-02
+ *Submitted for verification at Etherscan.io on 2020-11-06
  */
 
 /**
@@ -274,6 +274,10 @@ interface IERC20 {
         address indexed spender,
         uint256 value
     );
+}
+
+interface IMakerPriceFeed {
+    function read() external view returns (bytes32);
 }
 
 /**
@@ -622,14 +626,103 @@ contract StakingRewards is TokenWrapper, RewardsDistributionRecipient {
     }
 }
 
-contract StakingRewardsScript is StakingRewards {
+contract EthereumStakingRewardsScript is StakingRewards {
     constructor()
         public
         StakingRewards(
-            0xA21510518cbF2627bb99966eA413ccf9F5b80f83, // _owner = TeamToastMultsig
-            0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69, // _rewardsToken = FRYToken
+            0x9FFa1ca74425A4504aeb39Fc35AcC0EB3a16A00A, // _owner = TeamToastMultsig
+            0x6B175474E89094C44Da98b954EedeAC495271d0F, // _rewardsToken = DAI
             0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291, // _stakingToken = FRYETHUniswapLPToken,
             30 days
         ) // _duration = 30 days
     {}
+}
+
+contract BSCStakingRewardsScript is StakingRewards {
+    constructor()
+        public
+        StakingRewards(
+            0xF7396C708Ad9127B6684b7fd690083158d2ebdE5, // _owner = team toast address
+            0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3, // _rewardsToken = DAI
+            0xe71C65Eb18faB7c8DD99598973fd8FA18570fb01, // _stakingToken = FRYBNBCakeLPToken,
+            30 days
+        ) // _duration = 30 days
+    {}
+}
+
+contract IUniswap {
+    function getReserves()
+        public
+        view
+        returns (
+            uint112 _reserve0,
+            uint112 _reserve1,
+            uint32 _blockTimestampLast
+        );
+}
+
+contract QueryScript {
+    using SafeMath for uint256;
+
+    constructor() public {}
+
+    // assumes a Uniswap XYZ_ETH pair, where XYZ is reserve0
+    function getData(
+        StakingRewards _rewards,
+        IUniswap _pricePair,
+        address _staker
+    )
+        public
+        view
+        returns (
+            uint256 _availableBalance,
+            uint256 _stakedBalance,
+            uint256 _allowedBalance,
+            uint256 _earned,
+            uint256 _APY,
+            uint256 _rewardRate,
+            uint256 _timestamp // rewards per second
+        )
+    {
+        _availableBalance = _rewards.stakingToken().balanceOf(_staker);
+        _stakedBalance = _rewards.balanceOf(_staker);
+        _allowedBalance = _rewards
+            .stakingToken()
+            .allowance(_staker,address(_rewards));
+        _earned = _rewards.earned(_staker);
+        _rewardRate = _rewards.rewardRate();
+        _timestamp = now;
+
+        uint256 stakingTokenValue =
+            getTokenPairPrice(IUniswap(address(_rewards.stakingToken())))
+            .mul(getTokenPairPrice(_pricePair))
+            .div(100000);
+            
+        if (_rewards.stakingToken().totalSupply() > 0) {
+            // using _APY here to prevent 'stack to deep'
+            _APY = stakingTokenValue
+                .mul(_rewards.totalSupply())
+                .mul(2 * 100000)
+                .div(_rewards.stakingToken().totalSupply()); // stakedValue * stakeTotal / totalLiquidityTokens
+        }
+
+        if (_APY > 0) {
+            _APY = _rewardRate.mul(365 days).mul(100000).div(_APY);
+        }
+
+        _rewardRate = _rewards.totalSupply() == 0 ?
+            0 :
+            _rewardRate.mul(_stakedBalance).div(_rewards.totalSupply());
+    }
+
+    function getTokenPairPrice(IUniswap _tokenPair)
+        internal
+        view
+        returns (uint256 _price)
+    {
+        (uint256 reserve0, uint256 reserve1, ) = _tokenPair.getReserves();
+        _price = reserve0 > reserve1 ?
+            reserve0.mul(100000).div(reserve1) :
+            reserve1.mul(100000).div(reserve0);
+    }
 }
