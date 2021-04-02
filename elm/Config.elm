@@ -57,7 +57,7 @@ daiContractAddress chain =
                     "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
             BSC ->
-                ""
+                "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3"
 
             XDai ->
                 ""
