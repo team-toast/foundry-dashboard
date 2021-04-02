@@ -1,4 +1,4 @@
-module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl)
+module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl, whenJust)
 
 import Element exposing (Color)
 import Eth.Decode
@@ -133,3 +133,8 @@ decodeChain =
                         Types.NetworkNotSupported
                             |> Err
             )
+
+
+whenJust : (a -> Chain) -> Maybe a -> Chain
+whenJust fn =
+    Maybe.map fn >> Maybe.withDefault Eth

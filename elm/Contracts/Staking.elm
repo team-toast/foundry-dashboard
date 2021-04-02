@@ -13,45 +13,45 @@ import Helpers.Time as TimeHelpers
 import Http
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (UserStakingInfo)
+import Types exposing (Chain, UserStakingInfo)
 
 
-approveLiquidityToken : Int -> Eth.Send
-approveLiquidityToken networkId =
+approveLiquidityToken : Chain -> Eth.Send
+approveLiquidityToken chain =
     ERC20.approve
-        (Config.stakingLiquidityContractAddress networkId)
-        (Config.stakingContractAddress networkId)
+        (Config.stakingLiquidityContractAddress chain)
+        (Config.stakingContractAddress chain)
         (TokenValue.maxTokenValue |> TokenValue.getEvmValue)
         |> Eth.toSend
 
 
-stake : Int -> TokenValue -> Eth.Send
-stake networkId amount =
+stake : Chain -> TokenValue -> Eth.Send
+stake chain amount =
     StakingContract.stake
-        (Config.stakingContractAddress networkId)
+        (Config.stakingContractAddress chain)
         (TokenValue.getEvmValue amount)
         |> Eth.toSend
 
 
-withdraw : Int -> TokenValue -> Eth.Send
-withdraw networkId amount =
+withdraw : Chain -> TokenValue -> Eth.Send
+withdraw chain amount =
     StakingContract.withdraw
-        (Config.stakingContractAddress networkId)
+        (Config.stakingContractAddress chain)
         (TokenValue.getEvmValue amount)
         |> Eth.toSend
 
 
-exit : Int -> Eth.Send
-exit networkId =
+exit : Chain -> Eth.Send
+exit chain =
     StakingContract.exit
-        (Config.stakingContractAddress networkId)
+        (Config.stakingContractAddress chain)
         |> Eth.toSend
 
 
-claimRewards : Int -> Eth.Send
-claimRewards networkId =
+claimRewards : Chain -> Eth.Send
+claimRewards chain =
     StakingContract.getReward
-        (Config.stakingContractAddress networkId)
+        (Config.stakingContractAddress chain)
         |> Eth.toSend
 
 
@@ -83,14 +83,14 @@ claimRewards networkId =
 --         |> Task.attempt msgConstructor
 
 
-getUserStakingInfo : Int -> Address -> (Result Http.Error ( UserStakingInfo, Float ) -> msg) -> Cmd msg
-getUserStakingInfo networkId userAddress msgConstructor =
+getUserStakingInfo : Chain -> Address -> (Result Http.Error ( UserStakingInfo, Float ) -> msg) -> Cmd msg
+getUserStakingInfo chain userAddress msgConstructor =
     Eth.call
-        (Config.httpProviderUrl networkId)
+        (Config.httpProviderUrl chain)
         (StakingScripts.getData
-            (Config.stakingScriptsAddress networkId)
-            (Config.stakingContractAddress networkId)
-            (Config.stakingPricePairAddress networkId)
+            (Config.stakingScriptsAddress chain)
+            (Config.stakingContractAddress chain)
+            (Config.stakingPricePairAddress chain)
             userAddress
         )
         |> Task.map unpackBindingStruct
@@ -110,14 +110,14 @@ unpackBindingStruct data =
     )
 
 
-getApy : Int -> (Result Http.Error Float -> msg) -> Cmd msg
-getApy networkId msgConstructor =
+getApy : Chain -> (Result Http.Error Float -> msg) -> Cmd msg
+getApy chain msgConstructor =
     Eth.call
-        (Config.httpProviderUrl networkId)
+        (Config.httpProviderUrl chain)
         (StakingScripts.getData
-            (Config.stakingScriptsAddress networkId)
-            (Config.stakingContractAddress networkId)
-            (Config.stakingPricePairAddress networkId)
+            (Config.stakingScriptsAddress chain)
+            (Config.stakingContractAddress chain)
+            (Config.stakingPricePairAddress chain)
             EthHelpers.zeroAddress
         )
         |> Task.map unpackBindingStruct

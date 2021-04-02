@@ -4,6 +4,7 @@ import AddressDict exposing (AddressDict)
 import Array exposing (Array)
 import Browser
 import Browser.Navigation
+import Chain
 import Config
 import Dict
 import Dict.Extra
@@ -25,62 +26,63 @@ import Types exposing (..)
 import Url
 import UserNotice exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
 import UserTx exposing (Initiator)
+import Wallet
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg prevModel =
+update msg model =
     case msg of
         LinkClicked urlRequest ->
             let
                 cmd =
                     case urlRequest of
                         Browser.Internal url ->
-                            Browser.Navigation.pushUrl prevModel.navKey (Url.toString url)
+                            Browser.Navigation.pushUrl model.navKey (Url.toString url)
 
                         Browser.External href ->
                             Browser.Navigation.load href
             in
-            ( prevModel, cmd )
+            ( model, cmd )
 
         UrlChanged url ->
             case Routing.urlToRoute url of
                 Routing.Home ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Home
                       }
                     , Cmd.none
                     )
 
                 Routing.Sentiment ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Sentiment
                       }
                     , Cmd.none
                     )
 
                 Routing.Stats ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Stats
                       }
                     , Cmd.none
                     )
 
                 Routing.Farm ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Farm
                       }
                     , Cmd.none
                     )
 
                 Routing.DerivedEth ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.DerivedEth
                       }
                     , Cmd.none
                     )
 
                 Routing.NotFound err ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.NotFound "url not found"
                       }
                         |> addUserNotice routeNotFound
@@ -90,52 +92,52 @@ update msg prevModel =
         Navigate route ->
             case route of
                 Routing.Home ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Stats
                       }
                     , Browser.Navigation.pushUrl
-                        prevModel.navKey
-                        (Routing.routeToString prevModel.basePath Routing.Stats)
+                        model.navKey
+                        (Routing.routeToString model.basePath Routing.Stats)
                     )
 
                 Routing.Sentiment ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Sentiment
                       }
                     , Browser.Navigation.pushUrl
-                        prevModel.navKey
-                        (Routing.routeToString prevModel.basePath Routing.Sentiment)
+                        model.navKey
+                        (Routing.routeToString model.basePath Routing.Sentiment)
                     )
 
                 Routing.Stats ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Stats
                       }
                     , Browser.Navigation.pushUrl
-                        prevModel.navKey
-                        (Routing.routeToString prevModel.basePath Routing.Stats)
+                        model.navKey
+                        (Routing.routeToString model.basePath Routing.Stats)
                     )
 
                 Routing.Farm ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.Farm
                       }
                     , Browser.Navigation.pushUrl
-                        prevModel.navKey
-                        (Routing.routeToString prevModel.basePath Routing.Farm)
+                        model.navKey
+                        (Routing.routeToString model.basePath Routing.Farm)
                     )
 
                 Routing.DerivedEth ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.DerivedEth
                       }
                     , Browser.Navigation.pushUrl
-                        prevModel.navKey
-                        (Routing.routeToString prevModel.basePath Routing.DerivedEth)
+                        model.navKey
+                        (Routing.routeToString model.basePath Routing.DerivedEth)
                     )
 
                 Routing.NotFound err ->
-                    ( { prevModel
+                    ( { model
                         | route = Routing.NotFound "url not found"
                       }
                         |> addUserNotice routeNotFound
@@ -143,37 +145,46 @@ update msg prevModel =
                     )
 
         Tick i ->
-            ( { prevModel
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( { model
                 | now = i
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , [ fetchTotalValueEnteredCmd (Maybe.withDefault 0 prevModel.networkId) prevModel.currentBucketId
+            , [ fetchTotalValueEnteredCmd chain model.currentBucketId
               , fetchEthPrice
-              , fetchDaiPrice <| Maybe.withDefault 0 prevModel.networkId
-              , fetchFryPrice <| Maybe.withDefault 0 prevModel.networkId
-              , fetchTeamTokenBalance (Maybe.withDefault 0 prevModel.networkId) (Config.fryContractAddress <| Maybe.withDefault 0 prevModel.networkId) Config.teamToastAddress1 0
-              , fetchTeamTokenBalance (Maybe.withDefault 0 prevModel.networkId) (Config.fryContractAddress <| Maybe.withDefault 0 prevModel.networkId) Config.teamToastAddress2 1
-              , fetchTeamTokenBalance (Maybe.withDefault 0 prevModel.networkId) (Config.fryContractAddress <| Maybe.withDefault 0 prevModel.networkId) Config.teamToastAddress3 2
-              , fetchPermaFrostLockedTokenBalance <| Maybe.withDefault 0 prevModel.networkId
-              , fetchPermaFrostTotalSupply <| Maybe.withDefault 0 prevModel.networkId
-              , fetchBalancerPoolFryBalance <| Maybe.withDefault 0 prevModel.networkId
-              , fetchTreasuryBalance <| Maybe.withDefault 0 prevModel.networkId
-              , prevModel.wallet
+              , fetchDaiPrice <| chain
+              , fetchFryPrice <| chain
+              , fetchTeamTokenBalance chain (Config.fryContractAddress <| chain) Config.teamToastAddress1 0
+              , fetchTeamTokenBalance chain (Config.fryContractAddress <| chain) Config.teamToastAddress2 1
+              , fetchTeamTokenBalance chain (Config.fryContractAddress <| chain) Config.teamToastAddress3 2
+              , fetchPermaFrostLockedTokenBalance <| chain
+              , fetchPermaFrostTotalSupply <| chain
+              , fetchBalancerPoolFryBalance <| chain
+              , fetchTreasuryBalance <| chain
+              , model.wallet
                     |> (fetchDerivedEthBalance <|
-                            Maybe.withDefault 0 prevModel.networkId
+                            chain
                        )
-              , prevModel.wallet
-                    |> (fetchEthBalance <| Maybe.withDefault 0 prevModel.networkId)
-              , prevModel.withDrawalAmount
+              , model.wallet
+                    |> (fetchEthBalance <| chain)
+              , model.withDrawalAmount
                     |> TokenValue.fromString
-                    |> (fetchDethPositionInfo <| Maybe.withDefault 0 prevModel.networkId)
+                    |> (fetchDethPositionInfo <| chain)
               ]
                 |> Cmd.batch
             )
 
         Resize width _ ->
-            ( { prevModel
+            ( { model
                 | dProfile =
                     EH.screenWidthToDisplayProfile 1280 width
               }
@@ -181,7 +192,7 @@ update msg prevModel =
             )
 
         EveryFewSeconds ->
-            ( prevModel
+            ( model
             , Cmd.none
             )
 
@@ -189,42 +200,48 @@ update msg prevModel =
             case walletSentryResult of
                 Ok walletSentry ->
                     let
-                        ( newWallet, notifySubmodel ) =
+                        chain =
+                            model.wallet
+                                |> Wallet.userInfo
+                                |> Chain.whenJust
+                                    (\userInfo ->
+                                        userInfo.chain
+                                    )
+
+                        newWallet =
                             case walletSentry.account of
                                 Just newAddress ->
                                     if
-                                        (prevModel.wallet
+                                        (model.wallet
                                             |> userInfo
                                             |> Maybe.map .address
                                         )
                                             == Just newAddress
                                     then
-                                        ( prevModel.wallet, False )
+                                        model.wallet
 
                                     else
-                                        ( UserInfo
-                                            walletSentry.networkId
+                                        UserInfo
                                             newAddress
+                                            TokenValue.zero
+                                            chain
+                                            XDaiStandby
                                             |> Types.Active
-                                        , True
-                                        )
 
                                 Nothing ->
-                                    ( OnlyNetwork walletSentry.networkId
-                                    , prevModel.wallet /= OnlyNetwork walletSentry.networkId
-                                    )
+                                    NoneDetected
                     in
-                    ( { prevModel
+                    ( { model
                         | wallet = newWallet
                       }
-                    , [ fetchDerivedEthBalance (Maybe.withDefault 0 prevModel.networkId) newWallet
-                      , fetchEthBalance (Maybe.withDefault 0 prevModel.networkId) newWallet
+                    , [ fetchDerivedEthBalance chain newWallet
+                      , fetchEthBalance chain newWallet
                       ]
                         |> Cmd.batch
                     )
 
                 Err errStr ->
-                    ( prevModel
+                    ( model
                         |> addUserNotice (walletError errStr)
                     , Cmd.none
                     )
@@ -232,34 +249,82 @@ update msg prevModel =
         TxSentryMsg subMsg ->
             let
                 ( newTxSentry, subCmd ) =
-                    TxSentry.update subMsg prevModel.txSentry
+                    TxSentry.update subMsg model.txSentry
             in
-            ( { prevModel | txSentry = newTxSentry }, subCmd )
+            ( { model | txSentry = newTxSentry }, subCmd )
 
-        EventSentryMsg eventMsg ->
-            let
-                ( newEventSentry, cmd ) =
-                    EventSentry.update
-                        eventMsg
-                        prevModel.eventSentry
-            in
-            ( { prevModel
-                | eventSentry =
-                    newEventSentry
-              }
-            , cmd
-            )
+        EventSentryMsg chain eventMsg ->
+            case chain of
+                Eth ->
+                    let
+                        ( newEventSentry, cmd ) =
+                            EventSentry.update
+                                eventMsg
+                                model.sentries.ethereum
+                    in
+                    ( { model
+                        | sentries =
+                            model.sentries
+                                |> (\ss ->
+                                        { ss
+                                            | ethereum =
+                                                newEventSentry
+                                        }
+                                   )
+                      }
+                    , cmd
+                    )
+
+                BSC ->
+                    let
+                        ( newEventSentry, cmd ) =
+                            EventSentry.update
+                                eventMsg
+                                model.sentries.bsc
+                    in
+                    ( { model
+                        | sentries =
+                            model.sentries
+                                |> (\ss ->
+                                        { ss
+                                            | bsc =
+                                                newEventSentry
+                                        }
+                                   )
+                      }
+                    , cmd
+                    )
+
+                XDai ->
+                    let
+                        ( newEventSentry, cmd ) =
+                            EventSentry.update
+                                eventMsg
+                                model.sentries.xDai
+                    in
+                    ( { model
+                        | sentries =
+                            model.sentries
+                                |> (\ss ->
+                                        { ss
+                                            | xDai =
+                                                newEventSentry
+                                        }
+                                   )
+                      }
+                    , cmd
+                    )
 
         DismissNotice id ->
-            ( { prevModel
+            ( { model
                 | userNotices =
-                    prevModel.userNotices |> List.Extra.removeAt id
+                    model.userNotices |> List.Extra.removeAt id
               }
             , Cmd.none
             )
 
         ShowExpandedTrackedTxs flag ->
-            ( { prevModel
+            ( { model
                 | trackedTxsExpanded = flag
               }
             , Cmd.none
@@ -268,7 +333,7 @@ update msg prevModel =
         TxSigned trackedTxId signResult ->
             let
                 newTrackedTxs =
-                    prevModel.trackedTxs
+                    model.trackedTxs
                         |> UserTx.setTrackedTxStatus trackedTxId
                             (case signResult of
                                 Err errStr ->
@@ -279,13 +344,13 @@ update msg prevModel =
                             )
 
                 maybeExtraMsgConstructor =
-                    prevModel.trackedTxs
+                    model.trackedTxs
                         |> List.Extra.getAt trackedTxId
                         |> Maybe.map .notifiers
                         |> Maybe.andThen .onSign
 
                 intermediateModel =
-                    { prevModel
+                    { model
                         | trackedTxs = newTrackedTxs
                     }
             in
@@ -302,7 +367,7 @@ update msg prevModel =
         TxMined trackedTxId mineResult ->
             let
                 newTrackedTxs =
-                    prevModel.trackedTxs
+                    model.trackedTxs
                         |> UserTx.setTrackedTxSignedStatus trackedTxId
                             (case mineResult of
                                 Err errStr ->
@@ -313,13 +378,13 @@ update msg prevModel =
                             )
 
                 maybeExtraMsgConstructor =
-                    prevModel.trackedTxs
+                    model.trackedTxs
                         |> List.Extra.getAt trackedTxId
                         |> Maybe.map .notifiers
                         |> Maybe.andThen .onMine
 
                 intermediateModel =
-                    { prevModel
+                    { model
                         | trackedTxs = newTrackedTxs
                     }
             in
@@ -334,7 +399,7 @@ update msg prevModel =
                     )
 
         CookieConsentGranted ->
-            ( { prevModel
+            ( { model
                 | cookieConsentGranted = True
               }
             , Cmd.batch
@@ -349,19 +414,19 @@ update msg prevModel =
             )
 
         ClickHappened ->
-            ( { prevModel
+            ( { model
                 | showAddressId = Nothing
               }
             , Cmd.none
             )
 
         NoOp ->
-            ( prevModel, Cmd.none )
+            ( model, Cmd.none )
 
         FetchedEthPrice fetchResult ->
             case fetchResult of
                 Err error ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
@@ -373,26 +438,26 @@ update msg prevModel =
                                     val
 
                                 Nothing ->
-                                    Value 0
+                                    PriceValue 0
                     in
-                    ( { prevModel
+                    ( { model
                         | currentEthPriceUsd =
                             Just
                                 v.ethPrice
                         , circSupply =
                             calcCircSupply
-                                prevModel.currentBucketId
-                                prevModel.teamTokenBalances
-                                prevModel.permaFrostedTokens
+                                model.currentBucketId
+                                model.teamTokenBalances
+                                model.permaFrostedTokens
                         , marketCap =
                             calcMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
-                                prevModel.circSupply
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
+                                model.circSupply
                         , fullyDiluted =
                             calcFullyDilutedMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
                       }
                     , Cmd.none
                     )
@@ -400,7 +465,7 @@ update msg prevModel =
         FetchedDaiPrice fetchResult ->
             case fetchResult of
                 Err error ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
@@ -412,26 +477,26 @@ update msg prevModel =
                                     val
 
                                 Nothing ->
-                                    Value 0
+                                    PriceValue 0
                     in
-                    ( { prevModel
+                    ( { model
                         | currentDaiPriceEth =
                             Just
                                 v.ethPrice
                         , circSupply =
                             calcCircSupply
-                                prevModel.currentBucketId
-                                prevModel.teamTokenBalances
-                                prevModel.permaFrostedTokens
+                                model.currentBucketId
+                                model.teamTokenBalances
+                                model.permaFrostedTokens
                         , marketCap =
                             calcMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
-                                prevModel.circSupply
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
+                                model.circSupply
                         , fullyDiluted =
                             calcFullyDilutedMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
                       }
                     , Cmd.none
                     )
@@ -439,7 +504,7 @@ update msg prevModel =
         FetchedFryPrice fetchResult ->
             case fetchResult of
                 Err error ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
@@ -451,26 +516,26 @@ update msg prevModel =
                                     val
 
                                 Nothing ->
-                                    Value 0
+                                    PriceValue 0
                     in
-                    ( { prevModel
+                    ( { model
                         | currentFryPriceEth =
                             Just
                                 v.ethPrice
                         , circSupply =
                             calcCircSupply
-                                prevModel.currentBucketId
-                                prevModel.teamTokenBalances
-                                prevModel.permaFrostedTokens
+                                model.currentBucketId
+                                model.teamTokenBalances
+                                model.permaFrostedTokens
                         , marketCap =
                             calcMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
-                                prevModel.circSupply
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
+                                model.circSupply
                         , fullyDiluted =
                             calcFullyDilutedMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
                       }
                     , Cmd.none
                     )
@@ -478,27 +543,27 @@ update msg prevModel =
         FetchedTeamTokens index fetchResult ->
             case fetchResult of
                 Err error ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok value ->
-                    ( { prevModel
-                        | teamTokenBalances = Array.set index (Just value) prevModel.teamTokenBalances
+                    ( { model
+                        | teamTokenBalances = Array.set index (Just value) model.teamTokenBalances
                         , circSupply =
                             calcCircSupply
-                                prevModel.currentBucketId
-                                prevModel.teamTokenBalances
-                                prevModel.permaFrostedTokens
+                                model.currentBucketId
+                                model.teamTokenBalances
+                                model.permaFrostedTokens
                         , marketCap =
                             calcMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
-                                prevModel.circSupply
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
+                                model.circSupply
                         , fullyDiluted =
                             calcFullyDilutedMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
                       }
                     , Cmd.none
                     )
@@ -506,32 +571,32 @@ update msg prevModel =
         FetchedBalancerFryBalance fetchResult ->
             case fetchResult of
                 Err error ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok value ->
-                    ( { prevModel
+                    ( { model
                         | balancerFryBalance = Just value
                         , permaFrostedTokens =
                             calcPermaFrostedTokens
                                 (Just value)
-                                prevModel.permaFrostBalanceLocked
-                                prevModel.permaFrostTotalSupply
+                                model.permaFrostBalanceLocked
+                                model.permaFrostTotalSupply
                         , circSupply =
                             calcCircSupply
-                                prevModel.currentBucketId
-                                prevModel.teamTokenBalances
-                                prevModel.permaFrostedTokens
+                                model.currentBucketId
+                                model.teamTokenBalances
+                                model.permaFrostedTokens
                         , marketCap =
                             calcMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
-                                prevModel.circSupply
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
+                                model.circSupply
                         , fullyDiluted =
                             calcFullyDilutedMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
                       }
                     , Cmd.none
                     )
@@ -539,32 +604,32 @@ update msg prevModel =
         FetchedPermaFrostBalanceLocked fetchResult ->
             case fetchResult of
                 Err error ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok value ->
-                    ( { prevModel
+                    ( { model
                         | permaFrostBalanceLocked = Just value
                         , permaFrostedTokens =
                             calcPermaFrostedTokens
-                                prevModel.balancerFryBalance
+                                model.balancerFryBalance
                                 (Just value)
-                                prevModel.permaFrostTotalSupply
+                                model.permaFrostTotalSupply
                         , circSupply =
                             calcCircSupply
-                                prevModel.currentBucketId
-                                prevModel.teamTokenBalances
-                                prevModel.permaFrostedTokens
+                                model.currentBucketId
+                                model.teamTokenBalances
+                                model.permaFrostedTokens
                         , marketCap =
                             calcMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
-                                prevModel.circSupply
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
+                                model.circSupply
                         , fullyDiluted =
                             calcFullyDilutedMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
                       }
                     , Cmd.none
                     )
@@ -572,32 +637,32 @@ update msg prevModel =
         FetchedPermaFrostTotalSupply fetchResult ->
             case fetchResult of
                 Err error ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok value ->
-                    ( { prevModel
+                    ( { model
                         | permaFrostTotalSupply = Just value
                         , permaFrostedTokens =
                             calcPermaFrostedTokens
-                                prevModel.balancerFryBalance
-                                prevModel.permaFrostBalanceLocked
+                                model.balancerFryBalance
+                                model.permaFrostBalanceLocked
                                 (Just value)
                         , circSupply =
                             calcCircSupply
-                                prevModel.currentBucketId
-                                prevModel.teamTokenBalances
-                                prevModel.permaFrostedTokens
+                                model.currentBucketId
+                                model.teamTokenBalances
+                                model.permaFrostedTokens
                         , marketCap =
                             calcMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
-                                prevModel.circSupply
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
+                                model.circSupply
                         , fullyDiluted =
                             calcFullyDilutedMarketCap
-                                prevModel.currentFryPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentFryPriceEth
+                                model.currentEthPriceUsd
                       }
                     , Cmd.none
                     )
@@ -605,12 +670,12 @@ update msg prevModel =
         BucketValueEnteredFetched bucketId fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok valueEntered ->
-                    ( { prevModel
+                    ( { model
                         | currentBucketTotalEntered =
                             Just
                                 valueEntered
@@ -621,16 +686,16 @@ update msg prevModel =
         FetchedTreasuryBalance fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok valueFetched ->
-                    ( { prevModel
+                    ( { model
                         | treasuryBalance =
                             calcTreasuryBalance
-                                prevModel.currentDaiPriceEth
-                                prevModel.currentEthPriceUsd
+                                model.currentDaiPriceEth
+                                model.currentEthPriceUsd
                                 (Just valueFetched)
                       }
                     , Cmd.none
@@ -638,19 +703,19 @@ update msg prevModel =
 
         UpdateNow newNow ->
             if calcTimeLeft newNow <= 0 then
-                ( prevModel
+                ( model
                 , Cmd.none
                 )
 
             else
-                ( { prevModel | now = newNow }
+                ( { model | now = newNow }
                 , Cmd.none
                 )
 
         AmountInputChanged newInput ->
-            case prevModel.depositWithdrawUXModel of
+            case model.depositWithdrawUXModel of
                 Just ( depositOrWithdraw, amountInputUXModel ) ->
-                    ( { prevModel
+                    ( { model
                         | depositWithdrawUXModel =
                             Just
                                 ( depositOrWithdraw
@@ -663,51 +728,87 @@ update msg prevModel =
                     )
 
                 Nothing ->
-                    ( prevModel, Cmd.none )
+                    ( model, Cmd.none )
 
         UXBack ->
-            ( { prevModel
+            ( { model
                 | depositWithdrawUXModel = Nothing
               }
             , Cmd.none
             )
 
         DoUnlock ->
-            ( prevModel
-            , doApproveChainCmdFarm (Maybe.withDefault 0 prevModel.networkId)
-                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , doApproveChainCmdFarm chain
+                |> attemptTxInitiate model.txSentry model.trackedTxs
             )
 
         StartDeposit defaultValue ->
-            ( { prevModel
+            ( { model
                 | depositWithdrawUXModel = Just ( Deposit, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
               }
             , Cmd.none
             )
 
         StartWithdraw defaultValue ->
-            ( { prevModel
+            ( { model
                 | depositWithdrawUXModel = Just ( Withdraw, { amountInput = TokenValue.toFloatString Nothing defaultValue } )
               }
             , Cmd.none
             )
 
         DoExit ->
-            ( prevModel
-            , doExitChainCmdFarm (Maybe.withDefault 0 prevModel.networkId)
-                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , doExitChainCmdFarm chain
+                |> attemptTxInitiate model.txSentry model.trackedTxs
             )
 
         DoClaimRewards ->
-            ( prevModel
-            , doClaimRewardsFarm (Maybe.withDefault 0 prevModel.networkId)
-                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , doClaimRewardsFarm chain
+                |> attemptTxInitiate model.txSentry model.trackedTxs
             )
 
         DoDeposit amount ->
-            ( prevModel
-            , [ doDepositChainCmdFarm (Maybe.withDefault 0 prevModel.networkId) amount
-                    |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , [ doDepositChainCmdFarm chain amount
+                    |> attemptTxInitiate model.txSentry model.trackedTxs
               , gTagOut <|
                     GTagData
                         "Deposit Liquidity"
@@ -724,15 +825,24 @@ update msg prevModel =
             )
 
         DoWithdraw amount ->
-            ( prevModel
-            , doWithdrawChainCmdFarm (Maybe.withDefault 0 prevModel.networkId) amount
-                |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , doWithdrawChainCmdFarm chain amount
+                |> attemptTxInitiate model.txSentry model.trackedTxs
             )
 
         DepositOrWithdrawSigned depositOrWithdraw amount signResult ->
             case signResult of
                 Ok txHash ->
-                    ( { prevModel
+                    ( { model
                         | depositWithdrawUXModel = Nothing
                       }
                     , case depositOrWithdraw of
@@ -754,17 +864,26 @@ update msg prevModel =
                     )
 
                 _ ->
-                    ( prevModel, Cmd.none )
+                    ( model, Cmd.none )
 
         RefetchStakingInfoOrApy ->
-            ( prevModel
-            , fetchStakingInfoOrApyCmd (Maybe.withDefault 0 prevModel.networkId) prevModel.now prevModel.wallet
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , fetchStakingInfoOrApyCmd chain model.now model.wallet
             )
 
         StakingInfoFetched fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    ( prevModel
+                    ( model
                         |> (web3FetchError "staking info" httpErr
                                 |> addUserNotice
                            )
@@ -772,7 +891,7 @@ update msg prevModel =
                     )
 
                 Ok ( userStakingInfo, apy ) ->
-                    ( { prevModel
+                    ( { model
                         | userStakingInfo = Just userStakingInfo
                         , apy = Just apy
                       }
@@ -782,7 +901,7 @@ update msg prevModel =
         ApyFetched fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    ( prevModel
+                    ( model
                         |> (web3FetchError "apy" httpErr
                                 |> addUserNotice
                            )
@@ -790,7 +909,7 @@ update msg prevModel =
                     )
 
                 Ok apy ->
-                    ( { prevModel
+                    ( { model
                         | apy =
                             Just apy
                       }
@@ -798,7 +917,7 @@ update msg prevModel =
                     )
 
         VerifyJurisdictionClicked ->
-            ( { prevModel
+            ( { model
                 | jurisdictionCheckStatus = Checking
               }
             , [ Ports.beginLocationCheck ()
@@ -817,7 +936,7 @@ update msg prevModel =
                 jurisdictionCheckStatus =
                     locationCheckResultToJurisdictionStatus decodeResult
             in
-            ( { prevModel
+            ( { model
                 | jurisdictionCheckStatus = jurisdictionCheckStatus
               }
             , case jurisdictionCheckStatus of
@@ -853,23 +972,32 @@ update msg prevModel =
             )
 
         RefreshAll ->
-            ( prevModel
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
             , Cmd.batch
                 [ refreshPollVotesCmd Nothing
-                , fetchFryBalancesCmd (Maybe.withDefault 0 prevModel.networkId) (prevModel.fryBalances |> AddressDict.keys)
+                , fetchFryBalancesCmd chain (model.fryBalances |> AddressDict.keys)
                 ]
             )
 
         PollsFetched pollsFetchedResult ->
             case pollsFetchedResult of
                 Err httpErr ->
-                    ( prevModel
+                    ( model
                         |> (httpFetchError "fetch polls" httpErr |> addUserNotice)
                     , Cmd.none
                     )
 
                 Ok polls ->
-                    ( { prevModel
+                    ( { model
                         | polls = Just polls
                       }
                     , refreshPollVotesCmd Nothing
@@ -878,12 +1006,12 @@ update msg prevModel =
         OptionClicked userInfo poll maybePollOptionId ->
             case userInfo of
                 Nothing ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Just val ->
-                    ( prevModel
+                    ( model
                     , signResponseCmd val poll maybePollOptionId
                     )
 
@@ -894,12 +1022,12 @@ update msg prevModel =
             in
             case decodedSignResult of
                 Ok signResult ->
-                    ( prevModel
+                    ( model
                     , sendSignedResponseCmd signResult
                     )
 
                 Err errStr ->
-                    ( prevModel
+                    ( model
                         |> (Json.Decode.errorToString errStr
                                 |> signingError
                                 |> addUserNotice
@@ -920,26 +1048,26 @@ update msg prevModel =
                                 Valid ->
                                     let
                                         maybeSignedResponse =
-                                            prevModel.maybeValidResponses
+                                            model.maybeValidResponses
                                                 |> Dict.get responseId
                                                 |> Maybe.map Tuple.second
                                     in
                                     case maybeSignedResponse of
                                         Just signedResponse ->
-                                            ( prevModel.validatedResponses
+                                            ( model.validatedResponses
                                                 |> insertValidatedResponse ( responseId, signedResponse )
                                             , Just signedResponse.address
                                             , Nothing
                                             )
 
                                         Nothing ->
-                                            ( prevModel.validatedResponses
+                                            ( model.validatedResponses
                                             , Nothing
-                                            , Just <| unexpectedError "got a signature verify result from JS, but for response that I don't have!" responseId
+                                            , Just <| unexpectedError "got a signature verify result from JS, but for response that I don't have!"
                                             )
 
                                 Invalid ->
-                                    ( prevModel.validatedResponses
+                                    ( model.validatedResponses
                                     , Nothing
                                     , Nothing
                                     )
@@ -947,7 +1075,7 @@ update msg prevModel =
                         newBalancesDict =
                             case maybeRespondingAddress of
                                 Nothing ->
-                                    prevModel.fryBalances
+                                    model.fryBalances
 
                                 Just address ->
                                     let
@@ -959,25 +1087,34 @@ update msg prevModel =
                                                 |> AddressDict.fromList
                                     in
                                     AddressDict.union
-                                        prevModel.fryBalances
+                                        model.fryBalances
                                         newDictPortion
 
                         cmd =
+                            let
+                                chain =
+                                    model.wallet
+                                        |> Wallet.userInfo
+                                        |> Chain.whenJust
+                                            (\userInfo ->
+                                                userInfo.chain
+                                            )
+                            in
                             newBalancesDict
                                 |> AddressDict.filter
                                     (\addressString maybeBalance ->
                                         maybeBalance == Nothing
                                     )
                                 |> AddressDict.keys
-                                |> fetchFryBalancesCmd (Maybe.withDefault 0 prevModel.networkId)
+                                |> fetchFryBalancesCmd chain
 
                         tempModel =
                             case maybeUserNotice of
                                 Nothing ->
-                                    prevModel
+                                    model
 
                                 Just userNotice ->
-                                    prevModel
+                                    model
                                         |> (userNotice
                                                 |> addUserNotice
                                            )
@@ -985,7 +1122,7 @@ update msg prevModel =
                     ( { tempModel
                         | validatedResponses = newValidatedResponses
                         , maybeValidResponses =
-                            prevModel.maybeValidResponses
+                            model.maybeValidResponses
                                 |> Dict.update responseId
                                     (Maybe.map
                                         (Tuple.mapFirst
@@ -998,8 +1135,8 @@ update msg prevModel =
                     )
 
                 Err errStr ->
-                    ( prevModel
-                        |> (unexpectedError "error decoding signature validation from web3js" errStr
+                    ( model
+                        |> (unexpectedError "error decoding signature validation from web3js"
                                 |> addUserNotice
                            )
                     , Cmd.none
@@ -1008,12 +1145,12 @@ update msg prevModel =
         ResponseSent pollId sendResult ->
             case sendResult of
                 Ok _ ->
-                    ( prevModel
+                    ( model
                     , refreshPollVotesCmd <| Just pollId
                     )
 
                 Err httpErr ->
-                    ( prevModel
+                    ( model
                         |> (httpSendError "send response" httpErr
                                 |> addUserNotice
                            )
@@ -1023,10 +1160,10 @@ update msg prevModel =
         SignedResponsesFetched responsesFetchedResult ->
             case responsesFetchedResult of
                 Ok decodedLoggedSignedResponses ->
-                    case prevModel.polls of
+                    case model.polls of
                         Nothing ->
-                            ( prevModel
-                                |> (unexpectedError "Responses were fetched, but the polls haven't loaded yet!" Nothing
+                            ( model
+                                |> (unexpectedError "Responses were fetched, but the polls haven't loaded yet!"
                                         |> addUserNotice
                                    )
                             , Cmd.none
@@ -1036,7 +1173,7 @@ update msg prevModel =
                             let
                                 newMaybeValidResponses =
                                     Dict.union
-                                        prevModel.maybeValidResponses
+                                        model.maybeValidResponses
                                         (decodedLoggedSignedResponses
                                             |> Dict.map
                                                 (\_ signedResponse ->
@@ -1058,15 +1195,15 @@ update msg prevModel =
                                         |> List.map (loggedSignedResponseToResponseToValidate polls)
                                         |> Maybe.Extra.values
                             in
-                            ( { prevModel
+                            ( { model
                                 | maybeValidResponses = newMaybeValidResponses
                               }
                             , validateSignedResponsesCmd responsesToValidate
                             )
 
                 Err decodeErr ->
-                    ( prevModel
-                        |> (unexpectedError "error decoding responses from server" decodeErr
+                    ( model
+                        |> (unexpectedError "error decoding responses from server"
                                 |> addUserNotice
                            )
                     , Cmd.none
@@ -1075,19 +1212,19 @@ update msg prevModel =
         FryBalancesFetched fetchResult ->
             case fetchResult of
                 Ok newFryBalances ->
-                    ( { prevModel
+                    ( { model
                         | fryBalances =
                             AddressDict.union
                                 (newFryBalances
                                     |> AddressDict.map (always Just)
                                 )
-                                prevModel.fryBalances
+                                model.fryBalances
                       }
                     , Cmd.none
                     )
 
                 Err httpErr ->
-                    ( prevModel
+                    ( model
                         |> (web3FetchError "fetch polls" httpErr
                                 |> addUserNotice
                            )
@@ -1095,33 +1232,51 @@ update msg prevModel =
                     )
 
         SetMouseoverState newState ->
-            ( { prevModel
+            ( { model
                 | mouseoverState = newState
               }
             , Cmd.none
             )
 
         DepositAmountChanged amount ->
-            ( { prevModel
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( { model
                 | depositAmount = amount
               }
             , fetchIssuanceDetail
-                (Maybe.withDefault 0 prevModel.networkId)
+                chain
                 amount
             )
 
         WithdrawalAmountChanged amount ->
-            ( { prevModel
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( { model
                 | withDrawalAmount = amount
               }
             , amount
                 |> TokenValue.fromString
-                |> (fetchDethPositionInfo <| Maybe.withDefault 0 prevModel.networkId)
+                |> (fetchDethPositionInfo <| chain)
             )
 
         DepositClicked amount ->
-            ( prevModel
-            , (case userInfo prevModel.wallet of
+            ( model
+            , (case userInfo model.wallet of
                 Nothing ->
                     []
 
@@ -1129,7 +1284,7 @@ update msg prevModel =
                     [ doDepositChainCmd
                         uInfo.address
                         amount
-                        |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+                        |> attemptTxInitiate model.txSentry model.trackedTxs
                     ]
               )
                 ++ [ gTagOut <|
@@ -1148,8 +1303,8 @@ update msg prevModel =
             )
 
         WithdrawClicked amount ->
-            ( prevModel
-            , case userInfo prevModel.wallet of
+            ( model
+            , case userInfo model.wallet of
                 Nothing ->
                     Cmd.none
 
@@ -1157,20 +1312,20 @@ update msg prevModel =
                     doWithdrawChainCmd
                         uInfo.address
                         amount
-                        |> attemptTxInitiate prevModel.txSentry prevModel.trackedTxs
+                        |> attemptTxInitiate model.txSentry model.trackedTxs
             )
 
         UserEthBalanceFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok tokenValue ->
-                    ( { prevModel
+                    ( { model
                         | userDerivedEthInfo =
-                            (case prevModel.userDerivedEthInfo of
+                            (case model.userDerivedEthInfo of
                                 Nothing ->
                                     { ethBalance = tokenValue
                                     , dEthBalance = TokenValue.zero
@@ -1196,14 +1351,14 @@ update msg prevModel =
         UserDerivedEthBalanceFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok tokenValue ->
-                    ( { prevModel
+                    ( { model
                         | userDerivedEthInfo =
-                            (case prevModel.userDerivedEthInfo of
+                            (case model.userDerivedEthInfo of
                                 Nothing ->
                                     { ethBalance = TokenValue.zero
                                     , dEthBalance = tokenValue
@@ -1229,14 +1384,14 @@ update msg prevModel =
         DerivedEthRedeemableFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok ( totalCollateral, fee, returnedCollateral ) ->
-                    ( { prevModel
+                    ( { model
                         | userDerivedEthInfo =
-                            (case prevModel.userDerivedEthInfo of
+                            (case model.userDerivedEthInfo of
                                 Nothing ->
                                     { ethBalance = TokenValue.zero
                                     , dEthBalance = TokenValue.zero
@@ -1262,7 +1417,7 @@ update msg prevModel =
                     )
 
         ApproveTokenSpend ->
-            ( prevModel
+            ( model
             , Cmd.none
             )
 
@@ -1271,7 +1426,7 @@ update msg prevModel =
                 Ok txHash ->
                     let
                         tv =
-                            TokenValue.fromString prevModel.depositAmount
+                            TokenValue.fromString model.depositAmount
 
                         amount =
                             case tv of
@@ -1281,7 +1436,7 @@ update msg prevModel =
                                 Just val ->
                                     val
                     in
-                    ( { prevModel
+                    ( { model
                         | depositAmount = ""
                       }
                     , [ gTagOut <|
@@ -1300,7 +1455,7 @@ update msg prevModel =
                     )
 
                 _ ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
@@ -1309,7 +1464,7 @@ update msg prevModel =
                 Ok txHash ->
                     let
                         tv =
-                            TokenValue.fromString prevModel.depositAmount
+                            TokenValue.fromString model.depositAmount
 
                         amount =
                             case tv of
@@ -1319,7 +1474,7 @@ update msg prevModel =
                                 Just val ->
                                     val
                     in
-                    ( { prevModel
+                    ( { model
                         | withDrawalAmount = ""
                       }
                     , [ gTagOut <|
@@ -1338,20 +1493,38 @@ update msg prevModel =
                     )
 
                 _ ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
         FetchUserEthBalance ->
-            ( prevModel
-            , prevModel.wallet
-                |> fetchEthBalance (Maybe.withDefault 0 prevModel.networkId)
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , model.wallet
+                |> fetchEthBalance chain
             )
 
         FetchUserDerivedEthBalance ->
-            ( prevModel
-            , prevModel.wallet
-                |> (Maybe.withDefault 0 prevModel.networkId
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , model.wallet
+                |> (chain
                         |> fetchDerivedEthBalance
                    )
             )
@@ -1359,14 +1532,14 @@ update msg prevModel =
         DerivedEthIssuanceDetailFetched fetchResult ->
             case fetchResult of
                 Err _ ->
-                    ( prevModel
+                    ( model
                     , Cmd.none
                     )
 
                 Ok ( actualCollateralAdded, depositFee, tokensIssued ) ->
-                    ( { prevModel
+                    ( { model
                         | userDerivedEthInfo =
-                            (case prevModel.userDerivedEthInfo of
+                            (case model.userDerivedEthInfo of
                                 Nothing ->
                                     { ethBalance = TokenValue.zero
                                     , dEthBalance = TokenValue.zero
@@ -1392,35 +1565,35 @@ update msg prevModel =
                     )
 
         GotoRoute route ->
-            prevModel
+            model
                 |> gotoRoute route
                 |> Tuple.mapSecond
                     (\cmd ->
                         Cmd.batch
                             [ cmd
                             , Browser.Navigation.pushUrl
-                                prevModel.navKey
-                                (Routing.routeToString prevModel.basePath route)
+                                model.navKey
+                                (Routing.routeToString model.basePath route)
                             ]
                     )
 
         ConnectToWeb3 ->
-            case prevModel.wallet of
+            case model.wallet of
                 Types.NoneDetected ->
-                    ( prevModel
+                    ( model
                         |> addUserNotice cantConnectNoWeb3
                     , Cmd.none
                     )
 
                 _ ->
-                    ( prevModel
+                    ( model
                     , Ports.connectToWeb3 ()
                     )
 
         ShowOrHideAddress phaceId ->
-            ( { prevModel
+            ( { model
                 | showAddressId =
-                    if prevModel.showAddressId == Just phaceId then
+                    if model.showAddressId == Just phaceId then
                         Nothing
 
                     else
@@ -1430,7 +1603,7 @@ update msg prevModel =
             )
 
         AddUserNotice userNotice ->
-            ( prevModel
+            ( model
                 |> addUserNotice userNotice
             , Cmd.none
             )
