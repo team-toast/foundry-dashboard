@@ -29,9 +29,10 @@ type alias Flags =
     , nowInMillis : Int
     , cookieConsent : Bool
     , chains : Value
-    , ethProviderUrl : String
-    , xDaiProviderUrl : String
-    , bscProviderUrl : String
+
+    -- , ethProviderUrl : String
+    -- , xDaiProviderUrl : String
+    -- , bscProviderUrl : String
     , hasWallet : Bool
     }
 

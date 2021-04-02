@@ -4,6 +4,7 @@ require('@metamask/legacy-web3');
 const {
     bscImport,
 } = require("./metamask.js")
+const chains = require("../config.json");
 
 const COOKIE_CONSENT = "cookie-consent";
 const basePath = new URL(document.baseURI).pathname;
@@ -57,11 +58,12 @@ function startDapp() {
         node: document.getElementById('elm'),
         flags: {
             basePath: basePath,
-            networkId: id,
             width: window.innerWidth,
             height: window.innerHeight,
             nowInMillis: Date.now(),
             cookieConsent: getCookieConsent(),
+            chains,
+            hasWallet,
         }
     });
 
@@ -140,8 +142,8 @@ function gtagPortStuff(app) {
 }
 
 function getCookieConsent() {
-    return Boolean(window.localStorage.getItem('cookie-consent'))
+    return Boolean(window.localStorage.getItem(COOKIE_CONSENT))
 }
 function setCookieConsent() {
-    window.localStorage.setItem('cookie-consent', true)
+    window.localStorage.setItem(COOKIE_CONSENT, true)
 }

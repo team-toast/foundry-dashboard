@@ -51,7 +51,7 @@ init flags url key =
     in
     flags.chains
         |> Json.Decode.decodeValue
-            (Chain.chainDecoder flags)
+            Chain.chainDecoder
         |> Result.toMaybe
         |> unwrap
             ( { model

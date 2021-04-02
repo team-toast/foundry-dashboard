@@ -1,5 +1,6 @@
 module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl, whenJust)
 
+import Config
 import Element exposing (Color)
 import Eth.Decode
 import Eth.Net
@@ -79,23 +80,14 @@ getName chain =
             "BSC"
 
 
-chainDecoder : Flags -> Decoder (List Types.ChainConfig)
-chainDecoder flags =
+chainDecoder : Decoder (List Types.ChainConfig)
+chainDecoder =
     Decode.map3
         (\chain contract scan ->
             { chain = chain
             , contract = contract
             , startScanBlock = scan
-            , providerUrl =
-                case chain of
-                    Types.Eth ->
-                        flags.ethProviderUrl
-
-                    Types.XDai ->
-                        flags.xDaiProviderUrl
-
-                    Types.BSC ->
-                        flags.bscProviderUrl
+            , providerUrl = Config.httpProviderUrl chain
             }
         )
         (Decode.field "network" decodeChain
