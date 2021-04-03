@@ -693,30 +693,38 @@ contract QueryScript {
         _rewardRate = _rewards.rewardRate();
         _timestamp = now;
 
-        uint256 stakingTokenValue =
-            getTokenPairPrice(IUniswap(address(_rewards.stakingToken())))
-            .mul(getTokenPairPrice(_pricePair))
-            .div(100000);
+        uint256 fryPrice = getTokenPairPrice(IUniswap(address(_rewards.stakingToken())))
+            .mul(getTokenPairPrice(_pricePair));
             
-        if (_rewards.stakingToken().totalSupply() > 0) {
-            // using _APY here to prevent 'stack to deep'
-            _APY = stakingTokenValue
-                .mul(_rewards.totalSupply())
-                .mul(2 * 100000)
-                .div(_rewards.stakingToken().totalSupply()); // stakedValue * stakeTotal / totalLiquidityTokens
-        }
+        uint256 totalStakedValue = fryPrice
+            .mul(getBiggerReserve(IUniswap(address(_rewards.stakingToken()))))
+            .mul(2); 
 
-        if (_APY > 0) {
-            _APY = _rewardRate.mul(365 days).mul(100000).div(_APY);
-        }
+        _APY = totalStakedValue == 0 ? 
+            0 :
+            _rewardRate
+                .mul(365 days)
+                .mul(10**27)
+                .div(totalStakedValue);
 
         _rewardRate = _rewards.totalSupply() == 0 ?
             0 :
-            _rewardRate.mul(_stakedBalance).div(_rewards.totalSupply());
+            _rewardRate
+                .mul(_stakedBalance)
+                .div(_rewards.totalSupply());
+    }
+    
+    function getBiggerReserve(IUniswap _tokenPair)
+        public
+        view
+        returns (uint _reserve)
+    {
+        (uint256 reserve0, uint256 reserve1, ) = _tokenPair.getReserves();
+        _reserve = Math.max(reserve0, reserve1);
     }
 
     function getTokenPairPrice(IUniswap _tokenPair)
-        internal
+        public
         view
         returns (uint256 _price)
     {
