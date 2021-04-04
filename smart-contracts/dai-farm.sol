@@ -630,7 +630,7 @@ contract EthereumStakingRewardsScript is StakingRewards {
     constructor()
         public
         StakingRewards(
-            0x9FFa1ca74425A4504aeb39Fc35AcC0EB3a16A00A, // _owner = TeamToastMultsig
+            0xF7396C708Ad9127B6684b7fd690083158d2ebdE5, // _owner = TeamToastMultsig
             0x6B175474E89094C44Da98b954EedeAC495271d0F, // _rewardsToken = DAI
             0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291, // _stakingToken = FRYETHUniswapLPToken,
             30 days
