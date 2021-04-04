@@ -1,5 +1,6 @@
 module View.Farm exposing (..)
 
+import Chain exposing (whenJust)
 import Config
 import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, minimum, padding, paddingEach, px, rgba, row, spacing, text, width)
 import Element.Background
@@ -16,8 +17,9 @@ import Misc exposing (calcAvailableRewards, calcTimeLeft, userInfo, validateInpu
 import Theme
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (AmountUXModel, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg, UserStakingInfo, Wallet)
+import Types exposing (AmountUXModel, Chain, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg, UserStakingInfo, Wallet)
 import View.Common
+import Wallet
 
 
 view : Model -> Element Msg
@@ -121,9 +123,17 @@ bodyEl model =
                 EH.Mobile ->
                     column
 
+        chain =
+            model.wallet
+                |> Wallet.userInfo
+                |> whenJust
+                    (\userInfo ->
+                        userInfo.chain
+                    )
+
         balancesEl =
             balancesElement
-                (Maybe.withDefault 0 model.networkId)
+                chain
                 dProfile
                 model.jurisdictionCheckStatus
                 model.now
@@ -160,7 +170,7 @@ bodyEl model =
 
 
 balancesElement :
-    Int
+    Chain
     -> DisplayProfile
     -> JurisdictionCheckStatus
     -> Time.Posix
@@ -168,7 +178,7 @@ balancesElement :
     -> Maybe UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-balancesElement networkId dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
+balancesElement chain dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
     case userInfo wallet of
         Nothing ->
             View.Common.web3ConnectButton
@@ -190,7 +200,7 @@ balancesElement networkId dProfile jurisdictionCheckStatus now wallet maybeUserS
 
                 Just userStakingInfo ->
                     [ maybeGetLiquidityMessageElement
-                        networkId
+                        chain
                         dProfile
                         userStakingInfo
                     , unstakedRow
@@ -275,8 +285,8 @@ apyElement dProfile maybeApy =
             )
 
 
-maybeGetLiquidityMessageElement : Int -> DisplayProfile -> UserStakingInfo -> Element Msg
-maybeGetLiquidityMessageElement networkId dProfile stakingInfo =
+maybeGetLiquidityMessageElement : Chain -> DisplayProfile -> UserStakingInfo -> Element Msg
+maybeGetLiquidityMessageElement chain dProfile stakingInfo =
     if
         TokenValue.isZero stakingInfo.staked
             && TokenValue.isZero stakingInfo.unstaked
@@ -291,7 +301,7 @@ maybeGetLiquidityMessageElement networkId dProfile stakingInfo =
             ]
             [ Element.newTabLink
                 [ Element.Font.color Theme.blue ]
-                { url = Config.urlToLiquidityPool networkId
+                { url = Config.urlToLiquidityPool chain
                 , label = text "Obtain ETHFRY Liquidity"
                 }
             , text " to continue."

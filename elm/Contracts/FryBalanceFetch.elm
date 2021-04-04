@@ -8,19 +8,20 @@ import Eth.Types exposing (..)
 import Http
 import Task
 import TokenValue exposing (TokenValue)
+import Types exposing (Chain)
 
 
 fetch :
-    Int
+    Chain
     -> List Address
     -> (Result Http.Error (AddressDict TokenValue) -> msg)
     -> Cmd msg
-fetch networkId addresses msgConstructor =
+fetch chain addresses msgConstructor =
     Eth.call
-        (Config.httpProviderUrl networkId)
+        (Config.httpProviderUrl chain)
         (Generated.balances Config.erc20BalanceFetchBatchContractAddress
             addresses
-            [ Config.fryContractAddress networkId ]
+            [ Config.fryContractAddress chain ]
         )
         |> Task.attempt
             (Result.map

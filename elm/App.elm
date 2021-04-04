@@ -3,11 +3,10 @@ module App exposing (main)
 import Browser.Events
 import Browser.Hash as Hash
 import Browser.Navigation
-import Chain
+import Chain exposing (whenJust)
 import Config
 import ElementHelpers exposing (screenWidthToDisplayProfile)
-import Eth.Net
-import Eth.Sentry.Event as EventSentry exposing (EventSentry)
+import Eth.Sentry.Event
 import Eth.Sentry.Tx
 import Eth.Sentry.Wallet
 import Json.Decode
@@ -22,6 +21,7 @@ import Update exposing (gotoRoute, update)
 import Url exposing (Url)
 import UserNotice as UN
 import View exposing (view)
+import Wallet
 
 
 main : Program Flags Model Msg
@@ -51,7 +51,7 @@ init flags url key =
     in
     flags.chains
         |> Json.Decode.decodeValue
-            (Chain.chainDecoder flags)
+            Chain.chainDecoder
         |> Result.toMaybe
         |> unwrap
             ( { model
@@ -87,48 +87,64 @@ init flags url key =
                                 )
                                 model.config
 
-                    ( wallet, walletNotices ) =
-                        if flags.networkId == 0 then
-                            ( Types.NoneDetected
-                            , [ UserNotice.noWeb3Provider ]
-                            )
+                    wallet =
+                        if flags.hasWallet then
+                            Types.NetworkReady
 
                         else
-                            ( Eth.Net.toNetworkId flags.networkId
-                                |> Types.OnlyNetwork
-                            , []
-                            )
+                            Types.NoneDetected
 
-                    ( eventSentry, eventSentryCmd ) =
-                        EventSentry.init EventSentryMsg <| Config.httpProviderUrl flags.networkId
+                    ( ethSentry, ethCmd1, ethCmd2 ) =
+                        startSentry model.config.ethereum
+
+                    ( xDaiSentry, xDaiCmd1, xDaiCmd2 ) =
+                        startSentry model.config.xDai
+
+                    ( bscSentry, bscCmd1, bscCmd2 ) =
+                        startSentry model.config.bsc
+
+                    chain =
+                        model.wallet
+                            |> Wallet.userInfo
+                            |> whenJust
+                                (\userInfo ->
+                                    userInfo.chain
+                                )
                 in
                 ( { model
                     | config = config
                     , route = route
                     , wallet = wallet
-                    , userNotices = walletNotices
                     , dProfile = screenWidthToDisplayProfile Config.displayProfileBreakpoint flags.width
-                    , networkId = Just flags.networkId
+                    , sentries =
+                        model.sentries
+                            |> (\cs ->
+                                    { cs
+                                        | xDai = xDaiSentry
+                                        , ethereum = ethSentry
+                                        , bsc = bscSentry
+                                    }
+                               )
                   }
                 , [ fetchEthPrice
-                  , fetchDaiPrice flags.networkId
-                  , fetchFryPrice flags.networkId
-                  , fetchTeamTokenBalance flags.networkId (Config.fryContractAddress flags.networkId) Config.teamToastAddress1 0
-                  , fetchTeamTokenBalance flags.networkId (Config.fryContractAddress flags.networkId) Config.teamToastAddress2 1
-                  , fetchTeamTokenBalance flags.networkId (Config.fryContractAddress flags.networkId) Config.teamToastAddress3 2
-                  , fetchPermaFrostLockedTokenBalance flags.networkId
-                  , fetchPermaFrostTotalSupply flags.networkId
-                  , fetchBalancerPoolFryBalance flags.networkId
-                  , fetchTreasuryBalance flags.networkId
+                  , fetchDaiPrice chain
+                  , fetchFryPrice chain
+                  , fetchTeamTokenBalance chain (Config.fryContractAddress chain) Config.teamToastAddress1 0
+                  , fetchTeamTokenBalance chain (Config.fryContractAddress chain) Config.teamToastAddress2 1
+                  , fetchTeamTokenBalance chain (Config.fryContractAddress chain) Config.teamToastAddress3 2
+                  , fetchPermaFrostLockedTokenBalance chain
+                  , fetchPermaFrostTotalSupply chain
+                  , fetchBalancerPoolFryBalance chain
+                  , fetchTreasuryBalance chain
                   , fetchAllPollsCmd
                   , model.wallet
-                        |> fetchDerivedEthBalance flags.networkId
+                        |> fetchDerivedEthBalance chain
                   , model.wallet
-                        |> fetchEthBalance flags.networkId
-                  , fetchApyCmd flags.networkId
+                        |> fetchEthBalance chain
+                  , fetchApyCmd chain
                   , model.withDrawalAmount
                         |> TokenValue.fromString
-                        |> fetchDethPositionInfo flags.networkId
+                        |> fetchDethPositionInfo chain
                   , if route == Routing.Home then
                         Browser.Navigation.pushUrl
                             model.navKey
@@ -140,6 +156,16 @@ init flags url key =
                     |> Cmd.batch
                 )
             )
+
+
+startSentry : Types.ChainConfig -> ( Eth.Sentry.Event.EventSentry Msg, Cmd Msg, Cmd Msg )
+startSentry config =
+    let
+        ( initEventSentry, initEventSentryCmd ) =
+            Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
+                config.providerUrl
+    in
+    ( initEventSentry, initEventSentryCmd, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg

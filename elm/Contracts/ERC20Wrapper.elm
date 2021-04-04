@@ -7,17 +7,18 @@ import Eth.Types exposing (..)
 import Http
 import Task
 import TokenValue exposing (TokenValue)
+import Types exposing (Chain)
 
 
 getBalanceCmd :
-    Int
+    Chain
     -> Address
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getBalanceCmd networkId tokenAddress owner msgConstructor =
+getBalanceCmd chain tokenAddress owner msgConstructor =
     Eth.call
-        (httpProviderUrl networkId)
+        (httpProviderUrl chain)
         (ERC20.balanceOf
             tokenAddress
             owner
@@ -27,13 +28,13 @@ getBalanceCmd networkId tokenAddress owner msgConstructor =
 
 
 getTotalSupply :
-    Int
+    Chain
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getTotalSupply networkId tokenAddress msgConstructor =
+getTotalSupply chain tokenAddress msgConstructor =
     Eth.call
-        (httpProviderUrl networkId)
+        (httpProviderUrl chain)
         (ERC20.totalSupply
             tokenAddress
         )
@@ -42,13 +43,13 @@ getTotalSupply networkId tokenAddress msgConstructor =
 
 
 getEthBalance :
-    Int
+    Chain
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getEthBalance networkId address msgConstructor =
+getEthBalance chain address msgConstructor =
     Eth.getBalance
-        (httpProviderUrl networkId)
+        (httpProviderUrl chain)
         address
         |> Task.attempt
             (Result.map TokenValue.tokenValue >> msgConstructor)

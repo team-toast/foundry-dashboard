@@ -8,6 +8,7 @@ import Eth.Types as Eth exposing (Address)
 import Http
 import Task
 import TokenValue exposing (TokenValue)
+import Types exposing (Chain)
 
 
 deposit : Address -> TokenValue -> Eth.Send
@@ -28,10 +29,10 @@ redeem receiver amount =
         |> Eth.toSend
 
 
-getIssuanceDetail : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Int -> Cmd msg
-getIssuanceDetail amount msgConstructor networkId =
+getIssuanceDetail : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Chain -> Cmd msg
+getIssuanceDetail amount msgConstructor chain =
     Eth.call
-        (Config.httpProviderUrl networkId)
+        (Config.httpProviderUrl chain)
         (Death.calculateIssuanceAmount
             derivedEthContractAddress
             (TokenValue.getEvmValue amount)
@@ -40,10 +41,10 @@ getIssuanceDetail amount msgConstructor networkId =
         |> Task.attempt msgConstructor
 
 
-getRedeemable : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Int -> Cmd msg
-getRedeemable amount msgConstructor networkId =
+getRedeemable : TokenValue -> (Result Http.Error ( TokenValue, TokenValue, TokenValue ) -> msg) -> Chain -> Cmd msg
+getRedeemable amount msgConstructor chain =
     Eth.call
-        (Config.httpProviderUrl networkId)
+        (Config.httpProviderUrl chain)
         (Death.calculateRedemptionValue
             derivedEthContractAddress
             (TokenValue.getEvmValue amount)
