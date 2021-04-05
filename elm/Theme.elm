@@ -142,6 +142,11 @@ darkYellow =
     Element.rgb 0.6 0.6 0
 
 
+orange : Color
+orange =
+    Element.rgb255 247 155 48
+
+
 commonShadow : Attribute msg
 commonShadow =
     Element.Border.shadow
