@@ -239,3 +239,12 @@ signingError errStr =
         [ [ Element.text <| "Error signing message: " ++ errStr ] ]
     , align = BottomRight
     }
+
+
+notify : String -> UserNotice
+notify text =
+    { uniqueLabel = text
+    , noticeType = Update
+    , mainParagraphs = [ [ Element.text text ] ]
+    , align = BottomRight
+    }
