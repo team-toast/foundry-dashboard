@@ -1,6 +1,6 @@
 module View.Common exposing (..)
 
-import Element exposing (Attribute, Element, row, spacing, text)
+import Element exposing (Attribute, Color, Element, el, row, spacing, text)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -14,6 +14,7 @@ import Phace
 import Theme exposing (defaultTheme, redButton)
 import Time
 import Types
+import View.Attrs
 import View.Img
 
 
@@ -322,3 +323,9 @@ viewChain c =
         |> row
             [ spacing 10
             ]
+
+
+spinner : Int -> Color -> Element msg
+spinner size color =
+    View.Img.spinner size color
+        |> el [ View.Attrs.rotate ]
