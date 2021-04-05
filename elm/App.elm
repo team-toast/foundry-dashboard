@@ -136,7 +136,7 @@ init flags url key =
                   , fetchPermaFrostTotalSupply chain
                   , fetchBalancerPoolFryBalance chain
                   , fetchTreasuryBalance chain
-                  , fetchAllPollsCmd
+                  , fetchAllPollsCmd chain
                   , model.wallet
                         |> fetchDerivedEthBalance chain
                   , model.wallet
