@@ -6,6 +6,7 @@ const {
     bscImport,
     handleWalletEvents,
     getWallet,
+    sendTransaction,
 } = require("./metamask.js")
 const chains = require("../../config.json");
 
@@ -43,6 +44,12 @@ window.addEventListener('load', function () {
         })().catch((e) => {
             app.ports.walletResponse.send(e);
         })
+    );
+
+    app.ports.txSend.subscribe((params) =>
+        sendTransaction(params)
+            .then(app.ports.txSendResponse.send)
+            .catch(app.ports.txSendResponse.send)
     );
 
     // app.ports.refreshWallet.subscribe((account) =>
