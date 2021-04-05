@@ -20,18 +20,18 @@ displayProfileBreakpoint =
 
 httpProviderUrl : Chain -> String
 httpProviderUrl chain =
-    if testMode then
-        testModeHttpProviderUrl
-
-    else
-        mainnetHttpProviderUrl chain
+    mainnetHttpProviderUrl chain
 
 
 mainnetHttpProviderUrl : Chain -> String
 mainnetHttpProviderUrl chain =
     case chain of
         Eth ->
-            "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+            if testMode then
+                testModeHttpProviderUrl
+
+            else
+                "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
 
         BSC ->
             "https://bsc-dataseed1.binance.org/"
