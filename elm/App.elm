@@ -183,6 +183,7 @@ subscriptions model =
     , Ports.walletResponse
         (Wallet.walletInfoDecoder >> Types.WalletResponse)
     , Ports.chainSwitchResponse (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
+    , Ports.txSendResponse (Wallet.rpcResponseDecoder >> Types.TxSendResponse)
     , Browser.Events.onResize Types.Resize
     ]
         |> Sub.batch
