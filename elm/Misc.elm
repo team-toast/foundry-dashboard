@@ -55,8 +55,8 @@ emptyModel key now basePath cookieConsent =
                 (ConfigFile.httpProviderUrl Eth)
 
         ( wallet, walletNotices ) =
-            ( Types.NoneDetected
-            , [ noWeb3Provider ]
+            ( Types.Connecting
+            , []
             )
     in
     { navKey = key
