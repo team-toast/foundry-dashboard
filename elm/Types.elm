@@ -6,6 +6,7 @@ import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
 import ElementHelpers as EH
+import Eth exposing (hashrate)
 import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
@@ -162,6 +163,7 @@ type Msg
     | BSCImport
     | WalletResponse (Result WalletConnectErr UserInfo)
     | ChainSwitchResponse (Result TxErr ())
+    | TxSendResponse (Result TxErr TxHash)
 
 
 type alias PriceValue =
