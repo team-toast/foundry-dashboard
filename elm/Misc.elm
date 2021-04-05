@@ -750,20 +750,25 @@ calcTimeLeft now =
         timeLeft
 
 
-fetchAllPollsCmd : Cmd Msg
-fetchAllPollsCmd =
-    Http.request
-        { method = "GET"
-        , headers = []
-        , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0"
-        , body = Http.emptyBody
-        , expect =
-            Http.expectJson
-                Types.PollsFetched
-                pollListDecoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
+fetchAllPollsCmd : Chain -> Cmd Msg
+fetchAllPollsCmd chain =
+    case chain of
+        Eth ->
+            Http.request
+                { method = "GET"
+                , headers = []
+                , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0"
+                , body = Http.emptyBody
+                , expect =
+                    Http.expectJson
+                        Types.PollsFetched
+                        pollListDecoder
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+
+        _ ->
+            Cmd.none
 
 
 pollListDecoder : Decoder (List Poll)
