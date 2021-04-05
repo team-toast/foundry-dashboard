@@ -1,15 +1,14 @@
 module View.Farm exposing (..)
 
 import Chain exposing (whenJust)
-import Color
 import Config
 import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, minimum, padding, paddingEach, px, rgba, row, spacing, text, width)
-import Element.Background
-import Element.Border
-import Element.Events
-import Element.Font
-import Element.Input
-import ElementHelpers as EH exposing (DisplayProfile, responsiveVal)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Events as Events
+import Element.Font as Font
+import Element.Input as Input
+import ElementHelpers as EH exposing (DisplayProfile, black, responsiveVal)
 import FormatFloat
 import Helpers.Time as TimeHelpers
 import Images
@@ -18,7 +17,8 @@ import Misc exposing (calcAvailableRewards, calcTimeLeft, userInfo, validateInpu
 import Theme
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (AmountUXModel, Chain, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg, UserStakingInfo, Wallet)
+import Types exposing (AmountUXModel, Chain, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
+import View.Attrs exposing (hover)
 import View.Common
 import View.Img
 import Wallet
@@ -46,7 +46,7 @@ view model =
         , verifyJurisdictionErrorEl
             dProfile
             model.jurisdictionCheckStatus
-            [ Element.Font.color EH.white ]
+            [ Font.color EH.white ]
         ]
     )
         |> column
@@ -69,12 +69,12 @@ titleEl : DisplayProfile -> String -> Element Msg
 titleEl dProfile title =
     text title
         |> el
-            [ Element.Font.size <| responsiveVal dProfile 50 25
-            , Element.Font.color EH.white
+            [ Font.size <| responsiveVal dProfile 50 25
+            , Font.color EH.white
             , responsiveVal
                 dProfile
-                Element.Font.bold
-                Element.Font.semiBold
+                Font.bold
+                Font.semiBold
             , centerX
             ]
 
@@ -89,10 +89,10 @@ subTitleEl dProfile now =
             )
         |> text
         |> el
-            [ Element.Font.size <| responsiveVal dProfile 30 16
-            , Element.Font.color EH.white
-            , Element.Font.medium
-            , Element.Font.italic
+            [ Font.size <| responsiveVal dProfile 30 16
+            , Font.color EH.white
+            , Font.medium
+            , Font.italic
             , centerX
             ]
 
@@ -100,12 +100,12 @@ subTitleEl dProfile now =
 farmVideoEl : DisplayProfile -> Element Msg
 farmVideoEl dProfile =
     el
-        [ Element.Font.size <| responsiveVal dProfile 24 12
-        , Element.Font.color EH.white
-        , Element.Font.medium
-        , Element.Font.italic
+        [ Font.size <| responsiveVal dProfile 24 12
+        , Font.color EH.white
+        , Font.medium
+        , Font.italic
         , centerX
-        , Element.Font.underline
+        , Font.underline
         ]
     <|
         Element.newTabLink
@@ -201,9 +201,9 @@ balancesElement chain dProfile jurisdictionCheckStatus now isFarmingActive walle
                 Nothing ->
                     text "Fetching info..."
                         |> el
-                            [ Element.Font.italic
+                            [ Font.italic
                             , centerY
-                            , Element.Font.color EH.white
+                            , Font.color EH.white
                             ]
 
                 Just userStakingInfo ->
@@ -243,8 +243,8 @@ apyElement dProfile maybeApy =
         Nothing ->
             text "Fetching APY..."
                 |> el
-                    [ Element.Font.italic
-                    , Element.Font.color EH.white
+                    [ Font.italic
+                    , Font.color EH.white
                     ]
 
         Just apy ->
@@ -259,14 +259,14 @@ apyElement dProfile maybeApy =
             in
             [ text "Current APY: "
                 |> el
-                    [ Element.Font.color EH.white ]
+                    [ Font.color EH.white ]
             , FormatFloat.formatFloat 2
                 apy
                 ++ "%"
                 |> text
                 |> el
                     [ centerX
-                    , Element.Font.color Theme.almostWhite
+                    , Font.color Theme.almostWhite
                     ]
             ]
                 |> mainEl
@@ -280,14 +280,14 @@ apyElement dProfile maybeApy =
         |> el
             ([ alignTop
              , alignRight
-             , Element.Font.size <| responsiveVal dProfile 30 16
+             , Font.size <| responsiveVal dProfile 30 16
              ]
                 ++ (case dProfile of
                         EH.Desktop ->
                             []
 
                         EH.Mobile ->
-                            [ Element.Font.semiBold
+                            [ Font.semiBold
                             , Element.paddingEach { top = 0, left = 0, right = 0, bottom = 10 }
                             ]
                    )
@@ -303,13 +303,13 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
     then
         row
             [ centerX
-            , Element.Font.size <| responsiveVal dProfile 20 15
-            , Element.Background.color <| rgba 1 1 1 0.9
+            , Font.size <| responsiveVal dProfile 20 15
+            , Background.color <| rgba 1 1 1 0.9
             , padding 10
-            , Element.Border.rounded 5
+            , Border.rounded 5
             ]
             [ Element.newTabLink
-                [ Element.Font.color Theme.blue ]
+                [ Font.color Theme.blue ]
                 { url = Config.urlToLiquidityPool chain
                 , label = text "Obtain ETHFRY Liquidity"
                 }
@@ -555,11 +555,11 @@ rowUXStyles dProfile isInput =
     , width fill
     , padding 5
     , height <| px <| responsiveVal dProfile 50 30
-    , Element.Font.color EH.white
+    , Font.color EH.white
     ]
         ++ (if isInput then
-                [ Element.Border.rounded 5
-                , Element.Background.color <| rgba 1 1 1 0.3
+                [ Border.rounded 5
+                , Background.color <| rgba 1 1 1 0.3
                 ]
 
             else
@@ -581,9 +581,9 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
     in
     row
         [ spacing <| responsiveVal dProfile 10 6
-        , Element.Font.size <| responsiveVal dProfile 26 16
-        , Element.Background.color <| rgba 1 1 1 0.2
-        , Element.Font.color Theme.almostWhite
+        , Font.size <| responsiveVal dProfile 26 16
+        , Background.color <| rgba 1 1 1 0.2
+        , Font.color Theme.almostWhite
         , padding 5
         ]
         [ case maybeAmountUXModel of
@@ -591,26 +591,26 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                 let
                     inputStyles =
                         [ width <| px amountElWidth
-                        , Element.Background.color <| rgba 1 1 1 0.3
+                        , Background.color <| rgba 1 1 1 0.3
                         , padding 0
-                        , Element.Border.width 0
-                        , Element.Font.color EH.white
+                        , Border.width 0
+                        , Font.color EH.white
                         ]
                             ++ (if validateInput amountUXModel.amountInput balance == Nothing then
-                                    [ Element.Border.width 2
-                                    , Element.Border.color <| Theme.darkRed
+                                    [ Border.width 2
+                                    , Border.color <| Theme.darkRed
                                     ]
 
                                 else
                                     []
                                )
                 in
-                Element.Input.text
+                Input.text
                     inputStyles
                     { onChange = Types.AmountInputChanged
                     , text = amountUXModel.amountInput
                     , placeholder = Nothing
-                    , label = Element.Input.labelHidden "amount"
+                    , label = Input.labelHidden "amount"
                     }
 
             Nothing ->
@@ -621,8 +621,8 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                     (balance |> TokenValue.toFloatString Nothing |> text)
         , el
             [ width <| responsiveVal dProfile (px 100) (fillPortion 1)
-            , Element.Font.color color
-            , Element.Font.semiBold
+            , Font.color color
+            , Font.semiBold
             , alignRight
             ]
           <|
@@ -763,7 +763,7 @@ mainRow dProfile =
     column
         ([ spacing 5
          , padding 10
-         , Element.Font.size <| responsiveVal dProfile 30 24
+         , Font.size <| responsiveVal dProfile 30 24
          , width <| responsiveVal dProfile (px 420) fill
          ]
             ++ Theme.mainContainerBorderAttributes
@@ -779,9 +779,9 @@ rowLabel dProfile textToDisplay =
     text textToDisplay
         |> el
             [ width <| responsiveVal dProfile (px 280) fill
-            , Element.Font.size <| responsiveVal dProfile 40 20
-            , Element.Font.regular
-            , Element.Font.color EH.white
+            , Font.size <| responsiveVal dProfile 40 20
+            , Font.regular
+            , Font.color EH.white
             ]
 
 
@@ -908,21 +908,21 @@ actionButtonStyles :
 actionButtonStyles dProfile maybeHoverText maybeOnClick =
     [ width <| px <| responsiveVal dProfile 45 35
     , height <| px <| responsiveVal dProfile 45 35
-    , Element.Border.rounded 6
-    , Element.Border.width 1
-    , Element.Border.color <| rgba 0 0 0 0.2
+    , Border.rounded 6
+    , Border.width 1
+    , Border.color <| rgba 0 0 0 0.2
     ]
         ++ Maybe.Extra.values
             [ Maybe.map EH.withHovertext maybeHoverText ]
         ++ (case maybeOnClick of
                 Just onClick ->
                     [ Element.pointer
-                    , Element.Events.onClick onClick
-                    , Element.Background.color <| rgba 1 1 1 0.2
+                    , Events.onClick onClick
+                    , Background.color <| rgba 1 1 1 0.2
                     ]
 
                 Nothing ->
-                    [ Element.Background.color <| Element.rgb 0.7 0.7 0.7 ]
+                    [ Background.color <| Element.rgb 0.7 0.7 0.7 ]
            )
 
 
@@ -935,9 +935,9 @@ msgInsteadOfButton dProfile textToDisplay color =
     text textToDisplay
         |> el
             [ centerX
-            , Element.Font.size <| responsiveVal dProfile 18 12
-            , Element.Font.italic
-            , Element.Font.color color
+            , Font.size <| responsiveVal dProfile 18 12
+            , Font.italic
+            , Font.color color
             ]
 
 
@@ -958,7 +958,7 @@ verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
             Theme.disabledButton
                 dProfile
                 [ width fill
-                , Element.Font.color EH.black
+                , Font.color EH.black
                 ]
                 "Verifying Jurisdiction..."
                 Nothing
@@ -997,7 +997,7 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
         Types.Error errStr ->
             column
                 ([ spacing <| responsiveVal dProfile 20 10
-                 , Element.Font.size <| responsiveVal dProfile 16 10
+                 , Font.size <| responsiveVal dProfile 16 10
                  ]
                     ++ attributes
                 )
@@ -1010,3 +1010,68 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
 
         _ ->
             Element.none
+
+
+viewInstructions : Model -> UserInfo -> Element Msg
+viewInstructions model userInfo =
+    case userInfo.chain of
+        Types.Eth ->
+            [ Input.button
+                [ Background.color Theme.green
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , width <| px 180
+                , Element.alignRight
+                ]
+                { onPress = Just BSCImport
+                , label =
+                    if model.chainSwitchInProgress then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        text "Switch to xDai"
+                            |> el [ centerX ]
+                }
+            ]
+                |> row
+                    [ width fill
+                    , spacing 10
+                    , padding 10
+                    , Background.color Theme.orange
+                    , View.Attrs.roundBorder
+                    ]
+
+        Types.XDai ->
+            Element.none
+
+        Types.BSC ->
+            [ Input.button
+                [ Background.color Theme.green
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , width <| px 180
+                , Element.alignRight
+                ]
+                { onPress = Just BSCImport
+                , label =
+                    if model.chainSwitchInProgress then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        text "Switch to Eth Mainnet"
+                            |> el [ centerX ]
+                }
+            ]
+                |> row
+                    [ width fill
+                    , spacing 10
+                    , padding 10
+                    , Background.color Theme.orange
+                    , View.Attrs.roundBorder
+                    ]
