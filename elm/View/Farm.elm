@@ -2,6 +2,7 @@ module View.Farm exposing (..)
 
 import Chain exposing (whenJust)
 import Config
+import Css exposing (verticalAlign)
 import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, minimum, padding, paddingEach, px, rgba, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -154,8 +155,13 @@ bodyEl model =
                 model.apy
 
         networkSwitch =
-            viewInstructions
-                model
+            case chain of
+                Eth ->
+                    switchToBsc
+                        model
+
+                _ ->
+                    Element.none
     in
     mainEl
         ([ centerX
@@ -170,7 +176,15 @@ bodyEl model =
         (case dProfile of
             EH.Desktop ->
                 [ balancesEl
-                , [ apyEl ] |> column []
+                , [ apyEl
+                  , networkSwitch
+                  ]
+                    |> column
+                        [ width fill
+                        , alignRight
+                        , alignTop
+                        , spacing 10
+                        ]
                 ]
 
             EH.Mobile ->
@@ -1050,52 +1064,29 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
             Element.none
 
 
-viewInstructions : Model -> Element Msg
-viewInstructions model =
-    case Wallet.userInfo model.wallet of
-        Just userInfo ->
-            case userInfo.chain of
-                Types.Eth ->
-                    blueButton
-                        model.dProfile
-                        []
-                        [ "Switch to BSC" ]
-                        (EH.Action BSCImport)
-
-                -- [ Input.button
-                --     [ Background.color Theme.green
-                --     , padding 10
-                --     , View.Attrs.roundBorder
-                --     , hover
-                --     , Font.color black
-                --     , width <| px 180
-                --     , Element.alignRight
-                --     ]
-                --     { onPress = Just BSCImport
-                --     , label =
-                --         if model.chainSwitchInProgress then
-                --             View.Common.spinner 20 black
-                --                 |> el [ centerX ]
-                --         else
-                --             text "Switch to BSC"
-                --                 |> el [ centerX ]
-                --     }
-                -- ]
-                --     |> row
-                --         [ width fill
-                --         , spacing 10
-                --         , padding 10
-                --         , Background.color Theme.orange
-                --         , View.Attrs.roundBorder
-                --         ]
-                Types.XDai ->
-                    Element.none
-
-                Types.BSC ->
-                    Element.none
-
-        Nothing ->
-            Element.none
+switchToBsc :
+    Model
+    -> Element Msg
+switchToBsc model =
+    [ { onPress =
+            BSCImport
+                |> Just
+      , label =
+            "Switch to BSC"
+                |> text
+      }
+        |> Input.button
+            (Theme.childContainerBackgroundAttributes
+                ++ Theme.childContainerBorderAttributes
+                ++ [ responsiveVal model.dProfile 10 5
+                        |> padding
+                   ]
+            )
+    ]
+        |> row
+            [ width fill
+            , alignRight
+            ]
 
 
 getLiquidityDescription : Chain -> String
