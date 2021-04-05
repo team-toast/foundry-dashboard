@@ -10,6 +10,7 @@ import Element.Font
 import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (TxHash)
+import Eth.Utils
 import Helpers.Eth as EthHelpers
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
@@ -766,6 +767,9 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
 
                     UserTx.DEthDeposit ->
                         "Squander ETH"
+
+                    UserTx.Send txh ->
+                        "mining " ++ Eth.Utils.txHashToString txh
 
         statusEl =
             case signedTxStatus of
