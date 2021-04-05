@@ -1621,90 +1621,97 @@ update msg model =
             )
 
         BSCImport ->
-            let
-                address =
-                    case userInfo model.wallet of
-                        Nothing ->
-                            "not connected"
-
-                        Just userInfo ->
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        address =
                             userInfo.address
                                 |> Eth.Utils.addressToString
 
-                gtagCmd =
-                    GTagData
-                        "xdai import clicked"
-                        Nothing
-                        (address
-                            |> Just
-                        )
-                        Nothing
-                        |> gTagOut
-            in
-            ( { model | chainSwitchInProgress = True }
-            , [ Ports.bscImport ()
-              , gtagCmd
-              ]
-                |> Cmd.batch
-            )
+                        gtagCmd =
+                            GTagData
+                                "bsc import clicked"
+                                Nothing
+                                (address
+                                    |> Just
+                                )
+                                Nothing
+                                |> gTagOut
+                    in
+                    ( { model
+                        | chainSwitchInProgress = True
+                        , userStakingInfo = Nothing
+                      }
+                    , [ Ports.bscImport ()
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
+                    )
+                )
 
         WalletResponse res ->
-            res
-                |> unpack
-                    (\err ->
-                        case err of
-                            WalletInProgress ->
-                                ( { model
-                                    | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
-                                  }
-                                , Cmd.none
-                                )
+            ensureUserInfo
+                (\userInfo ->
+                    res
+                        |> unpack
+                            (\err ->
+                                case err of
+                                    WalletInProgress ->
+                                        ( { model
+                                            | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
+                                          }
+                                        , Cmd.none
+                                        )
 
-                            WalletCancel ->
-                                ( { model
-                                    | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
-                                    , wallet = NetworkReady
-                                    , chainSwitchInProgress = False
-                                  }
-                                , Cmd.none
-                                )
+                                    WalletCancel ->
+                                        ( { model
+                                            | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
+                                            , wallet = NetworkReady
+                                            , chainSwitchInProgress = False
+                                          }
+                                        , Cmd.none
+                                        )
 
-                            NetworkNotSupported ->
-                                ( { model
-                                    | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
-                                    , wallet = NetworkReady
-                                    , chainSwitchInProgress = False
-                                  }
-                                , Cmd.none
-                                )
+                                    NetworkNotSupported ->
+                                        ( { model
+                                            | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
+                                            , wallet = NetworkReady
+                                            , chainSwitchInProgress = False
+                                          }
+                                        , Cmd.none
+                                        )
 
-                            WalletError e ->
+                                    WalletError e ->
+                                        ( { model
+                                            | wallet =
+                                                Types.NetworkReady
+                                            , chainSwitchInProgress = False
+                                          }
+                                        , Ports.log e
+                                        )
+                            )
+                            (\info ->
+                                let
+                                    ( gtagHistory, walletConnectedGtagCmd ) =
+                                        GTag.gTagOutOnlyOnceForEvent model.gtagHistory <|
+                                            GTagData
+                                                "wallet connected"
+                                                Nothing
+                                                (Just <| Eth.Utils.addressToString info.address)
+                                                Nothing
+                                in
                                 ( { model
-                                    | wallet =
-                                        Types.NetworkReady
+                                    | wallet = Active info
                                     , chainSwitchInProgress = False
+                                    , gtagHistory = gtagHistory
                                   }
-                                , Ports.log e
+                                , [ walletConnectedGtagCmd
+                                  , fetchStakingInfoOrApyCmd userInfo.chain model.now model.wallet
+                                  ]
+                                    |> Cmd.batch
                                 )
-                    )
-                    (\info ->
-                        let
-                            ( gtagHistory, walletConnectedGtagCmd ) =
-                                GTag.gTagOutOnlyOnceForEvent model.gtagHistory <|
-                                    GTagData
-                                        "wallet connected"
-                                        Nothing
-                                        (Just <| Eth.Utils.addressToString info.address)
-                                        Nothing
-                        in
-                        ( { model
-                            | wallet = Active info
-                            , chainSwitchInProgress = False
-                            , gtagHistory = gtagHistory
-                          }
-                        , walletConnectedGtagCmd
-                        )
-                    )
+                            )
+                )
 
         ChainSwitchResponse res ->
             res

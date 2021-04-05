@@ -14,10 +14,10 @@ import Helpers.Time as TimeHelpers
 import Images
 import Maybe.Extra
 import Misc exposing (calcAvailableRewards, calcTimeLeft, userInfo, validateInput)
-import Theme
+import Theme exposing (blueButton)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (AmountUXModel, Chain, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
+import Types exposing (AmountUXModel, Chain(..), DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
 import View.Attrs exposing (hover)
 import View.Common
 import View.Img
@@ -152,6 +152,10 @@ bodyEl model =
             apyElement
                 dProfile
                 model.apy
+
+        networkSwitch =
+            viewInstructions
+                model
     in
     mainEl
         ([ centerX
@@ -166,11 +170,14 @@ bodyEl model =
         (case dProfile of
             EH.Desktop ->
                 [ balancesEl
-                , apyEl
+                , [ apyEl ] |> column []
                 ]
 
             EH.Mobile ->
-                [ apyEl
+                [ [ networkSwitch
+                  , apyEl
+                  ]
+                    |> row [ width fill ]
                 , balancesEl
                 ]
         )
@@ -213,6 +220,7 @@ balancesElement chain dProfile jurisdictionCheckStatus now isFarmingActive walle
                         userStakingInfo
                     , unstakedRow
                         dProfile
+                        chain
                         now
                         isFarmingActive
                         jurisdictionCheckStatus
@@ -220,6 +228,7 @@ balancesElement chain dProfile jurisdictionCheckStatus now isFarmingActive walle
                         depositWithdrawUXModel
                     , stakedRow
                         dProfile
+                        chain
                         userStakingInfo
                         depositWithdrawUXModel
                     , rewardsRow
@@ -311,7 +320,11 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
             [ Element.newTabLink
                 [ Font.color Theme.blue ]
                 { url = Config.urlToLiquidityPool chain
-                , label = text "Obtain ETHFRY Liquidity"
+                , label =
+                    text <|
+                        "Obtain "
+                            ++ getLiquidityDescription chain
+                            ++ " Liquidity"
                 }
             , text " to continue."
             ]
@@ -322,13 +335,14 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
 
 unstakedRow :
     DisplayProfile
+    -> Chain
     -> Time.Posix
     -> Bool
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
+unstakedRow dProfile chain now isFarmingActive jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -345,6 +359,7 @@ unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus userStakingInfo
             "Unstaked Balance"
         , unstakedRowUX
             dProfile
+            chain
             now
             isFarmingActive
             jurisdictionCheckStatus
@@ -355,13 +370,14 @@ unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus userStakingInfo
 
 unstakedRowUX :
     DisplayProfile
+    -> Chain
     -> Time.Posix
     -> Bool
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
+unstakedRowUX dProfile chain now isFarmingActive jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
     let
         rowStyles =
             let
@@ -384,23 +400,26 @@ unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo m
                     Theme.almostWhite
                     stakingInfo.unstaked
                     maybeDepositAmountUXModel
-                    "ETHFRY"
+                    (getLiquidityDescription chain)
                 , if isFarmingActive then
                     case maybeDepositAmountUXModel of
                         Just depositAmountUX ->
                             activeDepositUXButtons
                                 dProfile
+                                chain
                                 depositAmountUX
                                 stakingInfo.unstaked
 
                         Nothing ->
                             inactiveUnstackedRowButtons
                                 dProfile
+                                chain
                                 stakingInfo
 
                   else
                     inactiveUnstackedRowButtons
                         dProfile
+                        chain
                         stakingInfo
                 ]
 
@@ -414,10 +433,11 @@ unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo m
 
 stakedRow :
     DisplayProfile
+    -> Chain
     -> UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
+stakedRow dProfile chain stakingInfo depositOrWithdrawUXModel =
     let
         maybeWithdrawAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -434,6 +454,7 @@ stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
             "Currently Staking"
         , stakedRowUX
             dProfile
+            chain
             stakingInfo
             maybeWithdrawAmountUXModel
         ]
@@ -441,10 +462,11 @@ stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
 
 stakedRowUX :
     DisplayProfile
+    -> Chain
     -> UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
+stakedRowUX dProfile chain stakingInfo maybeWithdrawAmountUXModel =
     let
         rowStyles =
             let
@@ -467,33 +489,38 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
             Theme.almostWhite
             stakingInfo.staked
             maybeWithdrawAmountUXModel
-            "ETHFRY"
+            (getLiquidityDescription chain)
         , case maybeWithdrawAmountUXModel of
             Just withdrawAmountUX ->
                 activeWithdrawUXButtons
                     dProfile
+                    chain
                     withdrawAmountUX
                     stakingInfo.staked
 
             Nothing ->
                 stakedRowUXButtons
                     dProfile
+                    chain
                     stakingInfo.staked
         ]
 
 
 stakedRowUXButtons :
     DisplayProfile
+    -> Chain
     -> TokenValue
     -> Element Msg
-stakedRowUXButtons dProfile staked =
+stakedRowUXButtons dProfile chain staked =
     buttonsRow
         dProfile
         [ maybeStartWithdrawButton
             dProfile
+            chain
             staked
         , maybeExitButton
             dProfile
+            chain
             staked
         ]
 
@@ -634,10 +661,11 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
 
 activeWithdrawUXButtons :
     DisplayProfile
+    -> Chain
     -> AmountUXModel
     -> TokenValue
     -> Element Msg
-activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
+activeWithdrawUXButtons dProfile chain amountUXModel stakedBalance =
     let
         withdrawButton =
             case validateInput amountUXModel.amountInput stakedBalance of
@@ -647,7 +675,8 @@ activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
                         (Just <|
                             "Withdraw "
                                 ++ TokenValue.toConciseString amount
-                                ++ " ETHFRY"
+                                ++ " "
+                                ++ getLiquidityDescription chain
                         )
                         (Just <| Types.DoWithdraw amount)
 
@@ -667,10 +696,11 @@ activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
 
 activeDepositUXButtons :
     DisplayProfile
+    -> Chain
     -> AmountUXModel
     -> TokenValue
     -> Element Msg
-activeDepositUXButtons dProfile amountUXModel unstakedBalance =
+activeDepositUXButtons dProfile chain amountUXModel unstakedBalance =
     let
         depositButton =
             case validateInput amountUXModel.amountInput unstakedBalance of
@@ -680,7 +710,8 @@ activeDepositUXButtons dProfile amountUXModel unstakedBalance =
                         (Just <|
                             "Deposit "
                                 ++ TokenValue.toConciseString amount
-                                ++ " ETHFRY"
+                                ++ " "
+                                ++ getLiquidityDescription chain
                         )
                         (Just <| Types.DoDeposit amount)
 
@@ -710,48 +741,53 @@ buttonsRow dProfile =
 
 maybeStartWithdrawButton :
     DisplayProfile
+    -> Chain
     -> TokenValue
     -> Element Msg
-maybeStartWithdrawButton dProfile currentBalance =
+maybeStartWithdrawButton dProfile chain currentBalance =
     if TokenValue.isZero currentBalance then
         Element.none
 
     else
         makeWithdrawButton
             dProfile
-            (Just "Withdraw ETHFRY")
+            (Just <| "Withdraw " ++ getLiquidityDescription chain)
             (Just <| Types.StartWithdraw currentBalance)
 
 
 maybeExitButton :
     DisplayProfile
+    -> Chain
     -> TokenValue
     -> Element Msg
-maybeExitButton dProfile stakedAmount =
+maybeExitButton dProfile chain stakedAmount =
     if TokenValue.isZero stakedAmount then
         Element.none
 
     else
         exitButton
             dProfile
+            chain
 
 
 inactiveUnstackedRowButtons :
     DisplayProfile
+    -> Chain
     -> UserStakingInfo
     -> Element Msg
-inactiveUnstackedRowButtons dProfile stakingInfo =
+inactiveUnstackedRowButtons dProfile chain stakingInfo =
     if TokenValue.isZero stakingInfo.unstaked then
         Element.none
 
     else if TokenValue.isZero stakingInfo.allowance then
         unlockButton
             dProfile
+            chain
 
     else
         makeDepositButton
             dProfile
-            (Just "Deposit ETHFRY")
+            (Just <| "Deposit " ++ getLiquidityDescription chain)
             (Just <| Types.StartDeposit stakingInfo.unstaked)
 
 
@@ -795,15 +831,16 @@ commonImageAttributes dProfile =
 
 unlockButton :
     DisplayProfile
+    -> Chain
     -> Element Msg
-unlockButton dProfile =
+unlockButton dProfile chain =
     Images.unlock
         |> Images.toElement
             (commonImageAttributes dProfile)
         |> el
             (actionButtonStyles
                 dProfile
-                (Just "Approve ETHFRY for Deposit")
+                (Just <| "Approve " ++ getLiquidityDescription chain ++ " for Deposit")
                 (Just Types.DoUnlock)
             )
 
@@ -849,12 +886,13 @@ makeWithdrawButton dProfile maybeHoverText maybeOnClick =
 
 exitButton :
     DisplayProfile
+    -> Chain
     -> Element Msg
-exitButton dProfile =
+exitButton dProfile chain =
     el
         (actionButtonStyles
             dProfile
-            (Just "Exit with all assets (DAI and ETHFRY)")
+            (Just <| "Exit with all assets (DAI and " ++ getLiquidityDescription chain ++ ")")
             (Just Types.DoExit)
         )
     <|
@@ -1012,66 +1050,62 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
             Element.none
 
 
-viewInstructions : Model -> UserInfo -> Element Msg
-viewInstructions model userInfo =
-    case userInfo.chain of
-        Types.Eth ->
-            [ Input.button
-                [ Background.color Theme.green
-                , padding 10
-                , View.Attrs.roundBorder
-                , hover
-                , Font.color black
-                , width <| px 180
-                , Element.alignRight
-                ]
-                { onPress = Just BSCImport
-                , label =
-                    if model.chainSwitchInProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
+viewInstructions : Model -> Element Msg
+viewInstructions model =
+    case Wallet.userInfo model.wallet of
+        Just userInfo ->
+            case userInfo.chain of
+                Types.Eth ->
+                    blueButton
+                        model.dProfile
+                        []
+                        [ "Switch to BSC" ]
+                        (EH.Action BSCImport)
 
-                    else
-                        text "Switch to xDai"
-                            |> el [ centerX ]
-                }
-            ]
-                |> row
-                    [ width fill
-                    , spacing 10
-                    , padding 10
-                    , Background.color Theme.orange
-                    , View.Attrs.roundBorder
-                    ]
+                -- [ Input.button
+                --     [ Background.color Theme.green
+                --     , padding 10
+                --     , View.Attrs.roundBorder
+                --     , hover
+                --     , Font.color black
+                --     , width <| px 180
+                --     , Element.alignRight
+                --     ]
+                --     { onPress = Just BSCImport
+                --     , label =
+                --         if model.chainSwitchInProgress then
+                --             View.Common.spinner 20 black
+                --                 |> el [ centerX ]
+                --         else
+                --             text "Switch to BSC"
+                --                 |> el [ centerX ]
+                --     }
+                -- ]
+                --     |> row
+                --         [ width fill
+                --         , spacing 10
+                --         , padding 10
+                --         , Background.color Theme.orange
+                --         , View.Attrs.roundBorder
+                --         ]
+                Types.XDai ->
+                    Element.none
 
-        Types.XDai ->
+                Types.BSC ->
+                    Element.none
+
+        Nothing ->
             Element.none
 
-        Types.BSC ->
-            [ Input.button
-                [ Background.color Theme.green
-                , padding 10
-                , View.Attrs.roundBorder
-                , hover
-                , Font.color black
-                , width <| px 180
-                , Element.alignRight
-                ]
-                { onPress = Just BSCImport
-                , label =
-                    if model.chainSwitchInProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
 
-                    else
-                        text "Switch to Eth Mainnet"
-                            |> el [ centerX ]
-                }
-            ]
-                |> row
-                    [ width fill
-                    , spacing 10
-                    , padding 10
-                    , Background.color Theme.orange
-                    , View.Attrs.roundBorder
-                    ]
+getLiquidityDescription : Chain -> String
+getLiquidityDescription chain =
+    case chain of
+        Eth ->
+            "ETHFRY"
+
+        BSC ->
+            "BNBFRY"
+
+        xDai ->
+            "ERROR"
