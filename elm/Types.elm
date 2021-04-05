@@ -11,6 +11,7 @@ import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
+import GTag
 import Graphql.Http
 import Http
 import Json.Decode exposing (Value)
@@ -85,6 +86,8 @@ type alias Model =
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , farmingIsActive : Bool
     , config : Config
+    , chainSwitchInProgress : Bool
+    , gtagHistory : GTag.GTagHistory
     }
 
 
@@ -156,6 +159,9 @@ type Msg
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
     | Navigate Route
+    | BSCImport
+    | WalletResponse (Result WalletConnectErr UserInfo)
+    | ChainSwitchResponse (Result TxErr ())
 
 
 type alias PriceValue =

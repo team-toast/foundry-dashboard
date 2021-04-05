@@ -34,7 +34,7 @@ mainnetHttpProviderUrl chain =
             "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
 
         BSC ->
-            "https://bsc-dataseed4.binance.org/"
+            "https://bsc-dataseed1.binance.org/"
 
         XDai ->
             testModeHttpProviderUrl
@@ -107,7 +107,7 @@ stakingContractAddress chain =
     Eth.Utils.unsafeToAddress <|
         case chain of
             Eth ->
-                "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
+                "0xA2A4eF5722b198A139Dd93b1D420769261808Fd1"
 
             BSC ->
                 "0xf221605591942857449026364616e78FEd788aD9"
@@ -135,7 +135,7 @@ stakingScriptsAddress chain =
     Eth.Utils.unsafeToAddress <|
         case chain of
             Eth ->
-                "0xa939728f9cdCdc4EEA16bdF3Aff03AB27036f4c7"
+                "0x929378d7E8D9df3aE96835bac4DaD7dfc5741beA"
 
             BSC ->
                 "0x36BBfB7CF6139578aDb148D89CfdFDADa840aDD3"

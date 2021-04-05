@@ -51,7 +51,7 @@ init flags url key =
     in
     flags.chains
         |> Json.Decode.decodeValue
-            Chain.chainDecoder
+            (Chain.chainDecoder flags)
         |> Result.toMaybe
         |> unwrap
             ( { model
@@ -180,12 +180,9 @@ subscriptions model =
     --- from SmokeSignal
     , Ports.web3SignResult Types.Web3SignResultValue
     , Ports.web3ValidateSigResult Types.Web3ValidateSigResultValue
-    , Ports.walletSentryPort
-        (Eth.Sentry.Wallet.decodeToMsg
-            (Types.WalletStatus << Err)
-            (Types.WalletStatus << Ok)
-        )
-    , Eth.Sentry.Tx.listen model.txSentry
+    , Ports.walletResponse
+        (Wallet.walletInfoDecoder >> Types.WalletResponse)
+    , Ports.chainSwitchResponse (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
     , Browser.Events.onResize Types.Resize
     ]
         |> Sub.batch

@@ -1,6 +1,6 @@
 module View.Common exposing (..)
 
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, row, spacing, text)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -13,6 +13,8 @@ import Helpers.Time as TimeHelpers
 import Phace
 import Theme exposing (defaultTheme, redButton)
 import Time
+import Types
+import View.Img
 
 
 shortenedHash : Hex -> String
@@ -289,3 +291,34 @@ daiAmountInput dProfile attributes currentInput onChange =
         , placeholder = Nothing
         , label = Element.Input.labelHidden "dai amount"
         }
+
+
+viewChain : Types.Chain -> Element msg
+viewChain c =
+    let
+        txt =
+            case c of
+                Types.XDai ->
+                    "xDai"
+
+                Types.Eth ->
+                    "Ethereum"
+
+                Types.BSC ->
+                    "BSC"
+
+        img =
+            case c of
+                Types.XDai ->
+                    View.Img.xDai 20
+
+                Types.Eth ->
+                    View.Img.eth 20 <| Element.rgb 0.5 0.5 1
+
+                Types.BSC ->
+                    View.Img.bsc 20
+    in
+    [ img, text txt ]
+        |> row
+            [ spacing 10
+            ]

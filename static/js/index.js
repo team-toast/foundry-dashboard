@@ -1,21 +1,24 @@
 var ethereumJsUtil = require('ethereumjs-utils');
 var locationCheck = require('./dualLocationCheck.js');
-require('@metamask/legacy-web3');
+//require('@metamask/legacy-web3');
 const {
+    requestAccounts,
     bscImport,
+    handleWalletEvents,
+    getWallet,
 } = require("./metamask.js")
-const chains = require("../config.json");
+const chains = require("../../config.json");
+
 
 const COOKIE_CONSENT = "cookie-consent";
 const basePath = new URL(document.baseURI).pathname;
 
-import { Elm } from '../../elm/App'
+const { Elm } = require('../../elm/App.elm');
 
 window.addEventListener('load', function () {
     const app = startDapp();
 
     gtagPortStuff(app);
-    locationCheckPortStuff(app);
 
     app.ports.log.subscribe((x) => console.log(x));
 
@@ -42,13 +45,13 @@ window.addEventListener('load', function () {
         })
     );
 
-    app.ports.refreshWallet.subscribe((account) =>
-        (async () => {
-            const balance = await getBalance(account);
+    // app.ports.refreshWallet.subscribe((account) =>
+    //     (async () => {
+    //         const balance = await getBalance(account);
 
-            app.ports.balanceResponse.send(balance);
-        })().catch(app.ports.balanceResponse.send)
-    );
+    //         app.ports.balanceResponse.send(balance);
+    //     })().catch(app.ports.balanceResponse.send)
+    // );
 });
 
 function startDapp() {
@@ -78,13 +81,13 @@ function startDapp() {
 }
 
 function web3PortStuff(app, web3) {
-    prepareWeb3PortsPreConnect(app, web3);
+    //prepareWeb3PortsPreConnect(app, web3);
 
-    web3.eth.getAccounts(function (e, res) {
-        if (res && res.length > 0) {
-            connectAndPrepareRemainingWeb3Ports(app, web3);
-        }
-    });
+    // web3.eth.getAccounts(function (e, res) {
+    //     if (res && res.length > 0) {
+    //         connectAndPrepareRemainingWeb3Ports(app, web3);
+    //     }
+    // });
 
     app.ports.web3Sign.subscribe(function (data) {
         web3.personal.sign(data.data, data.address, function (err, res) {

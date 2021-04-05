@@ -1,6 +1,7 @@
 module View.Farm exposing (..)
 
 import Chain exposing (whenJust)
+import Color
 import Config
 import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, minimum, padding, paddingEach, px, rgba, row, spacing, text, width)
 import Element.Background
@@ -19,6 +20,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (AmountUXModel, Chain, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg, UserStakingInfo, Wallet)
 import View.Common
+import View.Img
 import Wallet
 
 
@@ -36,7 +38,11 @@ view model =
         , subTitleEl dProfile model.now
 
         --, farmVideoEl dProfile
-        , bodyEl model
+        , if model.chainSwitchInProgress then
+            View.Img.spinner 20 Theme.softRed
+
+          else
+            bodyEl model
         , verifyJurisdictionErrorEl
             dProfile
             model.jurisdictionCheckStatus
@@ -137,6 +143,7 @@ bodyEl model =
                 dProfile
                 model.jurisdictionCheckStatus
                 model.now
+                model.farmingIsActive
                 model.wallet
                 model.userStakingInfo
                 model.depositWithdrawUXModel
@@ -174,11 +181,12 @@ balancesElement :
     -> DisplayProfile
     -> JurisdictionCheckStatus
     -> Time.Posix
+    -> Bool
     -> Wallet
     -> Maybe UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-balancesElement chain dProfile jurisdictionCheckStatus now wallet maybeUserStakingInfo depositWithdrawUXModel =
+balancesElement chain dProfile jurisdictionCheckStatus now isFarmingActive wallet maybeUserStakingInfo depositWithdrawUXModel =
     case userInfo wallet of
         Nothing ->
             View.Common.web3ConnectButton
@@ -206,6 +214,7 @@ balancesElement chain dProfile jurisdictionCheckStatus now wallet maybeUserStaki
                     , unstakedRow
                         dProfile
                         now
+                        isFarmingActive
                         jurisdictionCheckStatus
                         userStakingInfo
                         depositWithdrawUXModel
@@ -314,11 +323,12 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
 unstakedRow :
     DisplayProfile
     -> Time.Posix
+    -> Bool
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-unstakedRow dProfile now jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
+unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -336,6 +346,7 @@ unstakedRow dProfile now jurisdictionCheckStatus userStakingInfo depositOrWithdr
         , unstakedRowUX
             dProfile
             now
+            isFarmingActive
             jurisdictionCheckStatus
             userStakingInfo
             maybeDepositAmountUXModel
@@ -345,11 +356,12 @@ unstakedRow dProfile now jurisdictionCheckStatus userStakingInfo depositOrWithdr
 unstakedRowUX :
     DisplayProfile
     -> Time.Posix
+    -> Bool
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-unstakedRowUX dProfile now jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
+unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
     let
         rowStyles =
             let
@@ -373,7 +385,7 @@ unstakedRowUX dProfile now jurisdictionCheckStatus stakingInfo maybeDepositAmoun
                     stakingInfo.unstaked
                     maybeDepositAmountUXModel
                     "ETHFRY"
-                , if calcTimeLeft now > 0 then
+                , if isFarmingActive then
                     case maybeDepositAmountUXModel of
                         Just depositAmountUX ->
                             activeDepositUXButtons

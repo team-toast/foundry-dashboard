@@ -22,6 +22,7 @@ import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
+import GTag
 import Graphql.Http
 import Graphql.Operation exposing (RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
@@ -108,6 +109,8 @@ emptyModel key now basePath cookieConsent =
     , depositWithdrawUXModel = Nothing
     , farmingIsActive = True -- Set to true to enable farming interface - False will show inactive message
     , config = emptyConfig
+    , chainSwitchInProgress = False
+    , gtagHistory = GTag.emptyGtagHistory
     }
 
 
@@ -1131,7 +1134,7 @@ addTrackedTx userTx notifiers tracker =
 emptyConfig : Config
 emptyConfig =
     { xDai =
-        { chain = Types.Eth
+        { chain = Types.XDai
         , contract = emptyAddress
         , startScanBlock = 0
         , providerUrl = ""

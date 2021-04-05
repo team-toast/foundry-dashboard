@@ -80,8 +80,8 @@ getName chain =
             "BSC"
 
 
-chainDecoder : Decoder (List Types.ChainConfig)
-chainDecoder =
+chainDecoder : Flags -> Decoder (List Types.ChainConfig)
+chainDecoder flags =
     Decode.map3
         (\chain contract scan ->
             { chain = chain
@@ -114,6 +114,10 @@ decodeChain =
 
                     Eth.Net.Private 100 ->
                         Types.XDai
+                            |> Ok
+
+                    Eth.Net.Private 56 ->
+                        Types.BSC
                             |> Ok
 
                     -- Hardhat server

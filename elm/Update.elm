@@ -19,12 +19,13 @@ import List.Extra
 import Maybe.Extra
 import Misc exposing (..)
 import Ports
+import Result.Extra exposing (unpack)
 import Routing
 import Time
 import TokenValue
 import Types exposing (..)
 import Url
-import UserNotice exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
+import UserNotice as UN exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
 import UserTx exposing (Initiator)
 import Wallet
 
@@ -1578,17 +1579,23 @@ update msg model =
                     )
 
         ConnectToWeb3 ->
-            case model.wallet of
-                Types.NoneDetected ->
-                    ( model
-                        |> addUserNotice cantConnectNoWeb3
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( model
-                    , Ports.connectToWeb3 ()
-                    )
+            let
+                gtagCmd =
+                    GTagData
+                        "wallet connect initiated"
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOut
+            in
+            ( { model
+                | wallet = Connecting
+              }
+            , [ Ports.connectToWeb3 ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
+            )
 
         ShowOrHideAddress phaceId ->
             ( { model
@@ -1607,6 +1614,118 @@ update msg model =
                 |> addUserNotice userNotice
             , Cmd.none
             )
+
+        BSCImport ->
+            let
+                address =
+                    case userInfo model.wallet of
+                        Nothing ->
+                            "not connected"
+
+                        Just userInfo ->
+                            userInfo.address
+                                |> Eth.Utils.addressToString
+
+                gtagCmd =
+                    GTagData
+                        "xdai import clicked"
+                        Nothing
+                        (address
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
+            in
+            ( { model | chainSwitchInProgress = True }
+            , [ Ports.bscImport ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
+            )
+
+        WalletResponse res ->
+            res
+                |> unpack
+                    (\err ->
+                        case err of
+                            WalletInProgress ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
+                                  }
+                                , Cmd.none
+                                )
+
+                            WalletCancel ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
+                                    , wallet = NetworkReady
+                                    , chainSwitchInProgress = False
+                                  }
+                                , Cmd.none
+                                )
+
+                            NetworkNotSupported ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
+                                    , wallet = NetworkReady
+                                    , chainSwitchInProgress = False
+                                  }
+                                , Cmd.none
+                                )
+
+                            WalletError e ->
+                                ( { model
+                                    | wallet =
+                                        Types.NetworkReady
+                                    , chainSwitchInProgress = False
+                                  }
+                                , Ports.log e
+                                )
+                    )
+                    (\info ->
+                        let
+                            ( gtagHistory, walletConnectedGtagCmd ) =
+                                GTag.gTagOutOnlyOnceForEvent model.gtagHistory <|
+                                    GTagData
+                                        "wallet connected"
+                                        Nothing
+                                        (Just <| Eth.Utils.addressToString info.address)
+                                        Nothing
+                        in
+                        ( { model
+                            | wallet = Active info
+                            , chainSwitchInProgress = False
+                            , gtagHistory = gtagHistory
+                          }
+                        , walletConnectedGtagCmd
+                        )
+                    )
+
+        ChainSwitchResponse res ->
+            res
+                |> unpack
+                    (\err ->
+                        case err of
+                            Types.UserRejected ->
+                                ( { model
+                                    | chainSwitchInProgress = False
+                                  }
+                                , Cmd.none
+                                )
+
+                            Types.OtherErr e ->
+                                ( { model
+                                    | chainSwitchInProgress = False
+                                  }
+                                , Ports.log e
+                                )
+                    )
+                    (\() ->
+                        ( -- Wait for WalletResponse to update model.chainSwitchInProgress
+                          model
+                        , Cmd.none
+                        )
+                    )
 
 
 gotoRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
