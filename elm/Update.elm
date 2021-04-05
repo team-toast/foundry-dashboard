@@ -6,9 +6,13 @@ import Browser
 import Browser.Navigation
 import Chain
 import Config
+import Contracts.Generated.ERC20 as ERC20
+import Contracts.Generated.StakingRewards as StakingRewardsContract
+import Contracts.Staking as StakingContract
 import Dict
 import Dict.Extra
 import ElementHelpers as EH exposing (DisplayProfile(..))
+import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Utils
@@ -16,7 +20,7 @@ import GTag exposing (GTagData, gTagOut)
 import Helpers.Tuple exposing (tuple3MapSecond, tuple3Second, tuple3ToList)
 import Json.Decode
 import List.Extra
-import Maybe.Extra
+import Maybe.Extra exposing (unwrap)
 import Misc exposing (..)
 import Ports
 import Result.Extra exposing (unpack)
@@ -26,12 +30,18 @@ import TokenValue
 import Types exposing (..)
 import Url
 import UserNotice as UN exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
-import UserTx exposing (Initiator)
+import UserTx exposing (Initiator, SignedTxStatus(..), TxInfo(..))
 import Wallet
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        ensureUserInfo fn =
+            model.wallet
+                |> Wallet.userInfo
+                |> unwrap ( model, Ports.log "Missing wallet" ) fn
+    in
     case msg of
         LinkClicked urlRequest ->
             let
@@ -739,19 +749,24 @@ update msg model =
             )
 
         DoUnlock ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( model
-            , doApproveChainCmdFarm chain
-                |> attemptTxInitiate model.txSentry model.trackedTxs
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        txParams =
+                            ERC20.approve
+                                (Config.stakingLiquidityContractAddress userInfo.chain)
+                                (Config.stakingContractAddress userInfo.chain)
+                                (TokenValue.maxTokenValue |> TokenValue.getEvmValue)
+                                |> (\call ->
+                                        { call | from = Just userInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                    in
+                    ( model
+                    , Ports.txSend txParams
+                    )
+                )
 
         StartDeposit defaultValue ->
             ( { model
@@ -768,77 +783,91 @@ update msg model =
             )
 
         DoExit ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( model
-            , doExitChainCmdFarm chain
-                |> attemptTxInitiate model.txSentry model.trackedTxs
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        txParams =
+                            StakingRewardsContract.exit
+                                (Config.stakingContractAddress userInfo.chain)
+                                |> (\call ->
+                                        { call | from = Just userInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                    in
+                    ( model
+                    , Ports.txSend txParams
+                    )
+                )
 
         DoClaimRewards ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( model
-            , doClaimRewardsFarm chain
-                |> attemptTxInitiate model.txSentry model.trackedTxs
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        txParams =
+                            StakingRewardsContract.getReward
+                                (Config.stakingContractAddress userInfo.chain)
+                                |> (\call ->
+                                        { call | from = Just userInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                    in
+                    ( model
+                    , Ports.txSend txParams
+                    )
+                )
 
         DoDeposit amount ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( model
-            , [ doDepositChainCmdFarm chain amount
-                    |> attemptTxInitiate model.txSentry model.trackedTxs
-              , gTagOut <|
-                    GTagData
-                        "Deposit Liquidity"
-                        (Just "funnel")
-                        Nothing
-                        (Just
-                            (TokenValue.mul amount 100
-                                |> TokenValue.toFloatWithWarning
-                                |> floor
-                            )
-                        )
-              ]
-                |> Cmd.batch
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        txParams =
+                            StakingRewardsContract.stake
+                                (Config.stakingContractAddress userInfo.chain)
+                                (TokenValue.getEvmValue amount)
+                                |> (\call ->
+                                        { call | from = Just userInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                    in
+                    ( model
+                    , [ Ports.txSend txParams
+                      , gTagOut <|
+                            GTagData
+                                "Deposit Liquidity"
+                                (Just "funnel")
+                                Nothing
+                                (Just
+                                    (TokenValue.mul amount 100
+                                        |> TokenValue.toFloatWithWarning
+                                        |> floor
+                                    )
+                                )
+                      ]
+                        |> Cmd.batch
+                    )
+                )
 
         DoWithdraw amount ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( model
-            , doWithdrawChainCmdFarm chain amount
-                |> attemptTxInitiate model.txSentry model.trackedTxs
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        txParams =
+                            StakingRewardsContract.withdraw
+                                (Config.stakingContractAddress userInfo.chain)
+                                (TokenValue.getEvmValue amount)
+                                |> (\call ->
+                                        { call | from = Just userInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                    in
+                    ( model
+                    , Ports.txSend txParams
+                    )
+                )
 
         DepositOrWithdrawSigned depositOrWithdraw amount signResult ->
             case signResult of
@@ -868,18 +897,12 @@ update msg model =
                     ( model, Cmd.none )
 
         RefetchStakingInfoOrApy ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( model
-            , fetchStakingInfoOrApyCmd chain model.now model.wallet
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    ( model
+                    , fetchStakingInfoOrApyCmd userInfo.chain model.now model.wallet
+                    )
+                )
 
         StakingInfoFetched fetchResult ->
             case fetchResult of
@@ -973,21 +996,15 @@ update msg model =
             )
 
         RefreshAll ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( model
-            , Cmd.batch
-                [ refreshPollVotesCmd Nothing
-                , fetchFryBalancesCmd chain (model.fryBalances |> AddressDict.keys)
-                ]
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    ( model
+                    , Cmd.batch
+                        [ refreshPollVotesCmd Nothing
+                        , fetchFryBalancesCmd userInfo.chain (model.fryBalances |> AddressDict.keys)
+                        ]
+                    )
+                )
 
         PollsFetched pollsFetchedResult ->
             case pollsFetchedResult of
@@ -1240,40 +1257,28 @@ update msg model =
             )
 
         DepositAmountChanged amount ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( { model
-                | depositAmount = amount
-              }
-            , fetchIssuanceDetail
-                chain
-                amount
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    ( { model
+                        | depositAmount = amount
+                      }
+                    , fetchIssuanceDetail
+                        userInfo.chain
+                        amount
+                    )
+                )
 
         WithdrawalAmountChanged amount ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
-            ( { model
-                | withDrawalAmount = amount
-              }
-            , amount
-                |> TokenValue.fromString
-                |> (fetchDethPositionInfo <| chain)
-            )
+            ensureUserInfo
+                (\userInfo ->
+                    ( { model
+                        | withDrawalAmount = amount
+                      }
+                    , amount
+                        |> TokenValue.fromString
+                        |> (fetchDethPositionInfo <| userInfo.chain)
+                    )
+                )
 
         DepositClicked amount ->
             ( model
@@ -1726,6 +1731,64 @@ update msg model =
                         , Cmd.none
                         )
                     )
+
+        TxSendResponse res ->
+            ensureUserInfo
+                (\userInfo ->
+                    res
+                        |> unpack
+                            (\err ->
+                                case err of
+                                    Types.UserRejected ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "tx rejected"
+                                                    ("tx rejected" |> Just)
+                                                    Nothing
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
+                                        ( model
+                                        , gtagCmd
+                                        )
+
+                                    Types.OtherErr e ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "tx error"
+                                                    ("tx error" |> Just)
+                                                    Nothing
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
+                                        ( model
+                                        , [ Ports.log e
+                                          , gtagCmd
+                                          ]
+                                            |> Cmd.batch
+                                        )
+                            )
+                            (\txHash ->
+                                ( { model
+                                    | userNotices =
+                                        model.userNotices
+                                            |> List.append [ UN.notify "Your transaction is mining." ]
+
+                                    -- , trackedTxs =
+                                    --     model.trackedTxs
+                                    --         |> Dict.insert (Eth.Utils.txHashToString txHash)
+                                    --             { txHash = txHash
+                                    --             , txInfo = Send txHash
+                                    --             , status = Mining
+                                    --             , chain = userInfo.chain
+                                    --             }
+                                  }
+                                , Cmd.none
+                                )
+                            )
+                )
 
 
 gotoRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
