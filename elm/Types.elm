@@ -329,8 +329,9 @@ type Chain
 
 type alias ChainConfig =
     { chain : Chain
-    , contract : Address
-    , startScanBlock : Int
+
+    -- , contract : Address
+    -- , startScanBlock : Int
     , providerUrl : String
     }
 

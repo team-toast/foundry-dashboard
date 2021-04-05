@@ -1135,20 +1135,23 @@ emptyConfig : Config
 emptyConfig =
     { xDai =
         { chain = Types.XDai
-        , contract = emptyAddress
-        , startScanBlock = 0
+
+        -- , contract = emptyAddress
+        -- , startScanBlock = 0
         , providerUrl = ""
         }
     , ethereum =
         { chain = Types.Eth
-        , contract = emptyAddress
-        , startScanBlock = 0
+
+        -- , contract = emptyAddress
+        -- , startScanBlock = 0
         , providerUrl = ""
         }
     , bsc =
         { chain = Types.BSC
-        , contract = emptyAddress
-        , startScanBlock = 0
+
+        -- , contract = emptyAddress
+        -- , startScanBlock = 0
         , providerUrl = ""
         }
     }
