@@ -107,10 +107,10 @@ stakingContractAddress chain =
     Eth.Utils.unsafeToAddress <|
         case chain of
             Eth ->
-                "0xA2A4eF5722b198A139Dd93b1D420769261808Fd1"
+                "0xa2a4ef5722b198a139dd93b1d420769261808fd1"
 
             BSC ->
-                "0xf221605591942857449026364616e78FEd788aD9"
+                "0xC13aa70E9437349834B1B093f8C5922fdEF6496B"
 
             XDai ->
                 ""
@@ -138,7 +138,7 @@ stakingScriptsAddress chain =
                 "0x929378d7E8D9df3aE96835bac4DaD7dfc5741beA"
 
             BSC ->
-                "0x36BBfB7CF6139578aDb148D89CfdFDADa840aDD3"
+                "0x6cefd06178B924b550F28bD9B9546338337d3B31"
 
             XDai ->
                 ""
