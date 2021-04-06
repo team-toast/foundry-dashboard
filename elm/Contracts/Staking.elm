@@ -12,7 +12,7 @@ import Helpers.BigInt as BigIntHelpers
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Http
-import String exposing (toFloat)
+import String
 import Task
 import TokenValue exposing (TokenValue, tokenValue)
 import Types exposing (Chain, UserStakingInfo)
@@ -136,10 +136,6 @@ unpackApy uintVal =
 
 
 
--- unpackApy : BigInt -> Float
--- unpackApy uintVal =
---     (BigIntHelpers.toIntWithWarning uintVal |> toFloat)
---         / 1000.0
 -- getUnstakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
 -- getUnstakedBalance address msgConstructor =
 --     Eth.call
