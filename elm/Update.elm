@@ -900,7 +900,10 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     ( model
-                    , fetchStakingInfoOrApyCmd userInfo.chain model.now model.wallet
+                    , [ fetchStakingInfoOrApyCmd userInfo.chain model.now model.wallet
+                      , fetchApyCmd userInfo.chain
+                      ]
+                        |> Cmd.batch
                     )
                 )
 
