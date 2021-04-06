@@ -6,13 +6,15 @@ import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingContract
 import Contracts.Generated.StakingScripts as StakingScripts
 import Eth
+import Eth.Abi.Decode exposing (uint)
 import Eth.Types as Eth exposing (Address)
 import Helpers.BigInt as BigIntHelpers
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Http
+import String exposing (toFloat)
 import Task
-import TokenValue exposing (TokenValue)
+import TokenValue exposing (TokenValue, tokenValue)
 import Types exposing (Chain, UserStakingInfo)
 
 
@@ -127,11 +129,17 @@ getApy chain msgConstructor =
 
 unpackApy : BigInt -> Float
 unpackApy uintVal =
-    (BigIntHelpers.toIntWithWarning uintVal |> toFloat)
-        / 1000.0
+    uintVal
+        |> TokenValue.evmValueToUserFloatString
+        |> String.toFloat
+        |> Maybe.withDefault 0
 
 
 
+-- unpackApy : BigInt -> Float
+-- unpackApy uintVal =
+--     (BigIntHelpers.toIntWithWarning uintVal |> toFloat)
+--         / 1000.0
 -- getUnstakedBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
 -- getUnstakedBalance address msgConstructor =
 --     Eth.call
