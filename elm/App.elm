@@ -170,7 +170,7 @@ startSentry config =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    [ Time.every (1000 * 5) Types.UpdateNow
+    [ Time.every (1000 * 0.5) Types.UpdateNow
     , Time.every (1000 * 5) <| always Types.RefreshAll
     , Time.every (1000 * 15) (always Types.RefetchStakingInfoOrApy)
     , Time.every (1000 * 15) Types.Tick
