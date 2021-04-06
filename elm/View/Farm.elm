@@ -15,7 +15,7 @@ import Helpers.Time as TimeHelpers
 import Images
 import Maybe.Extra
 import Misc exposing (calcAvailableRewards, calcTimeLeft, userInfo, validateInput)
-import Theme exposing (blueButton)
+import Theme exposing (almostWhite, blueButton)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (AmountUXModel, Chain(..), DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
@@ -188,10 +188,8 @@ bodyEl model =
                 ]
 
             EH.Mobile ->
-                [ [ networkSwitch
-                  , apyEl
-                  ]
-                    |> row [ width fill ]
+                [ networkSwitch
+                , apyEl
                 , balancesEl
                 ]
         )
@@ -1068,25 +1066,41 @@ switchToBsc :
     Model
     -> Element Msg
 switchToBsc model =
-    [ { onPress =
-            BSCImport
-                |> Just
-      , label =
-            "Switch to BSC"
-                |> text
-      }
-        |> Input.button
-            (Theme.childContainerBackgroundAttributes
-                ++ Theme.childContainerBorderAttributes
-                ++ [ responsiveVal model.dProfile 10 5
-                        |> padding
-                   ]
-            )
-    ]
-        |> row
-            [ width fill
-            , alignRight
-            ]
+    case Wallet.userInfo model.wallet of
+        Nothing ->
+            Element.none
+
+        _ ->
+            { onPress =
+                BSCImport
+                    |> Just
+            , label =
+                "Switch to BSC"
+                    |> text
+            }
+                |> Input.button
+                    (Theme.childContainerBackgroundAttributes
+                        ++ Theme.childContainerBorderAttributes
+                        ++ [ responsiveVal model.dProfile 10 5
+                                |> padding
+                           , Font.color almostWhite
+                           ]
+                    )
+                |> el
+                    ([ alignTop
+                     , alignRight
+                     , Font.size <| responsiveVal model.dProfile 30 16
+                     ]
+                        ++ (case model.dProfile of
+                                EH.Desktop ->
+                                    []
+
+                                EH.Mobile ->
+                                    [ Font.semiBold
+                                    , Element.paddingEach { top = 0, left = 0, right = 0, bottom = 10 }
+                                    ]
+                           )
+                    )
 
 
 getLiquidityDescription : Chain -> String
