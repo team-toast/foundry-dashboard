@@ -15,7 +15,7 @@ import Helpers.Time as TimeHelpers
 import Images
 import Maybe.Extra
 import Misc exposing (calcAvailableRewards, calcTimeLeft, userInfo, validateInput)
-import Theme exposing (almostWhite, blueButton)
+import Theme exposing (almostWhite, blueButton, lightGray)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (AmountUXModel, Chain(..), DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
@@ -177,7 +177,9 @@ bodyEl model =
             EH.Desktop ->
                 [ balancesEl
                 , [ apyEl
-                  , networkSwitch
+                  , currentNetwork model
+
+                  --, networkSwitch
                   ]
                     |> column
                         [ width fill
@@ -188,7 +190,9 @@ bodyEl model =
                 ]
 
             EH.Mobile ->
-                [ networkSwitch
+                [ currentNetwork model
+
+                --, networkSwitch
                 , apyEl
                 , balancesEl
                 ]
@@ -300,12 +304,12 @@ apyElement dProfile maybeApy =
     )
         |> el
             ([ alignTop
-             , alignRight
              , Font.size <| responsiveVal dProfile 30 16
              ]
                 ++ (case dProfile of
                         EH.Desktop ->
-                            []
+                            [ alignRight
+                            ]
 
                         EH.Mobile ->
                             [ Font.semiBold
@@ -1062,6 +1066,43 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
             Element.none
 
 
+currentNetwork : Model -> Element Msg
+currentNetwork model =
+    case Wallet.userInfo model.wallet of
+        Nothing ->
+            Element.none
+
+        Just userInfo ->
+            (case userInfo.chain of
+                Eth ->
+                    "Farming on Mainnet"
+
+                BSC ->
+                    "Farming on BSC"
+
+                _ ->
+                    "Not supported"
+            )
+                |> text
+                |> el
+                    (Theme.mainContainerBackgroundAttributes
+                        ++ Theme.mainContainerBorderAttributes
+                        ++ [ alignTop
+                           , Font.size <| responsiveVal model.dProfile 24 12
+                           , Font.color almostWhite
+                           , padding 5
+                           ]
+                        ++ (case model.dProfile of
+                                EH.Desktop ->
+                                    [ alignRight ]
+
+                                EH.Mobile ->
+                                    [ Font.semiBold
+                                    ]
+                           )
+                    )
+
+
 switchToBsc :
     Model
     -> Element Msg
@@ -1088,16 +1129,15 @@ switchToBsc model =
                     )
                 |> el
                     ([ alignTop
-                     , alignRight
                      , Font.size <| responsiveVal model.dProfile 30 16
+                     , padding 5
                      ]
                         ++ (case model.dProfile of
                                 EH.Desktop ->
-                                    []
+                                    [ alignRight ]
 
                                 EH.Mobile ->
                                     [ Font.semiBold
-                                    , Element.paddingEach { top = 0, left = 0, right = 0, bottom = 10 }
                                     ]
                            )
                     )
@@ -1112,5 +1152,5 @@ getLiquidityDescription chain =
         BSC ->
             "BNBFRY"
 
-        xDai ->
+        _ ->
             "ERROR"
