@@ -1702,7 +1702,8 @@ update msg model =
                             | wallet = Active info
                             , chainSwitchInProgress = False
                             , gtagHistory = gtagHistory
-                            , userStakingInfo = Nothing
+
+                            --, userStakingInfo = Nothing
                           }
                         , [ walletConnectedGtagCmd
                           , fetchStakingInfoOrApyCmd info.chain model.now model.wallet
