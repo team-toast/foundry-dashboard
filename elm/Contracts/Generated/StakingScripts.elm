@@ -28,6 +28,7 @@ type alias GetData =
     , stakedBalance : BigInt
     , allowedBalance : BigInt
     , earned : BigInt
+    , totalStakedValue : BigInt
     , apy : BigInt
     , rewardRate : BigInt
     , timestamp : BigInt
@@ -50,6 +51,7 @@ getData contractAddress rewards_ pricePair_ staker_ =
 getDataDecoder : Decoder GetData
 getDataDecoder =
     abiDecode GetData
+        |> andMap D.uint
         |> andMap D.uint
         |> andMap D.uint
         |> andMap D.uint
