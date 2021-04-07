@@ -9,7 +9,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import ElementHelpers as EH exposing (DisplayProfile, black, responsiveVal)
+import ElementHelpers as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import FormatFloat
 import Helpers.Time as TimeHelpers
 import Images
@@ -154,14 +154,15 @@ bodyEl model =
                 dProfile
                 model.apy
 
-        networkSwitch =
-            case chain of
-                Eth ->
-                    switchToBsc
-                        model
-
-                _ ->
+        networkAndSwitch =
+            case Wallet.userInfo model.wallet of
+                Nothing ->
                     Element.none
+
+                Just _ ->
+                    currentNetworkAndSwitchEl
+                        dProfile
+                        model.wallet
     in
     mainEl
         ([ centerX
@@ -177,9 +178,7 @@ bodyEl model =
             EH.Desktop ->
                 [ balancesEl
                 , [ apyEl
-                  , currentNetwork model
-
-                  --, networkSwitch
+                  , networkAndSwitch
                   ]
                     |> column
                         [ width fill
@@ -190,13 +189,93 @@ bodyEl model =
                 ]
 
             EH.Mobile ->
-                [ currentNetwork model
-
-                --, networkSwitch
-                , apyEl
+                [ [ [ apyEl
+                    , networkAndSwitch
+                    ]
+                        |> row
+                            [ width fill
+                            , spacing 10
+                            , centerX
+                            ]
+                  ]
+                    |> column
+                        [ centerX
+                        ]
                 , balancesEl
                 ]
         )
+
+
+currentNetworkAndSwitchEl : DisplayProfile -> Wallet -> Element Msg
+currentNetworkAndSwitchEl dProfile wallet =
+    let
+        chain =
+            wallet
+                |> Wallet.userInfo
+                |> whenJust
+                    (\userInfo ->
+                        userInfo.chain
+                    )
+
+        farmText =
+            (case chain of
+                Eth ->
+                    "Farming on Mainnet"
+
+                BSC ->
+                    "Farming on BSC"
+
+                _ ->
+                    "Not supported"
+            )
+                |> text
+                |> el
+                    [ Font.color white
+                    , Font.size <| responsiveVal dProfile 20 14
+                    ]
+
+        switchButton =
+            case chain of
+                Eth ->
+                    { onPress =
+                        BSCImport
+                            |> Just
+                    , label =
+                        "Switch to BSC"
+                            |> text
+                    }
+                        |> Input.button
+                            (Theme.childContainerBackgroundAttributes
+                                ++ Theme.childContainerBorderAttributes
+                                ++ [ responsiveVal dProfile 5 5
+                                        |> padding
+                                   , Font.color almostWhite
+                                   , Font.size <| responsiveVal dProfile 18 12
+                                   , centerX
+                                   ]
+                            )
+
+                _ ->
+                    Element.none
+    in
+    [ farmText
+    , switchButton
+    ]
+        |> column
+            (Theme.mainContainerBackgroundAttributes
+                ++ Theme.mainContainerBorderAttributes
+                ++ [ spacing 5
+                   , padding 5
+                   , alignTop
+                   ]
+                ++ (case dProfile of
+                        Desktop ->
+                            [ alignRight ]
+
+                        Mobile ->
+                            []
+                   )
+            )
 
 
 balancesElement :
@@ -280,7 +359,7 @@ apyElement dProfile maybeApy =
                             column
 
                         EH.Mobile ->
-                            row
+                            column
             in
             [ text "Current APY: "
                 |> el
@@ -1064,83 +1143,6 @@ verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
 
         _ ->
             Element.none
-
-
-currentNetwork : Model -> Element Msg
-currentNetwork model =
-    case Wallet.userInfo model.wallet of
-        Nothing ->
-            Element.none
-
-        Just userInfo ->
-            (case userInfo.chain of
-                Eth ->
-                    "Farming on Mainnet"
-
-                BSC ->
-                    "Farming on BSC"
-
-                _ ->
-                    "Not supported"
-            )
-                |> text
-                |> el
-                    (Theme.mainContainerBackgroundAttributes
-                        ++ Theme.mainContainerBorderAttributes
-                        ++ [ alignTop
-                           , Font.size <| responsiveVal model.dProfile 24 12
-                           , Font.color almostWhite
-                           , padding 5
-                           ]
-                        ++ (case model.dProfile of
-                                EH.Desktop ->
-                                    [ alignRight ]
-
-                                EH.Mobile ->
-                                    [ Font.semiBold
-                                    ]
-                           )
-                    )
-
-
-switchToBsc :
-    Model
-    -> Element Msg
-switchToBsc model =
-    case Wallet.userInfo model.wallet of
-        Nothing ->
-            Element.none
-
-        _ ->
-            { onPress =
-                BSCImport
-                    |> Just
-            , label =
-                "Switch to BSC"
-                    |> text
-            }
-                |> Input.button
-                    (Theme.childContainerBackgroundAttributes
-                        ++ Theme.childContainerBorderAttributes
-                        ++ [ responsiveVal model.dProfile 10 5
-                                |> padding
-                           , Font.color almostWhite
-                           ]
-                    )
-                |> el
-                    ([ alignTop
-                     , Font.size <| responsiveVal model.dProfile 30 16
-                     , padding 5
-                     ]
-                        ++ (case model.dProfile of
-                                EH.Desktop ->
-                                    [ alignRight ]
-
-                                EH.Mobile ->
-                                    [ Font.semiBold
-                                    ]
-                           )
-                    )
 
 
 getLiquidityDescription : Chain -> String
