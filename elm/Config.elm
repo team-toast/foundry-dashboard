@@ -164,10 +164,10 @@ urlToLiquidityPool : Chain -> String
 urlToLiquidityPool chain =
     case chain of
         Eth ->
-            "https://info.uniswap.org/pair/0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+            "https://app.uniswap.org/#/add/0x6c972b70c533e2e045f333ee28b9ffb8d717be69/ETH"
 
         BSC ->
-            ""
+            "https://exchange.pancakeswap.finance/#/swap?inputCurrency=BNB&outputCurrency=0xc04e039ae8587e71f8024b36d630f841cc2106cc"
 
         XDai ->
             ""
@@ -180,7 +180,7 @@ forbiddenJurisdictionCodes =
 
 farmingPeriodEnds : Int
 farmingPeriodEnds =
-    1617702381
+    1620387709
 
 
 bucketSaleTokensPerBucket : Int
