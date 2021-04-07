@@ -177,8 +177,8 @@ bodyEl model =
         (case dProfile of
             EH.Desktop ->
                 [ balancesEl
-                , [ apyEl
-                  , networkAndSwitch
+                , [ networkAndSwitch
+                  , apyEl
                   ]
                     |> column
                         [ width fill
@@ -189,18 +189,16 @@ bodyEl model =
                 ]
 
             EH.Mobile ->
-                [ [ [ apyEl
-                    , networkAndSwitch
+                [ [ [ networkAndSwitch
+                    , apyEl
                     ]
                         |> row
                             [ width fill
                             , spacing 10
-                            , centerX
                             ]
                   ]
                     |> column
-                        [ centerX
-                        ]
+                        []
                 , balancesEl
                 ]
         )
@@ -374,12 +372,9 @@ apyElement dProfile maybeApy =
                     ]
             ]
                 |> mainEl
-                    ([ spacing 5
-                     , padding 5
-                     ]
-                        ++ Theme.mainContainerBackgroundAttributes
-                        ++ Theme.mainContainerBorderAttributes
-                    )
+                    [ spacing 5
+                    , padding 5
+                    ]
     )
         |> el
             ([ alignTop
