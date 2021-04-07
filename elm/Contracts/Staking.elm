@@ -129,10 +129,12 @@ getApy chain msgConstructor =
 
 unpackApy : BigInt -> Float
 unpackApy uintVal =
-    uintVal
+    (uintVal
         |> TokenValue.evmValueToUserFloatString
         |> String.toFloat
         |> Maybe.withDefault 0
+    )
+        * 100
 
 
 
