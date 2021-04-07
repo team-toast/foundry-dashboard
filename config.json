@@ -1,0 +1,14 @@
+[
+  {
+    "name": "xDai",
+    "network": 100
+  },
+  {
+    "name": "Ethereum",
+    "network": 1
+  },
+  {
+    "name": "BSC",
+    "network": 56
+  }
+]

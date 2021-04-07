@@ -100,12 +100,8 @@ wrongWeb3Network =
     }
 
 
-unexpectedError : String -> a -> UserNotice
-unexpectedError text debugObj =
-    let
-        _ =
-            maybeDebugLog text debugObj
-    in
+unexpectedError : String -> UserNotice
+unexpectedError text =
     { uniqueLabel = "unexpectedError " ++ text
     , noticeType = ShouldBeImpossible
     , mainParagraphs = [ [ Element.text text ] ]
@@ -175,7 +171,6 @@ walletError : String -> UserNotice
 walletError errStr =
     unexpectedError
         ("Error decoding JS walletSentry: " ++ errStr)
-        Nothing
 
 
 inputError : String -> UserNotice
@@ -242,5 +237,14 @@ signingError errStr =
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text <| "Error signing message: " ++ errStr ] ]
+    , align = BottomRight
+    }
+
+
+notify : String -> UserNotice
+notify text =
+    { uniqueLabel = text
+    , noticeType = Update
+    , mainParagraphs = [ [ Element.text text ] ]
     , align = BottomRight
     }

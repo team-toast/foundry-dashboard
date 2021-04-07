@@ -6,6 +6,7 @@ import Eth.Utils
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (Chain(..))
 
 
 testMode =
@@ -17,32 +18,49 @@ displayProfileBreakpoint =
     1150
 
 
-httpProviderUrl : String
-httpProviderUrl =
-    if testMode then
-        ganacheHttpProviderUrl
-
-    else
-        mainnetHttpProviderUrl
+httpProviderUrl : Chain -> String
+httpProviderUrl chain =
+    mainnetHttpProviderUrl chain
 
 
-mainnetHttpProviderUrl : String
-mainnetHttpProviderUrl =
-    "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+mainnetHttpProviderUrl : Chain -> String
+mainnetHttpProviderUrl chain =
+    case chain of
+        Eth ->
+            if testMode then
+                testModeHttpProviderUrl
+
+            else
+                "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+
+        BSC ->
+            "https://bsc-dataseed1.binance.org/"
+
+        XDai ->
+            testModeHttpProviderUrl
 
 
-ganacheHttpProviderUrl : String
-ganacheHttpProviderUrl =
+testModeHttpProviderUrl : String
+testModeHttpProviderUrl =
     "http://localhost:8545"
 
 
-daiContractAddress : Address
-daiContractAddress =
-    if testMode then
-        Eth.Utils.unsafeToAddress "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
+daiContractAddress : Chain -> Address
+daiContractAddress chain =
+    Eth.Utils.unsafeToAddress <|
+        case chain of
+            Eth ->
+                if testMode then
+                    "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
 
-    else
-        Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+                else
+                    "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+
+            BSC ->
+                "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3"
+
+            XDai ->
+                ""
 
 
 erc20BalanceFetchBatchContractAddress : Address
@@ -50,9 +68,18 @@ erc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
 
 
-fryContractAddress : Address
-fryContractAddress =
-    Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
+fryContractAddress : Chain -> Address
+fryContractAddress chain =
+    Eth.Utils.unsafeToAddress <|
+        case chain of
+            Eth ->
+                "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
+
+            BSC ->
+                "0xc04e039ae8587e71f8024b36d630f841cc2106cc"
+
+            XDai ->
+                ""
 
 
 etherscanBaseUrl : String
@@ -75,24 +102,75 @@ bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
 
 
-stakingContractAddress : Address
-stakingContractAddress =
-    Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
+stakingContractAddress : Chain -> Address
+stakingContractAddress chain =
+    Eth.Utils.unsafeToAddress <|
+        case chain of
+            Eth ->
+                "0xa2a4ef5722b198a139dd93b1d420769261808fd1"
+
+            BSC ->
+                "0xC13aa70E9437349834B1B093f8C5922fdEF6496B"
+
+            XDai ->
+                ""
 
 
-stakingLiquidityContractAddress : Address
-stakingLiquidityContractAddress =
-    Eth.Utils.unsafeToAddress "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+stakingLiquidityContractAddress : Chain -> Address
+stakingLiquidityContractAddress chain =
+    Eth.Utils.unsafeToAddress <|
+        case chain of
+            Eth ->
+                "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+
+            BSC ->
+                "0xe71c65eb18fab7c8dd99598973fd8fa18570fb01"
+
+            XDai ->
+                ""
 
 
-stakingScriptsAddress : Address
-stakingScriptsAddress =
-    Eth.Utils.unsafeToAddress "0xa939728f9cdCdc4EEA16bdF3Aff03AB27036f4c7"
+stakingScriptsAddress : Chain -> Address
+stakingScriptsAddress chain =
+    Eth.Utils.unsafeToAddress <|
+        case chain of
+            Eth ->
+                "0x929378d7E8D9df3aE96835bac4DaD7dfc5741beA"
+
+            BSC ->
+                "0x6cefd06178B924b550F28bD9B9546338337d3B31"
+
+            XDai ->
+                ""
 
 
-urlToLiquidityPool : String
-urlToLiquidityPool =
-    "https://info.uniswap.org/pair/0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+stakingPricePairAddress : Chain -> Address
+stakingPricePairAddress chain =
+    Eth.Utils.unsafeToAddress <|
+        case chain of
+            Eth ->
+                -- DAI/WETH
+                "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"
+
+            BSC ->
+                -- BUSD/BNB
+                "0x1b96b92314c44b159149f7e0303511fb2fc4774f"
+
+            XDai ->
+                ""
+
+
+urlToLiquidityPool : Chain -> String
+urlToLiquidityPool chain =
+    case chain of
+        Eth ->
+            "https://app.uniswap.org/#/add/0x6c972b70c533e2e045f333ee28b9ffb8d717be69/ETH"
+
+        BSC ->
+            "https://exchange.pancakeswap.finance/#/swap?inputCurrency=BNB&outputCurrency=0xc04e039ae8587e71f8024b36d630f841cc2106cc"
+
+        XDai ->
+            ""
 
 
 forbiddenJurisdictionCodes : Set String
@@ -102,7 +180,7 @@ forbiddenJurisdictionCodes =
 
 farmingPeriodEnds : Int
 farmingPeriodEnds =
-    1607702381
+    1620387709
 
 
 bucketSaleTokensPerBucket : Int

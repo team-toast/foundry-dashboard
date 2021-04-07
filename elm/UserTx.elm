@@ -27,6 +27,7 @@ type TxInfo
     | StakingExit
     | DEthDeposit
     | DEthRedeem
+    | Send Eth.TxHash
 
 
 type alias Tracker msg =

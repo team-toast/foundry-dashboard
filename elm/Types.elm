@@ -6,14 +6,16 @@ import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
 import ElementHelpers as EH
+import Eth exposing (hashrate)
 import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
+import GTag
 import Graphql.Http
 import Http
-import Json.Decode
+import Json.Decode exposing (Value)
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
@@ -24,11 +26,16 @@ import UserTx
 
 type alias Flags =
     { basePath : String
-    , networkId : Int
     , width : Int
     , height : Int
     , nowInMillis : Int
     , cookieConsent : Bool
+    , chains : Value
+
+    -- , ethProviderUrl : String
+    -- , xDaiProviderUrl : String
+    -- , bscProviderUrl : String
+    , hasWallet : Bool
     }
 
 
@@ -39,8 +46,12 @@ type alias Model =
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
+    , sentries :
+        { xDai : EventSentry Msg
+        , ethereum : EventSentry Msg
+        , bsc : EventSentry Msg
+        }
     , txSentry : TxSentry Msg
-    , eventSentry : EventSentry Msg
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : UserTx.Tracker Msg
@@ -75,6 +86,9 @@ type alias Model =
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , farmingIsActive : Bool
+    , config : Config
+    , chainSwitchInProgress : Bool
+    , gtagHistory : GTag.GTagHistory
     }
 
 
@@ -87,7 +101,7 @@ type Msg
     | Resize Int Int
     | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
-    | EventSentryMsg EventSentry.Msg
+    | EventSentryMsg Chain EventSentry.Msg
     | DismissNotice Int
     | ClickHappened
     | ShowExpandedTrackedTxs Bool
@@ -95,9 +109,9 @@ type Msg
     | TxMined Int (Result String TxReceipt)
     | CookieConsentGranted
     | BucketValueEnteredFetched (Maybe Int) (Result Http.Error TokenValue)
-    | FetchedEthPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
-    | FetchedDaiPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
-    | FetchedFryPrice (Result (Graphql.Http.Error (Maybe Value)) (Maybe Value))
+    | FetchedEthPrice (Result (Graphql.Http.Error (Maybe PriceValue)) (Maybe PriceValue))
+    | FetchedDaiPrice (Result (Graphql.Http.Error (Maybe PriceValue)) (Maybe PriceValue))
+    | FetchedFryPrice (Result (Graphql.Http.Error (Maybe PriceValue)) (Maybe PriceValue))
     | FetchedTeamTokens Int (Result Http.Error TokenValue)
     | FetchedPermaFrostBalanceLocked (Result Http.Error TokenValue)
     | FetchedPermaFrostTotalSupply (Result Http.Error TokenValue)
@@ -146,16 +160,22 @@ type Msg
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
     | Navigate Route
+    | BSCImport
+    | WalletResponse (Result WalletConnectErr UserInfo)
+    | ChainSwitchResponse (Result TxErr ())
+    | TxSendResponse (Result TxErr TxHash)
 
 
-type alias Value =
+type alias PriceValue =
     { ethPrice : Float
     }
 
 
 type alias UserInfo =
-    { network : Eth.Net.NetworkId
-    , address : Address
+    { address : Address
+    , balance : TokenValue
+    , chain : Chain
+    , xDaiStatus : XDaiStatus
     }
 
 
@@ -282,7 +302,8 @@ type SigValidationResult
 
 type Wallet
     = NoneDetected
-    | OnlyNetwork Eth.Net.NetworkId
+    | NetworkReady
+    | Connecting
     | Active UserInfo
 
 
@@ -300,3 +321,43 @@ type InputValidationResult
     | InputLessThan
     | InputGreaterThan
     | InputUndefined
+
+
+type Chain
+    = XDai
+    | Eth
+    | BSC
+
+
+type alias ChainConfig =
+    { chain : Chain
+
+    -- , contract : Address
+    -- , startScanBlock : Int
+    , providerUrl : String
+    }
+
+
+type alias Config =
+    { xDai : ChainConfig
+    , ethereum : ChainConfig
+    , bsc : ChainConfig
+    }
+
+
+type WalletConnectErr
+    = WalletCancel
+    | WalletInProgress
+    | WalletError String
+    | NetworkNotSupported
+
+
+type TxErr
+    = UserRejected
+    | OtherErr String
+
+
+type XDaiStatus
+    = XDaiStandby
+    | WaitingForApi
+    | WaitingForBalance

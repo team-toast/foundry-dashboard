@@ -1,6 +1,6 @@
 module Theme exposing (..)
 
-import Element exposing (Attribute, Color, Element, above, centerX, centerY, el, maximum, moveUp, padding, paddingXY, paragraph, rgb, rgba, shrink, text, width)
+import Element exposing (Attribute, Color, Element, above, centerX, centerY, el, maximum, moveUp, padding, paddingXY, paragraph, rgb, rgb255, rgba, shrink, text, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -61,6 +61,21 @@ basicTheme =
     , secondaryActionButton = blueButton
     , disabledActionButton = disabledButton
     }
+
+
+xDai : Color
+xDai =
+    rgb255 7 132 112
+
+
+ethereum : Color
+ethereum =
+    rgb255 90 110 249
+
+
+bsc : Color
+bsc =
+    rgb255 7 132 112
 
 
 softRed =
@@ -125,6 +140,11 @@ yellow =
 
 darkYellow =
     Element.rgb 0.6 0.6 0
+
+
+orange : Color
+orange =
+    Element.rgb255 247 155 48
 
 
 commonShadow : Attribute msg

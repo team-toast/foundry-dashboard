@@ -1,5 +1,6 @@
 module View.Stats exposing (view)
 
+import Chain
 import Config
 import Element exposing (Element, alignRight, alignTop, centerX, column, el, fill, height, image, newTabLink, padding, paddingEach, px, row, spaceEvenly, spacing, spacingXY, text, width)
 import Element.Font
@@ -9,8 +10,9 @@ import Eth.Utils
 import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
 import Theme
 import TokenValue exposing (TokenValue)
-import Types exposing (Model, Msg)
+import Types exposing (Chain, Model, Msg)
 import View.Common exposing (..)
+import Wallet
 
 
 view : Model -> Element Msg
@@ -23,6 +25,14 @@ view model =
 
                 Mobile ->
                     column
+
+        chain =
+            model.wallet
+                |> Wallet.userInfo
+                |> Chain.whenJust
+                    (\userInfo ->
+                        userInfo.chain
+                    )
     in
     mainEl
         [ padding 20
@@ -30,20 +40,21 @@ view model =
         , centerX
         ]
         [ statsEl model
-        , viewAddresses model.dProfile
+        , viewAddresses chain model.dProfile
         ]
 
 
 viewAddresses :
-    DisplayProfile
+    Chain
+    -> DisplayProfile
     -> Element Msg
-viewAddresses dProfile =
+viewAddresses chain dProfile =
     [ text "Foundry Addresses"
         |> el
             [ Element.Font.size 30
             , Element.Font.color EH.white
             ]
-    , viewAddressAndLabel dProfile "FRY token" Config.fryContractAddress
+    , viewAddressAndLabel dProfile "FRY token" (Config.fryContractAddress chain)
     , viewAddressAndLabel dProfile "Treasury" Config.treasuryForwarderAddress
     , viewAddressAndLabel dProfile "Bucket sale" Config.bucketSaleAddress
     , viewAddressAndLabel dProfile "Multisig" Config.teamToastMultiSigAddress

@@ -3,7 +3,7 @@ module Misc exposing (..)
 import AddressDict
 import Array exposing (Array, fromList)
 import Browser.Navigation
-import Config
+import Config as ConfigFile
 import Contracts.BucketSale.Wrappers as BucketSaleWrappers exposing (getTotalValueEnteredForBucket)
 import Contracts.DEthWrapper as Death
 import Contracts.ERC20Wrapper as ERC20
@@ -18,10 +18,11 @@ import Contracts.UniSwapGraph.ScalarCodecs exposing (..)
 import Dict exposing (Dict)
 import ElementHelpers as EH
 import Eth.Net
-import Eth.Sentry.Event as EventSentry
+import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
+import GTag
 import Graphql.Http
 import Graphql.Operation exposing (RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
@@ -38,7 +39,7 @@ import Routing
 import Set
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Value, Wallet)
+import Types exposing (Chain(..), Config, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, PriceValue, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Wallet)
 import Url.Builder
 import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
@@ -51,20 +52,12 @@ emptyModel key now basePath cookieConsent =
             TxSentry.init
                 ( txOut, txIn )
                 Types.TxSentryMsg
-                Config.httpProviderUrl
-
-        ( eventSentry, sentryCmd ) =
-            EventSentry.init
-                Types.EventSentryMsg
-                Config.httpProviderUrl
+                (ConfigFile.httpProviderUrl Eth)
 
         ( wallet, walletNotices ) =
-            ( Types.NoneDetected
-            , [ noWeb3Provider ]
+            ( Types.Connecting
+            , []
             )
-
-        arr =
-            fromList [ TokenValue.zero, TokenValue.zero, TokenValue.zero ]
     in
     { navKey = key
     , basePath = basePath
@@ -72,8 +65,15 @@ emptyModel key now basePath cookieConsent =
     , wallet = wallet
     , now = now
     , dProfile = EH.Desktop
+    , sentries =
+        { xDai =
+            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
+        , ethereum =
+            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
+        , bsc =
+            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
+        }
     , txSentry = txSentry
-    , eventSentry = eventSentry
     , showAddressId = Nothing
     , userNotices = walletNotices
     , trackedTxs = []
@@ -107,7 +107,10 @@ emptyModel key now basePath cookieConsent =
     , userStakingInfo = Nothing
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
-    , farmingIsActive = False -- Set to true to enable farming interface - False will show inactive message
+    , farmingIsActive = True -- Set to true to enable farming interface - False will show inactive message
+    , config = emptyConfig
+    , chainSwitchInProgress = False
+    , gtagHistory = GTag.emptyGtagHistory
     }
 
 
@@ -116,9 +119,9 @@ loadingText =
     "Loading..."
 
 
-resultBundle : SelectionSet Value Contracts.UniSwapGraph.Object.Bundle
+resultBundle : SelectionSet PriceValue Contracts.UniSwapGraph.Object.Bundle
 resultBundle =
-    SelectionSet.map Value
+    SelectionSet.map PriceValue
         (Bundle.ethPrice
             |> SelectionSet.map
                 (\(Contracts.UniSwapGraph.Scalar.BigDecimal dec) ->
@@ -128,9 +131,9 @@ resultBundle =
         )
 
 
-resultToken : SelectionSet Value Contracts.UniSwapGraph.Object.Token
+resultToken : SelectionSet PriceValue Contracts.UniSwapGraph.Object.Token
 resultToken =
-    SelectionSet.map Value
+    SelectionSet.map PriceValue
         (Token.derivedETH
             |> SelectionSet.map
                 (\(Contracts.UniSwapGraph.Scalar.BigDecimal dec) ->
@@ -143,70 +146,77 @@ resultToken =
 fetchEthPrice : Cmd Msg
 fetchEthPrice =
     Query.bundle identity { id = Id "1" } resultBundle
-        |> Graphql.Http.queryRequest Config.uniswapGraphQL
+        |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedEthPrice
 
 
-fetchDaiPrice : Cmd Msg
-fetchDaiPrice =
+fetchDaiPrice : Chain -> Cmd Msg
+fetchDaiPrice chain =
     Query.token identity
         { id =
             Id <|
-                Eth.Utils.addressToString Config.daiContractAddress
+                Eth.Utils.addressToString <|
+                    ConfigFile.daiContractAddress chain
         }
         resultToken
-        |> Graphql.Http.queryRequest Config.uniswapGraphQL
+        |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedDaiPrice
 
 
-fetchFryPrice : Cmd Msg
-fetchFryPrice =
+fetchFryPrice : Chain -> Cmd Msg
+fetchFryPrice chain =
     Query.token identity
         { id =
             Id <|
-                Eth.Utils.addressToString Config.fryContractAddress
+                Eth.Utils.addressToString <|
+                    ConfigFile.fryContractAddress chain
         }
         resultToken
-        |> Graphql.Http.queryRequest Config.uniswapGraphQL
+        |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedFryPrice
 
 
-fetchTeamTokenBalance : Address -> Address -> Int -> Cmd Msg
-fetchTeamTokenBalance tokenAddress owner index =
+fetchTeamTokenBalance : Chain -> Address -> Address -> Int -> Cmd Msg
+fetchTeamTokenBalance chain tokenAddress owner index =
     ERC20.getBalanceCmd
+        chain
         tokenAddress
         owner
         (Types.FetchedTeamTokens index)
 
 
-fetchPermaFrostLockedTokenBalance : Cmd Msg
-fetchPermaFrostLockedTokenBalance =
+fetchPermaFrostLockedTokenBalance : Chain -> Cmd Msg
+fetchPermaFrostLockedTokenBalance chain =
     ERC20.getBalanceCmd
-        Config.balancerPermafrostPool
-        Config.burnAddress
+        chain
+        ConfigFile.balancerPermafrostPool
+        ConfigFile.burnAddress
         Types.FetchedPermaFrostBalanceLocked
 
 
-fetchPermaFrostTotalSupply : Cmd Msg
-fetchPermaFrostTotalSupply =
+fetchPermaFrostTotalSupply : Chain -> Cmd Msg
+fetchPermaFrostTotalSupply chain =
     ERC20.getTotalSupply
-        Config.balancerPermafrostPool
+        chain
+        ConfigFile.balancerPermafrostPool
         Types.FetchedPermaFrostTotalSupply
 
 
-fetchBalancerPoolFryBalance : Cmd Msg
-fetchBalancerPoolFryBalance =
+fetchBalancerPoolFryBalance : Chain -> Cmd Msg
+fetchBalancerPoolFryBalance chain =
     ERC20.getBalanceCmd
-        Config.fryContractAddress
-        Config.balancerPermafrostPool
+        chain
+        (ConfigFile.fryContractAddress chain)
+        ConfigFile.balancerPermafrostPool
         Types.FetchedBalancerFryBalance
 
 
-fetchTreasuryBalance : Cmd Msg
-fetchTreasuryBalance =
+fetchTreasuryBalance : Chain -> Cmd Msg
+fetchTreasuryBalance chain =
     ERC20.getBalanceCmd
-        Config.daiContractAddress
-        Config.treasuryForwarderAddress
+        chain
+        (ConfigFile.daiContractAddress chain)
+        ConfigFile.treasuryForwarderAddress
         Types.FetchedTreasuryBalance
 
 
@@ -233,7 +243,7 @@ calcCircSupply currentBucketId totalTeamTokens totalPermaFrostedTokens =
                     Just tpt ->
                         Just <|
                             toFloat
-                                (Config.bucketSaleTokensPerBucket
+                                (ConfigFile.bucketSaleTokensPerBucket
                                     * bucketId
                                 )
                                 + ttt
@@ -283,7 +293,7 @@ calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
             case currentEthPriceUsd of
                 Just eth ->
                     Just <|
-                        toFloat Config.fryTotalSupply
+                        toFloat ConfigFile.fryTotalSupply
                             * fry
                             * eth
 
@@ -299,10 +309,10 @@ getCurrentBucketId :
     -> Maybe Int
 getCurrentBucketId now =
     Just <|
-        (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix Config.saleStarted)
+        (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix ConfigFile.saleStarted)
             |> TimeHelpers.posixToSeconds
         )
-            // (Config.bucketSaleBucketInterval
+            // (ConfigFile.bucketSaleBucketInterval
                     |> TimeHelpers.posixToSeconds
                )
 
@@ -329,14 +339,14 @@ getBucketStartTime :
     -> Time.Posix
 getBucketStartTime bucketId =
     Time.millisToPosix
-        (Config.saleStarted + (bucketId * Time.posixToMillis Config.bucketSaleBucketInterval))
+        (ConfigFile.saleStarted + (bucketId * Time.posixToMillis ConfigFile.bucketSaleBucketInterval))
 
 
 getBucketEndTime : Int -> Time.Posix
 getBucketEndTime bucketId =
     TimeHelpers.add
         (getBucketStartTime bucketId)
-        Config.bucketSaleBucketInterval
+        ConfigFile.bucketSaleBucketInterval
 
 
 calcEffectivePricePerToken : Maybe TokenValue -> Maybe Float -> Maybe Float -> String
@@ -344,11 +354,11 @@ calcEffectivePricePerToken totalValueEntered tokenValueEth ethValueUsd =
     let
         tpb =
             toFloat <|
-                if Config.bucketSaleTokensPerBucket < 1 then
+                if ConfigFile.bucketSaleTokensPerBucket < 1 then
                     1
 
                 else
-                    Config.bucketSaleTokensPerBucket
+                    ConfigFile.bucketSaleTokensPerBucket
     in
     case totalValueEntered of
         Just tve ->
@@ -379,11 +389,12 @@ maybeFloatMultiply val1 val2 =
             Nothing
 
 
-fetchTotalValueEnteredCmd : Maybe Int -> Cmd Msg
-fetchTotalValueEnteredCmd bucketId =
+fetchTotalValueEnteredCmd : Chain -> Maybe Int -> Cmd Msg
+fetchTotalValueEnteredCmd chain bucketId =
     case bucketId of
         Just id ->
             getTotalValueEnteredForBucket
+                chain
                 id
                 (Just id
                     |> Types.BucketValueEnteredFetched
@@ -480,80 +491,82 @@ calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
             Nothing
 
 
-fetchStakingInfoOrApyCmd : Time.Posix -> Wallet -> Cmd Msg
-fetchStakingInfoOrApyCmd now wallet =
+fetchStakingInfoOrApyCmd : Chain -> Time.Posix -> Wallet -> Cmd Msg
+fetchStakingInfoOrApyCmd chain now wallet =
     case userInfo wallet of
         Just uInfo ->
-            fetchUserStakingInfoCmd uInfo.address
+            fetchUserStakingInfoCmd chain uInfo.address
 
         Nothing ->
-            fetchApyCmd
+            fetchApyCmd chain
 
 
-fetchUserStakingInfoCmd : Address -> Cmd Msg
-fetchUserStakingInfoCmd userAddress =
+fetchUserStakingInfoCmd : Chain -> Address -> Cmd Msg
+fetchUserStakingInfoCmd chain userAddress =
     StakingContract.getUserStakingInfo
+        chain
         userAddress
         Types.StakingInfoFetched
 
 
-fetchApyCmd : Cmd Msg
-fetchApyCmd =
+fetchApyCmd : Chain -> Cmd Msg
+fetchApyCmd chain =
     StakingContract.getApy
+        chain
         Types.ApyFetched
 
 
-doApproveChainCmdFarm : UserTx.Initiator Msg
-doApproveChainCmdFarm =
+doApproveChainCmdFarm : Chain -> UserTx.Initiator Msg
+doApproveChainCmdFarm chain =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.approveLiquidityToken
+    , send = StakingContract.approveLiquidityToken chain
     , txInfo = UserTx.StakingApprove
     }
 
 
-doDepositChainCmdFarm : TokenValue -> UserTx.Initiator Msg
-doDepositChainCmdFarm amount =
+doDepositChainCmdFarm : Chain -> TokenValue -> UserTx.Initiator Msg
+doDepositChainCmdFarm chain amount =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Just <| Types.DepositOrWithdrawSigned Types.Deposit amount
         }
-    , send = StakingContract.stake amount
+    , send = StakingContract.stake chain amount
     , txInfo = UserTx.StakingDeposit amount
     }
 
 
-doWithdrawChainCmdFarm : TokenValue -> UserTx.Initiator Msg
-doWithdrawChainCmdFarm amount =
+doWithdrawChainCmdFarm : Chain -> TokenValue -> UserTx.Initiator Msg
+doWithdrawChainCmdFarm chain amount =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Just <| Types.DepositOrWithdrawSigned Types.Withdraw amount
         }
-    , send = StakingContract.withdraw amount
+    , send = StakingContract.withdraw chain amount
     , txInfo = UserTx.StakingWithdraw amount
     }
 
 
-doExitChainCmdFarm : UserTx.Initiator Msg
-doExitChainCmdFarm =
+doExitChainCmdFarm : Chain -> UserTx.Initiator Msg
+doExitChainCmdFarm chain =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.exit
+    , send = StakingContract.exit chain
     , txInfo = UserTx.StakingExit
     }
 
 
-doClaimRewardsFarm : UserTx.Initiator Msg
-doClaimRewardsFarm =
+doClaimRewardsFarm : Chain -> UserTx.Initiator Msg
+doClaimRewardsFarm chain =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.claimRewards
+    , send = StakingContract.claimRewards chain
     , txInfo = UserTx.StakingClaim
     }
 
@@ -663,7 +676,7 @@ countryCodeToJurisdiction ipCode geoCode =
     let
         allowedJurisdiction =
             Set.fromList [ ipCode, geoCode ]
-                |> Set.intersect Config.forbiddenJurisdictionCodes
+                |> Set.intersect ConfigFile.forbiddenJurisdictionCodes
                 |> Set.isEmpty
     in
     if allowedJurisdiction then
@@ -728,7 +741,7 @@ calcTimeLeft :
 calcTimeLeft now =
     let
         timeLeft =
-            Time.posixToMillis (TimeHelpers.sub (TimeHelpers.secondsToPosix Config.farmingPeriodEnds) now)
+            Time.posixToMillis (TimeHelpers.sub (TimeHelpers.secondsToPosix ConfigFile.farmingPeriodEnds) now)
     in
     if timeLeft <= 0 then
         0
@@ -737,20 +750,25 @@ calcTimeLeft now =
         timeLeft
 
 
-fetchAllPollsCmd : Cmd Msg
-fetchAllPollsCmd =
-    Http.request
-        { method = "GET"
-        , headers = []
-        , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0"
-        , body = Http.emptyBody
-        , expect =
-            Http.expectJson
-                Types.PollsFetched
-                pollListDecoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
+fetchAllPollsCmd : Chain -> Cmd Msg
+fetchAllPollsCmd chain =
+    case chain of
+        Eth ->
+            Http.request
+                { method = "GET"
+                , headers = []
+                , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0"
+                , body = Http.emptyBody
+                , expect =
+                    Http.expectJson
+                        Types.PollsFetched
+                        pollListDecoder
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+
+        _ ->
+            Cmd.none
 
 
 pollListDecoder : Decoder (List Poll)
@@ -852,9 +870,10 @@ validateSigResultDecoder =
         )
 
 
-fetchFryBalancesCmd : List Address -> Cmd Msg
-fetchFryBalancesCmd addresses =
+fetchFryBalancesCmd : Chain -> List Address -> Cmd Msg
+fetchFryBalancesCmd chain addresses =
     Contracts.FryBalanceFetch.fetch
+        chain
         addresses
         Types.FryBalancesFetched
 
@@ -948,33 +967,35 @@ encodeSignedResponseForServer signedResponse =
         ]
 
 
-fetchEthBalance : Wallet -> Cmd Msg
-fetchEthBalance wallet =
+fetchEthBalance : Chain -> Wallet -> Cmd Msg
+fetchEthBalance chain wallet =
     case userInfo wallet of
         Nothing ->
             Cmd.none
 
         Just uInfo ->
             ERC20.getEthBalance
+                chain
                 uInfo.address
                 Types.UserEthBalanceFetched
 
 
-fetchDerivedEthBalance : Wallet -> Cmd Msg
-fetchDerivedEthBalance wallet =
+fetchDerivedEthBalance : Chain -> Wallet -> Cmd Msg
+fetchDerivedEthBalance chain wallet =
     case userInfo wallet of
         Nothing ->
             Cmd.none
 
         Just uInfo ->
             ERC20.getBalanceCmd
-                Config.derivedEthContractAddress
+                chain
+                ConfigFile.derivedEthContractAddress
                 uInfo.address
                 Types.UserDerivedEthBalanceFetched
 
 
-fetchIssuanceDetail : String -> Cmd Msg
-fetchIssuanceDetail depositAmount =
+fetchIssuanceDetail : Chain -> String -> Cmd Msg
+fetchIssuanceDetail chain depositAmount =
     case TokenValue.fromString depositAmount of
         Nothing ->
             Cmd.none
@@ -983,10 +1004,11 @@ fetchIssuanceDetail depositAmount =
             Death.getIssuanceDetail
                 amount
                 Types.DerivedEthIssuanceDetailFetched
+                chain
 
 
-fetchDethPositionInfo : Maybe TokenValue -> Cmd Msg
-fetchDethPositionInfo amount =
+fetchDethPositionInfo : Chain -> Maybe TokenValue -> Cmd Msg
+fetchDethPositionInfo chain amount =
     case amount of
         Nothing ->
             Cmd.none
@@ -995,6 +1017,7 @@ fetchDethPositionInfo amount =
             Death.getRedeemable
                 dEthVal
                 Types.DerivedEthRedeemableFetched
+                chain
 
 
 doDepositChainCmd : Address -> TokenValue -> UserTx.Initiator Msg
@@ -1051,19 +1074,6 @@ userInfo walletState =
 
         _ ->
             Nothing
-
-
-network : Wallet -> Maybe Eth.Net.NetworkId
-network walletState =
-    case walletState of
-        Types.NoneDetected ->
-            Nothing
-
-        Types.OnlyNetwork network_ ->
-            Just network_
-
-        Types.Active uInfo ->
-            Just uInfo.network
 
 
 initiateUserTxs : TxSentry.TxSentry Msg -> UserTx.Tracker Msg -> List (UserTx.Initiator Msg) -> ( TxSentry.TxSentry Msg, Cmd Msg, UserTx.Tracker Msg )
@@ -1124,3 +1134,34 @@ addTrackedTx userTx notifiers tracker =
         tracker
         [ newTrackedTx ]
     )
+
+
+emptyConfig : Config
+emptyConfig =
+    { xDai =
+        { chain = Types.XDai
+
+        -- , contract = emptyAddress
+        -- , startScanBlock = 0
+        , providerUrl = ""
+        }
+    , ethereum =
+        { chain = Types.Eth
+
+        -- , contract = emptyAddress
+        -- , startScanBlock = 0
+        , providerUrl = ""
+        }
+    , bsc =
+        { chain = Types.BSC
+
+        -- , contract = emptyAddress
+        -- , startScanBlock = 0
+        , providerUrl = ""
+        }
+    }
+
+
+emptyAddress : Address
+emptyAddress =
+    Eth.Utils.unsafeToAddress ""

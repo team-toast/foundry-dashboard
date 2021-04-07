@@ -6,52 +6,54 @@ import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingContract
 import Contracts.Generated.StakingScripts as StakingScripts
 import Eth
+import Eth.Abi.Decode exposing (uint)
 import Eth.Types as Eth exposing (Address)
 import Helpers.BigInt as BigIntHelpers
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Http
+import String
 import Task
-import TokenValue exposing (TokenValue)
-import Types exposing (UserStakingInfo)
+import TokenValue exposing (TokenValue, tokenValue)
+import Types exposing (Chain, UserStakingInfo)
 
 
-approveLiquidityToken : Eth.Send
-approveLiquidityToken =
+approveLiquidityToken : Chain -> Eth.Send
+approveLiquidityToken chain =
     ERC20.approve
-        Config.stakingLiquidityContractAddress
-        Config.stakingContractAddress
+        (Config.stakingLiquidityContractAddress chain)
+        (Config.stakingContractAddress chain)
         (TokenValue.maxTokenValue |> TokenValue.getEvmValue)
         |> Eth.toSend
 
 
-stake : TokenValue -> Eth.Send
-stake amount =
+stake : Chain -> TokenValue -> Eth.Send
+stake chain amount =
     StakingContract.stake
-        Config.stakingContractAddress
+        (Config.stakingContractAddress chain)
         (TokenValue.getEvmValue amount)
         |> Eth.toSend
 
 
-withdraw : TokenValue -> Eth.Send
-withdraw amount =
+withdraw : Chain -> TokenValue -> Eth.Send
+withdraw chain amount =
     StakingContract.withdraw
-        Config.stakingContractAddress
+        (Config.stakingContractAddress chain)
         (TokenValue.getEvmValue amount)
         |> Eth.toSend
 
 
-exit : Eth.Send
-exit =
+exit : Chain -> Eth.Send
+exit chain =
     StakingContract.exit
-        Config.stakingContractAddress
+        (Config.stakingContractAddress chain)
         |> Eth.toSend
 
 
-claimRewards : Eth.Send
-claimRewards =
+claimRewards : Chain -> Eth.Send
+claimRewards chain =
     StakingContract.getReward
-        Config.stakingContractAddress
+        (Config.stakingContractAddress chain)
         |> Eth.toSend
 
 
@@ -83,13 +85,14 @@ claimRewards =
 --         |> Task.attempt msgConstructor
 
 
-getUserStakingInfo : Address -> (Result Http.Error ( UserStakingInfo, Float ) -> msg) -> Cmd msg
-getUserStakingInfo userAddress msgConstructor =
+getUserStakingInfo : Chain -> Address -> (Result Http.Error ( UserStakingInfo, Float ) -> msg) -> Cmd msg
+getUserStakingInfo chain userAddress msgConstructor =
     Eth.call
-        Config.httpProviderUrl
+        (Config.httpProviderUrl chain)
         (StakingScripts.getData
-            Config.stakingScriptsAddress
-            Config.stakingContractAddress
+            (Config.stakingScriptsAddress chain)
+            (Config.stakingContractAddress chain)
+            (Config.stakingPricePairAddress chain)
             userAddress
         )
         |> Task.map unpackBindingStruct
@@ -109,13 +112,14 @@ unpackBindingStruct data =
     )
 
 
-getApy : (Result Http.Error Float -> msg) -> Cmd msg
-getApy msgConstructor =
+getApy : Chain -> (Result Http.Error Float -> msg) -> Cmd msg
+getApy chain msgConstructor =
     Eth.call
-        Config.httpProviderUrl
+        (Config.httpProviderUrl chain)
         (StakingScripts.getData
-            Config.stakingScriptsAddress
-            Config.stakingContractAddress
+            (Config.stakingScriptsAddress chain)
+            (Config.stakingContractAddress chain)
+            (Config.stakingPricePairAddress chain)
             EthHelpers.zeroAddress
         )
         |> Task.map unpackBindingStruct
@@ -125,8 +129,10 @@ getApy msgConstructor =
 
 unpackApy : BigInt -> Float
 unpackApy uintVal =
-    (BigIntHelpers.toIntWithWarning uintVal |> toFloat)
-        / 1000.0
+    uintVal
+        |> TokenValue.evmValueToUserFloatString
+        |> String.toFloat
+        |> Maybe.withDefault 0
 
 
 

@@ -1,78 +1,100 @@
-var elm_ethereum_ports = require('elm-ethereum-ports');
-var networkChangeNotifier = require('./networkChangeNotifier');
 var ethereumJsUtil = require('ethereumjs-utils');
 var locationCheck = require('./dualLocationCheck.js');
-require('@metamask/legacy-web3');
+//require('@metamask/legacy-web3');
+const {
+    requestAccounts,
+    bscImport,
+    handleWalletEvents,
+    getWallet,
+    sendTransaction,
+} = require("./metamask.js")
+const chains = require("../../config.json");
 
-const { web3 } = window;
 
-import { Elm } from '../../elm/App'
-
+const COOKIE_CONSENT = "cookie-consent";
 const basePath = new URL(document.baseURI).pathname;
 
-//window.testStuff = secureComms.testStuff;
-window.web3Connected = false;
+const { Elm } = require('../../elm/App.elm');
 
 window.addEventListener('load', function () {
-    startDapp();
+    const app = startDapp();
+
+    gtagPortStuff(app);
+
+    app.ports.log.subscribe((x) => console.log(x));
+
+    app.ports.bscImport.subscribe((_) =>
+        bscImport()
+            .then(app.ports.chainSwitchResponse.send)
+            .catch(app.ports.chainSwitchResponse.send)
+    );
+
+    app.ports.beginLocationCheck.subscribe(function (data) {
+        console.log(locationCheck);
+        locationCheck.dualLocationCheckWithCallback(app.ports.locationCheckResult.send);
+    });
+
+    app.ports.connectToWeb3.subscribe(() =>
+        (async () => {
+            const [account] = await requestAccounts();
+
+            const wallet = account ? await getWallet(account) : null;
+
+            app.ports.walletResponse.send(wallet);
+        })().catch((e) => {
+            app.ports.walletResponse.send(e);
+        })
+    );
+
+    app.ports.txSend.subscribe((params) =>
+        sendTransaction(params)
+            .then(app.ports.txSendResponse.send)
+            .catch(app.ports.txSendResponse.send)
+    );
+
+    // app.ports.refreshWallet.subscribe((account) =>
+    //     (async () => {
+    //         const balance = await getBalance(account);
+
+    //         app.ports.balanceResponse.send(balance);
+    //     })().catch(app.ports.balanceResponse.send)
+    // );
 });
 
 function startDapp() {
-    if (typeof web3 !== 'undefined') {
-        web3.version.getNetwork(function (e, networkId) {
-            var id;
-            if (e) {
-                console.log("Error initializing web3: " + e);
-                id = 0; // 0 indicates no network set by provider
-            }
-            else {
-                id = parseInt(networkId);
-            }
-            window.app = Elm.App.init({
-                node: document.getElementById('elm'),
-                flags: {
-                    basePath: basePath,
-                    networkId: id,
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                    nowInMillis: Date.now(),
-                    cookieConsent: getCookieConsent(),
-                }
-            });
+    const hasWallet = Boolean(window.ethereum);
 
-            gtagPortStuff(app);
-            locationCheckPortStuff(app);
-            web3PortStuff(app, web3);
+    const app = Elm.App.init({
+        node: document.getElementById('elm'),
+        flags: {
+            basePath: basePath,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            nowInMillis: Date.now(),
+            cookieConsent: getCookieConsent(),
+            chains,
+            hasWallet,
+        }
+    });
 
-        });
-    } else {
-        window.app = Elm.App.init({
-            node: document.getElementById('elm'),
-            flags: {
-                basePath: basePath,
-                networkId: 0, // 0 indicates no network set by provider
-                width: window.innerWidth,
-                height: window.innerHeight,
-                nowInMillis: Date.now(),
-                cookieConsent: getCookieConsent(),
-            }
-        });
+    web3PortStuff(app, web3);
 
-        gtagPortStuff(app);
-        locationCheckPortStuff(app);
 
-        console.log("Web3 wallet not detected.");
+    if (hasWallet) {
+        handleWalletEvents(app.ports.walletResponse.send);
     }
+
+    return app;
 }
 
 function web3PortStuff(app, web3) {
-    prepareWeb3PortsPreConnect(app, web3);
+    //prepareWeb3PortsPreConnect(app, web3);
 
-    web3.eth.getAccounts(function (e, res) {
-        if (res && res.length > 0) {
-            connectAndPrepareRemainingWeb3Ports(app, web3);
-        }
-    });
+    // web3.eth.getAccounts(function (e, res) {
+    //     if (res && res.length > 0) {
+    //         connectAndPrepareRemainingWeb3Ports(app, web3);
+    //     }
+    // });
 
     app.ports.web3Sign.subscribe(function (data) {
         web3.personal.sign(data.data, data.address, function (err, res) {
@@ -124,44 +146,14 @@ function gtagPortStuff(app) {
         });
     });
 
-    app.ports.consentToCookies.subscribe(function() {
+    app.ports.consentToCookies.subscribe(function () {
         setCookieConsent();
     });
 }
 
 function getCookieConsent() {
-    return Boolean(window.localStorage.getItem('cookie-consent'))
+    return Boolean(window.localStorage.getItem(COOKIE_CONSENT))
 }
 function setCookieConsent() {
-    window.localStorage.setItem('cookie-consent', true)
-}
-
-function prepareWeb3PortsPreConnect(app, web3) {
-    networkChangeNotifier.startWatching(app.ports.networkSentryPort, web3);
-
-    app.ports.connectToWeb3.subscribe(function (data) {
-        connectAndPrepareRemainingWeb3Ports(app, web3);
-    });
-}
-
-function connectAndPrepareRemainingWeb3Ports(app, web3) {
-    if (window.ethereum && !window.web3Connected) {
-        window.web3 = new Web3(ethereum);
-    }
-
-    elm_ethereum_ports.txSentry(app.ports.txOut, app.ports.txIn, web3);
-    elm_ethereum_ports.walletSentry(app.ports.walletSentryPort, web3);
-    networkChangeNotifier.startWatching(app.ports.networkSentryPort, web3);
-
-    if (window.ethereum && !window.web3Connected) {
-        ethereum.enable();
-        window.web3Connected = true;
-    }
-}
-
-function locationCheckPortStuff(app) {
-    app.ports.beginLocationCheck.subscribe(function (data) {
-        console.log(locationCheck);
-        locationCheck.dualLocationCheckWithCallback(app.ports.locationCheckResult.send);
-    });
+    window.localStorage.setItem(COOKIE_CONSENT, true)
 }

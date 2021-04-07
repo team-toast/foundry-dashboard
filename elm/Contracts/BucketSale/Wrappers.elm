@@ -13,6 +13,7 @@ import Http
 import List.Extra
 import Task
 import TokenValue exposing (TokenValue)
+import Types exposing (Chain)
 
 
 
@@ -23,10 +24,10 @@ import TokenValue exposing (TokenValue)
 --         |> Task.attempt msgConstructor
 
 
-getTotalValueEnteredForBucket : Int -> (Result Http.Error TokenValue -> msg) -> Cmd msg
-getTotalValueEnteredForBucket bucketId msgConstructor =
+getTotalValueEnteredForBucket : Chain -> Int -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+getTotalValueEnteredForBucket chain bucketId msgConstructor =
     BucketSaleBindings.buckets Config.bucketSaleAddress (BigInt.fromInt bucketId)
-        |> Eth.call Config.httpProviderUrl
+        |> Eth.call (Config.httpProviderUrl chain)
         |> Task.map TokenValue.tokenValue
         |> Task.attempt msgConstructor
 
