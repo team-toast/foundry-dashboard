@@ -483,42 +483,33 @@ unstakedRowUX dProfile chain now isFarmingActive jurisdictionCheckStatus staking
     in
     row
         rowStyles
-        (case jurisdictionCheckStatus of
-            Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
-                [ balanceOutputOrInput
-                    dProfile
-                    Theme.almostWhite
-                    stakingInfo.unstaked
-                    maybeDepositAmountUXModel
-                    (getLiquidityDescription chain)
-                , if isFarmingActive then
-                    case maybeDepositAmountUXModel of
-                        Just depositAmountUX ->
-                            activeDepositUXButtons
-                                dProfile
-                                chain
-                                depositAmountUX
-                                stakingInfo.unstaked
+        [ balanceOutputOrInput
+            dProfile
+            Theme.almostWhite
+            stakingInfo.unstaked
+            maybeDepositAmountUXModel
+            (getLiquidityDescription chain)
+        , if isFarmingActive then
+            case maybeDepositAmountUXModel of
+                Just depositAmountUX ->
+                    activeDepositUXButtons
+                        dProfile
+                        chain
+                        depositAmountUX
+                        stakingInfo.unstaked
 
-                        Nothing ->
-                            inactiveUnstackedRowButtons
-                                dProfile
-                                chain
-                                stakingInfo
-
-                  else
+                Nothing ->
                     inactiveUnstackedRowButtons
                         dProfile
                         chain
                         stakingInfo
-                ]
 
-            _ ->
-                [ verifyJurisdictionButtonOrResult
-                    dProfile
-                    jurisdictionCheckStatus
-                ]
-        )
+          else
+            inactiveUnstackedRowButtons
+                dProfile
+                chain
+                stakingInfo
+        ]
 
 
 stakedRow :
