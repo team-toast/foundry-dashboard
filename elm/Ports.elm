@@ -7,9 +7,6 @@ import Json.Decode exposing (Value)
 -- OUT
 
 
-port beginLocationCheck : () -> Cmd msg
-
-
 port bscImport : () -> Cmd msg
 
 
@@ -42,9 +39,6 @@ port web3ValidateSig : Json.Decode.Value -> Cmd msg
 
 
 port chainSwitchResponse : (Value -> msg) -> Sub msg
-
-
-port locationCheckResult : (Json.Decode.Value -> msg) -> Sub msg
 
 
 port txIn : (Json.Decode.Value -> msg) -> Sub msg

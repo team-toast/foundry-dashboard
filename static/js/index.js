@@ -29,10 +29,6 @@ window.addEventListener('load', function () {
             .catch(app.ports.chainSwitchResponse.send)
     );
 
-    app.ports.beginLocationCheck.subscribe(function (data) {
-        console.log(locationCheck);
-        locationCheck.dualLocationCheckWithCallback(app.ports.locationCheckResult.send);
-    });
 
     app.ports.connectToWeb3.subscribe(() =>
         (async () => {
@@ -52,13 +48,6 @@ window.addEventListener('load', function () {
             .catch(app.ports.txSendResponse.send)
     );
 
-    // app.ports.refreshWallet.subscribe((account) =>
-    //     (async () => {
-    //         const balance = await getBalance(account);
-
-    //         app.ports.balanceResponse.send(balance);
-    //     })().catch(app.ports.balanceResponse.send)
-    // );
 });
 
 function startDapp() {
@@ -88,13 +77,6 @@ function startDapp() {
 }
 
 function web3PortStuff(app, web3) {
-    //prepareWeb3PortsPreConnect(app, web3);
-
-    // web3.eth.getAccounts(function (e, res) {
-    //     if (res && res.length > 0) {
-    //         connectAndPrepareRemainingWeb3Ports(app, web3);
-    //     }
-    // });
 
     app.ports.web3Sign.subscribe(function (data) {
         web3.personal.sign(data.data, data.address, function (err, res) {

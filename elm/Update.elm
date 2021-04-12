@@ -4,7 +4,7 @@ import AddressDict exposing (AddressDict)
 import Array exposing (Array)
 import Browser
 import Browser.Navigation
-import Chain
+import Chain exposing (whenJust)
 import Config
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingRewardsContract
@@ -170,17 +170,17 @@ update msg model =
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , [ fetchTotalValueEnteredCmd chain model.currentBucketId
+            , [ fetchTotalValueEnteredCmd model.currentBucketId
               , fetchEthPrice
-              , fetchDaiPrice <| chain
+              , fetchDaiPrice
               , fetchFryPrice <| chain
-              , fetchTeamTokenBalance chain (Config.fryContractAddress <| chain) Config.teamToastAddress1 0
-              , fetchTeamTokenBalance chain (Config.fryContractAddress <| chain) Config.teamToastAddress2 1
-              , fetchTeamTokenBalance chain (Config.fryContractAddress <| chain) Config.teamToastAddress3 2
-              , fetchPermaFrostLockedTokenBalance <| chain
-              , fetchPermaFrostTotalSupply <| chain
-              , fetchBalancerPoolFryBalance <| chain
-              , fetchTreasuryBalance <| chain
+              , fetchTeamTokenBalance (Config.fryContractAddress <| chain) Config.teamToastAddress1 0
+              , fetchTeamTokenBalance (Config.fryContractAddress <| chain) Config.teamToastAddress2 1
+              , fetchTeamTokenBalance (Config.fryContractAddress <| chain) Config.teamToastAddress3 2
+              , fetchPermaFrostLockedTokenBalance
+              , fetchPermaFrostTotalSupply
+              , fetchBalancerPoolFryBalance
+              , fetchTreasuryBalance
               , model.wallet
                     |> (fetchDerivedEthBalance <|
                             chain
@@ -900,7 +900,7 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     ( model
-                    , [ fetchStakingInfoOrApyCmd userInfo.chain model.now model.wallet
+                    , [ fetchStakingInfoOrApyCmd userInfo.chain model.wallet
                       , fetchApyCmd userInfo.chain
                       ]
                         |> Cmd.batch
@@ -943,67 +943,12 @@ update msg model =
                     , Cmd.none
                     )
 
-        VerifyJurisdictionClicked ->
-            ( { model
-                | jurisdictionCheckStatus = Checking
-              }
-            , [ Ports.beginLocationCheck ()
-              , gTagOut <|
-                    GTagData
-                        "3a - verify jurisdiction clicked"
-                        (Just "funnel")
-                        Nothing
-                        Nothing
-              ]
-                |> Cmd.batch
-            )
-
-        LocationCheckResult decodeResult ->
-            let
-                jurisdictionCheckStatus =
-                    locationCheckResultToJurisdictionStatus decodeResult
-            in
-            ( { model
-                | jurisdictionCheckStatus = jurisdictionCheckStatus
-              }
-            , case jurisdictionCheckStatus of
-                WaitingForClick ->
-                    Cmd.none
-
-                Checking ->
-                    Cmd.none
-
-                Checked ForbiddenJurisdictions ->
-                    gTagOut <|
-                        GTagData
-                            "jurisdiction not allowed"
-                            (Just "funnel abort")
-                            Nothing
-                            Nothing
-
-                Checked _ ->
-                    gTagOut <|
-                        GTagData
-                            "3b - jurisdiction verified"
-                            (Just "funnel")
-                            Nothing
-                            Nothing
-
-                Error error ->
-                    gTagOut <|
-                        GTagData
-                            "failed jursidiction check"
-                            (Just "funnel abort")
-                            Nothing
-                            Nothing
-            )
-
         RefreshAll ->
             ensureUserInfo
                 (\userInfo ->
                     ( model
                     , Cmd.batch
-                        [ refreshPollVotesCmd Nothing
+                        [ refreshPollVotesCmd model Nothing
                         , fetchFryBalancesCmd userInfo.chain (model.fryBalances |> AddressDict.keys)
                         ]
                     )
@@ -1021,7 +966,7 @@ update msg model =
                     ( { model
                         | polls = Just polls
                       }
-                    , refreshPollVotesCmd Nothing
+                    , refreshPollVotesCmd model Nothing
                     )
 
         OptionClicked userInfo poll maybePollOptionId ->
@@ -1167,7 +1112,7 @@ update msg model =
             case sendResult of
                 Ok _ ->
                     ( model
-                    , refreshPollVotesCmd <| Just pollId
+                    , refreshPollVotesCmd model <| Just pollId
                     )
 
                 Err httpErr ->
@@ -1245,10 +1190,24 @@ update msg model =
                     )
 
                 Err httpErr ->
-                    ( model
-                        |> (web3FetchError "fetch polls" httpErr
-                                |> addUserNotice
-                           )
+                    let
+                        chain =
+                            model.wallet
+                                |> Wallet.userInfo
+                                |> Chain.whenJust
+                                    (\userinfo ->
+                                        userinfo.chain
+                                    )
+                    in
+                    ( case chain of
+                        Eth ->
+                            model
+                                |> (web3FetchError "fetch polls" httpErr
+                                        |> addUserNotice
+                                   )
+
+                        _ ->
+                            model
                     , Cmd.none
                     )
 
@@ -1705,11 +1664,9 @@ update msg model =
                             | wallet = Active info
                             , chainSwitchInProgress = False
                             , gtagHistory = gtagHistory
-
-                            --, userStakingInfo = Nothing
                           }
                         , [ walletConnectedGtagCmd
-                          , fetchStakingInfoOrApyCmd info.chain model.now model.wallet
+                          , fetchStakingInfoOrApyCmd info.chain model.wallet
                           ]
                             |> Cmd.batch
                         )

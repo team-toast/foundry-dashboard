@@ -124,8 +124,6 @@ type Msg
     | UserEthBalanceFetched (Result Http.Error TokenValue)
     | UserDerivedEthBalanceFetched (Result Http.Error TokenValue)
     | DerivedEthRedeemableFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
-    | VerifyJurisdictionClicked
-    | LocationCheckResult (Result Json.Decode.Error (Result String LocationInfo))
     | ApproveTokenSpend
     | DepositSigned (Result String TxHash)
     | WithdrawSigned (Result String TxHash)

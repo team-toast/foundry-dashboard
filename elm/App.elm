@@ -11,7 +11,7 @@ import Eth.Sentry.Tx
 import Eth.Sentry.Wallet
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (emptyModel, fetchAllPollsCmd, fetchApyCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchDethPositionInfo, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, locationCheckDecoder, userInfo)
+import Misc exposing (emptyModel, fetchAllPollsCmd, fetchApyCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchDethPositionInfo, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, userInfo)
 import Ports
 import Routing
 import Time
@@ -127,16 +127,16 @@ init flags url key =
                                )
                   }
                 , [ fetchEthPrice
-                  , fetchDaiPrice chain
+                  , fetchDaiPrice
                   , fetchFryPrice chain
-                  , fetchTeamTokenBalance chain (Config.fryContractAddress chain) Config.teamToastAddress1 0
-                  , fetchTeamTokenBalance chain (Config.fryContractAddress chain) Config.teamToastAddress2 1
-                  , fetchTeamTokenBalance chain (Config.fryContractAddress chain) Config.teamToastAddress3 2
-                  , fetchPermaFrostLockedTokenBalance chain
-                  , fetchPermaFrostTotalSupply chain
-                  , fetchBalancerPoolFryBalance chain
-                  , fetchTreasuryBalance chain
-                  , fetchAllPollsCmd chain
+                  , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress1 0
+                  , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress2 1
+                  , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress3 2
+                  , fetchPermaFrostLockedTokenBalance
+                  , fetchPermaFrostTotalSupply
+                  , fetchBalancerPoolFryBalance
+                  , fetchTreasuryBalance
+                  , fetchAllPollsCmd
                   , model.wallet
                         |> fetchDerivedEthBalance chain
                   , model.wallet
@@ -174,16 +174,14 @@ subscriptions model =
     , Time.every (1000 * 5) <| always Types.RefreshAll
     , Time.every (1000 * 15) (always Types.RefetchStakingInfoOrApy)
     , Time.every (1000 * 15) Types.Tick
-    , Ports.locationCheckResult
-        (Json.Decode.decodeValue locationCheckDecoder >> Types.LocationCheckResult)
-
-    --- from SmokeSignal
     , Ports.web3SignResult Types.Web3SignResultValue
     , Ports.web3ValidateSigResult Types.Web3ValidateSigResultValue
     , Ports.walletResponse
         (Wallet.walletInfoDecoder >> Types.WalletResponse)
-    , Ports.chainSwitchResponse (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
-    , Ports.txSendResponse (Wallet.rpcResponseDecoder >> Types.TxSendResponse)
+    , Ports.chainSwitchResponse
+        (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
+    , Ports.txSendResponse
+        (Wallet.rpcResponseDecoder >> Types.TxSendResponse)
     , Browser.Events.onResize Types.Resize
     ]
         |> Sub.batch
