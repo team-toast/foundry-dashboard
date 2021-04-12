@@ -1,6 +1,6 @@
 var ethereumJsUtil = require('ethereumjs-utils');
 var locationCheck = require('./dualLocationCheck.js');
-//require('@metamask/legacy-web3');
+require('@metamask/legacy-web3');
 const {
     requestAccounts,
     bscImport,
@@ -48,6 +48,7 @@ window.addEventListener('load', function () {
             .catch(app.ports.txSendResponse.send)
     );
 
+    web3PortStuff(app, web3);
 });
 
 function startDapp() {
@@ -65,9 +66,6 @@ function startDapp() {
             hasWallet,
         }
     });
-
-    web3PortStuff(app, web3);
-
 
     if (hasWallet) {
         handleWalletEvents(app.ports.walletResponse.send);
