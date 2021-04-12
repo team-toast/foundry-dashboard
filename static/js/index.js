@@ -1,6 +1,6 @@
 var ethereumJsUtil = require('ethereumjs-utils');
 var locationCheck = require('./dualLocationCheck.js');
-//require('@metamask/legacy-web3');
+require('@metamask/legacy-web3');
 const {
     requestAccounts,
     bscImport,
