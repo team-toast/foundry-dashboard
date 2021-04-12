@@ -165,13 +165,13 @@ fetchDaiPrice =
         |> Graphql.Http.send Types.FetchedDaiPrice
 
 
-fetchFryPrice : Chain -> Cmd Msg
-fetchFryPrice chain =
+fetchFryPrice : Cmd Msg
+fetchFryPrice =
     Query.token identity
         { id =
             Id <|
                 Eth.Utils.addressToString <|
-                    ConfigFile.fryContractAddress chain
+                    ConfigFile.fryContractAddress Eth
         }
         resultToken
         |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL

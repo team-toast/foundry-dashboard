@@ -128,7 +128,7 @@ init flags url key =
                   }
                 , [ fetchEthPrice
                   , fetchDaiPrice
-                  , fetchFryPrice chain
+                  , fetchFryPrice
                   , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress1 0
                   , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress2 1
                   , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress3 2
