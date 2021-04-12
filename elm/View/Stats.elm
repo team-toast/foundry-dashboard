@@ -10,7 +10,7 @@ import Eth.Utils
 import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
 import Theme
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain, Model, Msg)
+import Types exposing (Chain(..), Model, Msg)
 import View.Common exposing (..)
 import Wallet
 
@@ -54,10 +54,20 @@ viewAddresses chain dProfile =
             [ Element.Font.size 30
             , Element.Font.color EH.white
             ]
-    , viewAddressAndLabel dProfile "FRY token" (Config.fryContractAddress chain)
-    , viewAddressAndLabel dProfile "Treasury" Config.treasuryForwarderAddress
-    , viewAddressAndLabel dProfile "Bucket sale" Config.bucketSaleAddress
-    , viewAddressAndLabel dProfile "Multisig" Config.teamToastMultiSigAddress
+    , viewAddressAndLabel dProfile chain "FRY token" (Config.fryContractAddress chain)
+    , case chain of
+        Eth ->
+            viewAddressAndLabel dProfile chain "Treasury" Config.treasuryForwarderAddress
+
+        _ ->
+            Element.none
+    , case chain of
+        Eth ->
+            viewAddressAndLabel dProfile chain "Bucket sale" Config.bucketSaleAddress
+
+        _ ->
+            Element.none
+    , viewAddressAndLabel dProfile chain "Multisig" Config.teamToastMultiSigAddress
     ]
         |> column
             ([ width fill
@@ -72,10 +82,11 @@ viewAddresses chain dProfile =
 
 viewAddressAndLabel :
     DisplayProfile
+    -> Chain
     -> String
     -> Address
     -> Element Msg
-viewAddressAndLabel dProfile label address =
+viewAddressAndLabel dProfile chain label address =
     [ label
         ++ ": "
         |> text
@@ -88,7 +99,7 @@ viewAddressAndLabel dProfile label address =
                     20
             ]
     , { url =
-            Config.etherscanBaseUrl
+            Config.blockExplorerUrl chain
                 ++ (address
                         |> Eth.Utils.addressToString
                    )

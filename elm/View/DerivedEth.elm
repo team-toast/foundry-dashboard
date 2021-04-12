@@ -1,17 +1,19 @@
 module View.DerivedEth exposing (view)
 
 import BigInt
+import Chain
 import Element exposing (Attribute, Color, Element, alignRight, alignTop, centerX, column, el, fill, height, maximum, minimum, padding, paddingEach, paragraph, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
-import Element.Font
+import Element.Font as Font
 import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Misc exposing (derivedEthInfoInit, userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
-import Types exposing (InputValidationResult, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
+import Types exposing (Chain(..), InputValidationResult, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
 import View.Common exposing (..)
+import Wallet
 
 
 view : Model -> Element Msg
@@ -19,19 +21,40 @@ view model =
     let
         dProfile =
             model.dProfile
+
+        chain =
+            model.wallet
+                |> Wallet.userInfo
+                |> Chain.whenJust
+                    (\userinfo ->
+                        userinfo.chain
+                    )
     in
     [ titleEl dProfile
-    , mainEl
-        dProfile
-        model.depositAmount
-        model.withDrawalAmount
-        (userInfo model.wallet)
-        model.userDerivedEthInfo
+    , case chain of
+        Eth ->
+            mainEl
+                dProfile
+                model.depositAmount
+                model.withDrawalAmount
+                (userInfo model.wallet)
+                model.userDerivedEthInfo
+
+        _ ->
+            "dETH currently only available on mainnet."
+                |> text
+                |> el
+                    [ Font.size <| responsiveVal dProfile 30 16
+                    , Font.color EH.white
+                    , Font.medium
+                    , Font.italic
+                    , centerX
+                    ]
     ]
         |> column
             [ padding 20
             , spacing (responsiveVal dProfile 25 10)
-            , Element.Font.color EH.white
+            , Font.color EH.white
             , width fill
             ]
         |> el
@@ -58,12 +81,12 @@ titleEl dProfile =
                 dProfile
                 50
                 25
-                |> Element.Font.size
-            , Element.Font.color EH.white
+                |> Font.size
+            , Font.color EH.white
             , responsiveVal
                 dProfile
-                Element.Font.bold
-                Element.Font.semiBold
+                Font.bold
+                Font.semiBold
             , centerX
             , padding 20
             ]
@@ -81,7 +104,7 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                                 []
 
                             Mobile ->
-                                [ Element.Font.size 10
+                                [ Font.size 10
                                 , Element.padding 5
                                 ]
                        )
@@ -134,10 +157,10 @@ investOrWithdrawEl :
 investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUserDerivedEthInfo =
     let
         textFontSize =
-            Element.Font.size (responsiveVal dProfile 22 16)
+            Font.size (responsiveVal dProfile 22 16)
 
         headingFontSize =
-            Element.Font.size (responsiveVal dProfile 28 18)
+            Font.size (responsiveVal dProfile 28 18)
 
         ( amountChangedMsg, clickedMsg ) =
             if tokenName == "ETH" then
@@ -173,7 +196,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUs
     [ text heading
         |> el
             [ headingFontSize
-            , Element.Font.semiBold
+            , Font.semiBold
             , centerX
             ]
     , text
@@ -287,7 +310,7 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
     let
         textFontSize =
             responsiveVal dProfile 16 10
-                |> Element.Font.size
+                |> Font.size
 
         ( text1, text2, text3 ) =
             if tokenName == "ETH" then
@@ -360,8 +383,8 @@ percentageButtonsEl : DisplayProfile -> (String -> Msg) -> TokenValue -> Element
 percentageButtonsEl dProfile buttonMsg userBalance =
     let
         buttonStyle =
-            [ Element.Font.color Theme.almostWhite
-            , Element.Font.size (responsiveVal dProfile 14 12)
+            [ Font.color Theme.almostWhite
+            , Font.size (responsiveVal dProfile 14 12)
             ]
     in
     [ buttonEl
@@ -444,7 +467,7 @@ inputEl dProfile inputAmount userBalance msg =
             , padding 3
             , Element.Border.width 0
             , centerX
-            , Element.Font.size (responsiveVal dProfile 20 14)
+            , Font.size (responsiveVal dProfile 20 14)
             ]
                 ++ (if inputValid /= Types.InputUndefined && inputValid /= Types.InputValid then
                         [ Element.Border.width 2
@@ -460,7 +483,7 @@ inputEl dProfile inputAmount userBalance msg =
     , placeholder =
         text "Enter Amount"
             |> Element.Input.placeholder
-                [ Element.Font.color Theme.almostWhite
+                [ Font.color Theme.almostWhite
                 ]
             |> Just
     , label = Element.Input.labelHidden "amount"
@@ -484,7 +507,7 @@ buttonEl dProfile attributes buttonLabel msg =
              , Element.Border.rounded 5
              , Element.Border.glow Theme.lightGray 1
              , centerX
-             , Element.Font.size (responsiveVal dProfile 18 12)
+             , Font.size (responsiveVal dProfile 18 12)
              ]
                 ++ Theme.childContainerBackgroundAttributes
                 ++ attributes
@@ -517,9 +540,9 @@ msgInsteadOfButton dProfile textToDisplay color =
         |> el
             [ centerX
             , responsiveVal dProfile 18 12
-                |> Element.Font.size
-            , Element.Font.italic
-            , Element.Font.color color
+                |> Font.size
+            , Font.italic
+            , Font.color color
             ]
 
 

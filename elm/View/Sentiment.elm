@@ -1,6 +1,7 @@
 module View.Sentiment exposing (view)
 
 import AddressDict exposing (AddressDict)
+import Chain
 import Dict exposing (Dict)
 import Element exposing (Element)
 import Element.Background
@@ -22,9 +23,10 @@ import Phace
 import Result.Extra
 import Theme
 import TokenValue exposing (TokenValue)
-import Types exposing (Model, MouseoverState, Msg, Poll, PollOption, UserInfo, ValidatedResponse, ValidatedResponseTracker, VoteBarBlock)
+import Types exposing (Chain(..), Model, MouseoverState, Msg, Poll, PollOption, UserInfo, ValidatedResponse, ValidatedResponseTracker, VoteBarBlock)
 import View.Common exposing (..)
 import View.Farm exposing (commonImageAttributes)
+import Wallet
 
 
 view : Model -> Element Msg
@@ -32,6 +34,14 @@ view model =
     let
         dProfile =
             model.dProfile
+
+        chain =
+            model.wallet
+                |> Wallet.userInfo
+                |> Chain.whenJust
+                    (\userinfo ->
+                        userinfo.chain
+                    )
     in
     Element.el
         [ responsiveVal
@@ -55,15 +65,21 @@ view model =
                             50
                             15
                     ]
-                    [ titleText dProfile "Foundry Polls"
-                    , viewPolls
-                        dProfile
-                        (userInfo model.wallet)
-                        polls
-                        model.validatedResponses
-                        model.fryBalances
-                        model.mouseoverState
-                    ]
+                    (case chain of
+                        Eth ->
+                            [ titleText dProfile "Foundry Polls"
+                            , viewPolls
+                                dProfile
+                                (userInfo model.wallet)
+                                polls
+                                model.validatedResponses
+                                model.fryBalances
+                                model.mouseoverState
+                            ]
+
+                        _ ->
+                            [ titleText dProfile "Foundry Polls only available on mainnet" ]
+                    )
 
 
 titleText : DisplayProfile -> String -> Element Msg

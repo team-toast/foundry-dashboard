@@ -82,14 +82,22 @@ fryContractAddress chain =
                 ""
 
 
-etherscanBaseUrl : String
-etherscanBaseUrl =
-    "https://etherscan.io/address/"
+blockExplorerUrl : Chain -> String
+blockExplorerUrl chain =
+    case chain of
+        Eth ->
+            "https://etherscan.io/address/"
+
+        BSC ->
+            "https://bscscan.com/address/"
+
+        _ ->
+            ""
 
 
 teamToastMultiSigAddress : Address
 teamToastMultiSigAddress =
-    Eth.Utils.unsafeToAddress "0xA21510518cbF2627bb99966eA413ccf9F5b80f83"
+    Eth.Utils.unsafeToAddress "0xF7396C708Ad9127B6684b7fd690083158d2ebdE5"
 
 
 treasuryForwarderAddress : Address
@@ -167,7 +175,7 @@ urlToLiquidityPool chain =
             "https://app.uniswap.org/#/add/0x6c972b70c533e2e045f333ee28b9ffb8d717be69/ETH"
 
         BSC ->
-            "https://exchange.pancakeswap.finance/#/swap?inputCurrency=BNB&outputCurrency=0xc04e039ae8587e71f8024b36d630f841cc2106cc"
+            "https://exchange.pancakeswap.finance/#/add/BNB/0xc04e039aE8587e71f8024b36d630f841cc2106CC"
 
         XDai ->
             ""

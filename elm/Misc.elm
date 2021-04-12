@@ -3,6 +3,7 @@ module Misc exposing (..)
 import AddressDict
 import Array exposing (Array, fromList)
 import Browser.Navigation
+import Chain exposing (whenJust)
 import Config as ConfigFile
 import Contracts.BucketSale.Wrappers as BucketSaleWrappers exposing (getTotalValueEnteredForBucket)
 import Contracts.DEthWrapper as Death
@@ -35,7 +36,7 @@ import Json.Encode
 import Maybe.Extra exposing (isNothing)
 import Ports exposing (txIn, txOut)
 import Result.Extra
-import Routing
+import Routing exposing (Route(..))
 import Set
 import Time
 import TokenValue exposing (TokenValue)
@@ -43,6 +44,7 @@ import Types exposing (Chain(..), Config, Jurisdiction, JurisdictionCheckStatus,
 import Url.Builder
 import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
+import Wallet
 
 
 emptyModel : Browser.Navigation.Key -> Time.Posix -> String -> Bool -> Model
@@ -150,72 +152,72 @@ fetchEthPrice =
         |> Graphql.Http.send Types.FetchedEthPrice
 
 
-fetchDaiPrice : Chain -> Cmd Msg
-fetchDaiPrice chain =
+fetchDaiPrice : Cmd Msg
+fetchDaiPrice =
     Query.token identity
         { id =
             Id <|
                 Eth.Utils.addressToString <|
-                    ConfigFile.daiContractAddress chain
+                    ConfigFile.daiContractAddress Eth
         }
         resultToken
         |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedDaiPrice
 
 
-fetchFryPrice : Chain -> Cmd Msg
-fetchFryPrice chain =
+fetchFryPrice : Cmd Msg
+fetchFryPrice =
     Query.token identity
         { id =
             Id <|
                 Eth.Utils.addressToString <|
-                    ConfigFile.fryContractAddress chain
+                    ConfigFile.fryContractAddress Eth
         }
         resultToken
         |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedFryPrice
 
 
-fetchTeamTokenBalance : Chain -> Address -> Address -> Int -> Cmd Msg
-fetchTeamTokenBalance chain tokenAddress owner index =
+fetchTeamTokenBalance : Address -> Address -> Int -> Cmd Msg
+fetchTeamTokenBalance tokenAddress owner index =
     ERC20.getBalanceCmd
-        chain
+        Eth
         tokenAddress
         owner
         (Types.FetchedTeamTokens index)
 
 
-fetchPermaFrostLockedTokenBalance : Chain -> Cmd Msg
-fetchPermaFrostLockedTokenBalance chain =
+fetchPermaFrostLockedTokenBalance : Cmd Msg
+fetchPermaFrostLockedTokenBalance =
     ERC20.getBalanceCmd
-        chain
+        Eth
         ConfigFile.balancerPermafrostPool
         ConfigFile.burnAddress
         Types.FetchedPermaFrostBalanceLocked
 
 
-fetchPermaFrostTotalSupply : Chain -> Cmd Msg
-fetchPermaFrostTotalSupply chain =
+fetchPermaFrostTotalSupply : Cmd Msg
+fetchPermaFrostTotalSupply =
     ERC20.getTotalSupply
-        chain
+        Eth
         ConfigFile.balancerPermafrostPool
         Types.FetchedPermaFrostTotalSupply
 
 
-fetchBalancerPoolFryBalance : Chain -> Cmd Msg
-fetchBalancerPoolFryBalance chain =
+fetchBalancerPoolFryBalance : Cmd Msg
+fetchBalancerPoolFryBalance =
     ERC20.getBalanceCmd
-        chain
-        (ConfigFile.fryContractAddress chain)
+        Eth
+        (ConfigFile.fryContractAddress Eth)
         ConfigFile.balancerPermafrostPool
         Types.FetchedBalancerFryBalance
 
 
-fetchTreasuryBalance : Chain -> Cmd Msg
-fetchTreasuryBalance chain =
+fetchTreasuryBalance : Cmd Msg
+fetchTreasuryBalance =
     ERC20.getBalanceCmd
-        chain
-        (ConfigFile.daiContractAddress chain)
+        Eth
+        (ConfigFile.daiContractAddress Eth)
         ConfigFile.treasuryForwarderAddress
         Types.FetchedTreasuryBalance
 
@@ -256,11 +258,7 @@ calcCircSupply currentBucketId totalTeamTokens totalPermaFrostedTokens =
             Nothing
 
 
-calcMarketCap :
-    Maybe Float
-    -> Maybe Float
-    -> Maybe Float
-    -> Maybe Float
+calcMarketCap : Maybe Float -> Maybe Float -> Maybe Float -> Maybe Float
 calcMarketCap currentFryPriceEth currentEthPriceUsd circSupply =
     case circSupply of
         Just cs ->
@@ -283,10 +281,7 @@ calcMarketCap currentFryPriceEth currentEthPriceUsd circSupply =
             Nothing
 
 
-calcFullyDilutedMarketCap :
-    Maybe Float
-    -> Maybe Float
-    -> Maybe Float
+calcFullyDilutedMarketCap : Maybe Float -> Maybe Float -> Maybe Float
 calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
     case currentFryPriceEth of
         Just fry ->
@@ -304,9 +299,7 @@ calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
             Nothing
 
 
-getCurrentBucketId :
-    Int
-    -> Maybe Int
+getCurrentBucketId : Int -> Maybe Int
 getCurrentBucketId now =
     Just <|
         (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix ConfigFile.saleStarted)
@@ -317,10 +310,7 @@ getCurrentBucketId now =
                )
 
 
-getBucketRemainingTimeText :
-    Maybe Int
-    -> Int
-    -> String
+getBucketRemainingTimeText : Maybe Int -> Int -> String
 getBucketRemainingTimeText bucketId now =
     case bucketId of
         Just id ->
@@ -334,9 +324,7 @@ getBucketRemainingTimeText bucketId now =
             loadingText
 
 
-getBucketStartTime :
-    Int
-    -> Time.Posix
+getBucketStartTime : Int -> Time.Posix
 getBucketStartTime bucketId =
     Time.millisToPosix
         (ConfigFile.saleStarted + (bucketId * Time.posixToMillis ConfigFile.bucketSaleBucketInterval))
@@ -389,12 +377,12 @@ maybeFloatMultiply val1 val2 =
             Nothing
 
 
-fetchTotalValueEnteredCmd : Chain -> Maybe Int -> Cmd Msg
-fetchTotalValueEnteredCmd chain bucketId =
+fetchTotalValueEnteredCmd : Maybe Int -> Cmd Msg
+fetchTotalValueEnteredCmd bucketId =
     case bucketId of
         Just id ->
             getTotalValueEnteredForBucket
-                chain
+                Eth
                 id
                 (Just id
                     |> Types.BucketValueEnteredFetched
@@ -491,8 +479,8 @@ calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
             Nothing
 
 
-fetchStakingInfoOrApyCmd : Chain -> Time.Posix -> Wallet -> Cmd Msg
-fetchStakingInfoOrApyCmd chain now wallet =
+fetchStakingInfoOrApyCmd : Chain -> Wallet -> Cmd Msg
+fetchStakingInfoOrApyCmd chain wallet =
     case userInfo wallet of
         Just uInfo ->
             fetchUserStakingInfoCmd chain uInfo.address
@@ -647,63 +635,6 @@ loggedSignedResponseToResponseToValidate polls ( responseId, signedResponse ) =
             )
 
 
-locationCheckResultToJurisdictionStatus : Result Error (Result String LocationInfo) -> JurisdictionCheckStatus
-locationCheckResultToJurisdictionStatus decodeResult =
-    decodeResult
-        |> Result.map
-            (\checkResult ->
-                checkResult
-                    |> Result.map
-                        (\locationInfo ->
-                            Types.Checked <|
-                                countryCodeToJurisdiction locationInfo.ipCode locationInfo.geoCode
-                        )
-                    |> Result.mapError
-                        (\e ->
-                            Types.Error <|
-                                "Location check failed: "
-                                    ++ e
-                        )
-                    |> Result.Extra.merge
-            )
-        |> Result.mapError
-            (\e -> Types.Error <| "Location check response decode error: " ++ Decoder.errorToString e)
-        |> Result.Extra.merge
-
-
-countryCodeToJurisdiction : String -> String -> Jurisdiction
-countryCodeToJurisdiction ipCode geoCode =
-    let
-        allowedJurisdiction =
-            Set.fromList [ ipCode, geoCode ]
-                |> Set.intersect ConfigFile.forbiddenJurisdictionCodes
-                |> Set.isEmpty
-    in
-    if allowedJurisdiction then
-        Types.JurisdictionsWeArentIntimidatedIntoExcluding
-
-    else
-        Types.ForbiddenJurisdictions
-
-
-locationCheckDecoder : Decoder (Result String LocationInfo)
-locationCheckDecoder =
-    Decoder.oneOf
-        [ Decoder.field "errorMessage" Decoder.string
-            |> Decoder.map Err
-        , locationInfoDecoder
-            |> Decoder.map Ok
-        ]
-
-
-locationInfoDecoder : Decoder.Decoder LocationInfo
-locationInfoDecoder =
-    Decoder.map2
-        LocationInfo
-        (Decoder.field "ipCountry" Decoder.string)
-        (Decoder.field "geoCountry" Decoder.string)
-
-
 calcAvailableRewards : UserStakingInfo -> Time.Posix -> TokenValue
 calcAvailableRewards stakingInfo now =
     let
@@ -735,9 +666,7 @@ validateInput input max =
             )
 
 
-calcTimeLeft :
-    Time.Posix
-    -> Int
+calcTimeLeft : Time.Posix -> Int
 calcTimeLeft now =
     let
         timeLeft =
@@ -750,25 +679,20 @@ calcTimeLeft now =
         timeLeft
 
 
-fetchAllPollsCmd : Chain -> Cmd Msg
-fetchAllPollsCmd chain =
-    case chain of
-        Eth ->
-            Http.request
-                { method = "GET"
-                , headers = []
-                , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0"
-                , body = Http.emptyBody
-                , expect =
-                    Http.expectJson
-                        Types.PollsFetched
-                        pollListDecoder
-                , timeout = Nothing
-                , tracker = Nothing
-                }
-
-        _ ->
-            Cmd.none
+fetchAllPollsCmd : Cmd Msg
+fetchAllPollsCmd =
+    Http.request
+        { method = "GET"
+        , headers = []
+        , url = "https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0"
+        , body = Http.emptyBody
+        , expect =
+            Http.expectJson
+                Types.PollsFetched
+                pollListDecoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 pollListDecoder : Decoder (List Poll)
@@ -905,33 +829,52 @@ sendSignedResponseCmd signedResponse =
         }
 
 
-refreshPollVotesCmd : Maybe Int -> Cmd Msg
-refreshPollVotesCmd maybePollId =
+refreshPollVotesCmd : Model -> Maybe Int -> Cmd Msg
+refreshPollVotesCmd model maybePollId =
     let
-        url =
-            Url.Builder.custom
-                (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
-                [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
-                (case maybePollId of
-                    Just pollId ->
-                        [ Url.Builder.int "FromPollId" pollId
-                        , Url.Builder.int "Count" 1
-                        ]
-
-                    Nothing ->
-                        [ Url.Builder.int "FromPollId" 0
-                        , Url.Builder.int "Count" 0
-                        ]
-                )
-                Nothing
+        chain =
+            model.wallet
+                |> Wallet.userInfo
+                |> whenJust
+                    (\userinfo ->
+                        userinfo.chain
+                    )
     in
-    Http.get
-        { url = url
-        , expect =
-            Http.expectJson
-                Types.SignedResponsesFetched
-                signedResponsesDictFromServerDecoder
-        }
+    case chain of
+        Eth ->
+            case model.route of
+                Sentiment ->
+                    let
+                        url =
+                            Url.Builder.custom
+                                (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
+                                [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
+                                (case maybePollId of
+                                    Just pollId ->
+                                        [ Url.Builder.int "FromPollId" pollId
+                                        , Url.Builder.int "Count" 1
+                                        ]
+
+                                    Nothing ->
+                                        [ Url.Builder.int "FromPollId" 0
+                                        , Url.Builder.int "Count" 0
+                                        ]
+                                )
+                                Nothing
+                    in
+                    Http.get
+                        { url = url
+                        , expect =
+                            Http.expectJson
+                                Types.SignedResponsesFetched
+                                signedResponsesDictFromServerDecoder
+                        }
+
+                _ ->
+                    Cmd.none
+
+        _ ->
+            Cmd.none
 
 
 signedResponsesDictFromServerDecoder : Decoder.Decoder (Dict Int SignedResponse)
