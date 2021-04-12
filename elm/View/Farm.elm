@@ -14,7 +14,7 @@ import FormatFloat
 import Helpers.Time as TimeHelpers
 import Images
 import Maybe.Extra
-import Misc exposing (calcAvailableRewards, calcTimeLeft, userInfo, validateInput)
+import Misc exposing (calcAvailableRewards, calcTimeLeft, loadingText, userInfo, validateInput)
 import Theme exposing (almostWhite, blueButton, lightGray)
 import Time
 import TokenValue exposing (TokenValue)
@@ -37,17 +37,12 @@ view model =
      else
         [ titleEl dProfile "Farming for Fryers!"
         , subTitleEl dProfile model.now
-
-        --, farmVideoEl dProfile
+        , farmVideoEl dProfile
         , if model.chainSwitchInProgress then
-            View.Img.spinner 20 Theme.softRed
+            loadingText |> text |> el [ Font.color almostWhite ]
 
           else
             bodyEl model
-        , verifyJurisdictionErrorEl
-            dProfile
-            model.jurisdictionCheckStatus
-            [ Font.color EH.white ]
         ]
     )
         |> column
@@ -164,44 +159,57 @@ bodyEl model =
                         dProfile
                         model.wallet
     in
-    mainEl
-        ([ centerX
-         , height <| px <| responsiveVal dProfile 500 400
-         , width <| responsiveVal dProfile (px 800) (fill |> minimum 300)
-         , padding <| responsiveVal dProfile 20 10
-         , spacing <| responsiveVal dProfile 10 5
-         ]
-            ++ Theme.mainContainerBackgroundAttributes
-            ++ Theme.mainContainerBorderAttributes
-        )
-        (case dProfile of
-            EH.Desktop ->
-                [ balancesEl
-                , [ networkAndSwitch
-                  , apyEl
-                  ]
-                    |> column
-                        [ width fill
-                        , alignRight
-                        , alignTop
-                        , spacing 10
+    case chain of
+        Eth ->
+            mainEl
+                ([ centerX
+                 , height <| px <| responsiveVal dProfile 500 400
+                 , width <| responsiveVal dProfile (px 800) (fill |> minimum 300)
+                 , padding <| responsiveVal dProfile 20 10
+                 , spacing <| responsiveVal dProfile 10 5
+                 ]
+                    ++ Theme.mainContainerBackgroundAttributes
+                    ++ Theme.mainContainerBorderAttributes
+                )
+                (case dProfile of
+                    EH.Desktop ->
+                        [ balancesEl
+                        , [ networkAndSwitch
+                          , apyEl
+                          ]
+                            |> column
+                                [ width fill
+                                , alignRight
+                                , alignTop
+                                , spacing 10
+                                ]
                         ]
-                ]
 
-            EH.Mobile ->
-                [ [ [ networkAndSwitch
-                    , apyEl
-                    ]
-                        |> row
-                            [ width fill
-                            , spacing 10
+                    EH.Mobile ->
+                        [ [ [ networkAndSwitch
+                            , apyEl
                             ]
-                  ]
-                    |> column
-                        []
-                , balancesEl
-                ]
-        )
+                                |> row
+                                    [ width fill
+                                    , spacing 10
+                                    ]
+                          ]
+                            |> column
+                                []
+                        , balancesEl
+                        ]
+                )
+
+        _ ->
+            "Farming currently only available on mainnet."
+                |> text
+                |> el
+                    [ Font.size <| responsiveVal dProfile 30 16
+                    , Font.color EH.white
+                    , Font.medium
+                    , Font.italic
+                    , centerX
+                    ]
 
 
 currentNetworkAndSwitchEl : DisplayProfile -> Wallet -> Element Msg
@@ -1058,77 +1066,6 @@ msgInsteadOfButton dProfile textToDisplay color =
             , Font.italic
             , Font.color color
             ]
-
-
-verifyJurisdictionButtonOrResult :
-    DisplayProfile
-    -> JurisdictionCheckStatus
-    -> Element Msg
-verifyJurisdictionButtonOrResult dProfile jurisdictionCheckStatus =
-    case jurisdictionCheckStatus of
-        Types.WaitingForClick ->
-            Theme.redButton
-                dProfile
-                [ width fill ]
-                [ "Confirm you are not a US citizen" ]
-                (EH.Action Types.VerifyJurisdictionClicked)
-
-        Types.Checking ->
-            Theme.disabledButton
-                dProfile
-                [ width fill
-                , Font.color EH.black
-                ]
-                "Verifying Jurisdiction..."
-                Nothing
-
-        Types.Error errStr ->
-            column
-                [ spacing 10
-                , width fill
-                ]
-                [ msgInsteadOfButton
-                    dProfile
-                    "Error verifying jurisdiction."
-                    Theme.red
-                ]
-
-        Types.Checked Types.ForbiddenJurisdictions ->
-            msgInsteadOfButton
-                dProfile
-                "Sorry, US citizens and residents are excluded."
-                Theme.red
-
-        Types.Checked Types.JurisdictionsWeArentIntimidatedIntoExcluding ->
-            msgInsteadOfButton
-                dProfile
-                "Jurisdiction Verified."
-                Theme.green
-
-
-verifyJurisdictionErrorEl :
-    DisplayProfile
-    -> JurisdictionCheckStatus
-    -> List (Attribute Msg)
-    -> Element Msg
-verifyJurisdictionErrorEl dProfile jurisdictionCheckStatus attributes =
-    case jurisdictionCheckStatus of
-        Types.Error errStr ->
-            column
-                ([ spacing <| responsiveVal dProfile 20 10
-                 , Font.size <| responsiveVal dProfile 16 10
-                 ]
-                    ++ attributes
-                )
-                [ el
-                    []
-                  <|
-                    text errStr
-                , text "There may be more info in the console."
-                ]
-
-        _ ->
-            Element.none
 
 
 getLiquidityDescription : Chain -> String
