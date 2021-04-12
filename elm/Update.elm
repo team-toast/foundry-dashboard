@@ -908,12 +908,25 @@ update msg model =
                 )
 
         StakingInfoFetched fetchResult ->
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userinfo ->
+                                userinfo.chain
+                            )
+            in
             case fetchResult of
                 Err httpErr ->
-                    ( model
-                        |> (web3FetchError "staking info" httpErr
-                                |> addUserNotice
-                           )
+                    ( if chain == Eth || chain == BSC then
+                        model
+                            |> (web3FetchError "staking info" httpErr
+                                    |> addUserNotice
+                               )
+
+                      else
+                        model
                     , Cmd.none
                     )
 
@@ -926,12 +939,25 @@ update msg model =
                     )
 
         ApyFetched fetchResult ->
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userinfo ->
+                                userinfo.chain
+                            )
+            in
             case fetchResult of
                 Err httpErr ->
-                    ( model
-                        |> (web3FetchError "apy" httpErr
-                                |> addUserNotice
-                           )
+                    ( if chain == Eth || chain == BSC then
+                        model
+                            |> (web3FetchError "apy" httpErr
+                                    |> addUserNotice
+                               )
+
+                      else
+                        model
                     , Cmd.none
                     )
 
