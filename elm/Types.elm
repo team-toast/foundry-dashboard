@@ -162,6 +162,8 @@ type Msg
     | WalletResponse (Result WalletConnectErr UserInfo)
     | ChainSwitchResponse (Result TxErr ())
     | TxSendResponse (Result TxErr TxHash)
+    | FetchFarmingPeriodEnd
+    | FarmingPeriodEndFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
 
 
 type alias PriceValue =

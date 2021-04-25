@@ -1784,6 +1784,12 @@ update msg model =
                             )
                 )
 
+        FetchFarmingPeriodEnd ->
+            ( model, Cmd.none )
+
+        FarmingPeriodEndFetched fetchResult ->
+            ( model, Cmd.none )
+
 
 gotoRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
