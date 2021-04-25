@@ -6,9 +6,9 @@ import Browser
 import Browser.Navigation
 import Chain exposing (whenJust)
 import Config
+import Contracts.Generated.DEth as Death
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingRewardsContract
-import Contracts.Staking as StakingContract
 import Dict
 import Dict.Extra
 import ElementHelpers as EH exposing (DisplayProfile(..))
@@ -1275,10 +1275,19 @@ update msg model =
                     []
 
                 Just uInfo ->
-                    [ doDepositChainCmd
-                        uInfo.address
-                        amount
-                        |> attemptTxInitiate model.txSentry model.trackedTxs
+                    [ let
+                        txParams =
+                            Death.squanderMyEthForWorthlessBeans
+                                Config.derivedEthContractAddress
+                                uInfo.address
+                                (TokenValue.getEvmValue amount |> Just)
+                                |> (\call ->
+                                        { call | from = Just uInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                      in
+                      Ports.txSend txParams
                     ]
               )
                 ++ [ gTagOut <|
@@ -1303,10 +1312,19 @@ update msg model =
                     Cmd.none
 
                 Just uInfo ->
-                    doWithdrawChainCmd
-                        uInfo.address
-                        amount
-                        |> attemptTxInitiate model.txSentry model.trackedTxs
+                    let
+                        txParams =
+                            Death.redeem
+                                Config.derivedEthContractAddress
+                                (TokenValue.getEvmValue amount)
+                                uInfo.address
+                                |> (\call ->
+                                        { call | from = Just uInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                    in
+                    Ports.txSend txParams
             )
 
         UserEthBalanceFetched fetchResult ->
