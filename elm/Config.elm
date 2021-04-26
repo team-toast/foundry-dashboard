@@ -1,11 +1,10 @@
 module Config exposing (..)
 
-import BigInt exposing (BigInt)
 import Eth.Types exposing (Address)
 import Eth.Utils
+import List exposing (map)
 import Set exposing (Set)
 import Time
-import TokenValue exposing (TokenValue)
 import Types exposing (Chain(..))
 
 
@@ -209,6 +208,18 @@ bucketSaleBucketInterval =
 fryTotalSupply : Int
 fryTotalSupply =
     100000000
+
+
+teamAddresses : List Address
+teamAddresses =
+    [ "0x91227d115D036a721F6455B4E201b2F74576da43"
+    , "0xA21510518cbF2627bb99966eA413ccf9F5b80f83"
+    , "0x32666fe74ee30e252054989bba22f0dc46414cc3"
+    , "0xaf170d66b05f59ba179d025e29ccda56319f2326"
+    , "0x16aF660A19567d273842c826b9b4f4992b5b4626"
+    ]
+        |> map
+            Eth.Utils.unsafeToAddress
 
 
 teamToastAddress1 : Address
