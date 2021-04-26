@@ -1,12 +1,11 @@
 module Misc exposing (..)
 
 import AddressDict
-import Array exposing (Array, fromList)
-import BigInt
+import Array exposing (Array)
 import Browser.Navigation
 import Chain exposing (whenJust)
 import Config as ConfigFile
-import Contracts.BucketSale.Wrappers as BucketSaleWrappers exposing (getTotalValueEnteredForBucket)
+import Contracts.BucketSale.Wrappers exposing (getTotalValueEnteredForBucket)
 import Contracts.DEthWrapper as Death
 import Contracts.ERC20Wrapper as ERC20
 import Contracts.FryBalanceFetch
@@ -21,32 +20,27 @@ import Contracts.UniSwapGraph.ScalarCodecs exposing (..)
 import Dict exposing (Dict)
 import ElementHelpers as EH
 import Eth
-import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
 import GTag
 import Graphql.Http
-import Graphql.Operation exposing (RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers exposing (toConciseIntervalString)
 import Helpers.Tuple exposing (tuple3MapSecond)
 import Http
-import Json.Decode as Decoder exposing (Decoder, Error, Value)
+import Json.Decode as Decoder exposing (Decoder)
 import Json.Encode
 import Maybe.Extra exposing (isNothing)
 import Ports exposing (txIn, txOut)
-import Result.Extra
 import Routing exposing (Route(..))
-import Set
 import Task
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), Config, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, PriceValue, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Wallet)
+import Types exposing (Chain(..), Config, LoggedSignedResponse, Model, Msg, Poll, PollOption, PriceValue, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponseTracker, Wallet)
 import Url.Builder
-import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
 import Wallet
 
