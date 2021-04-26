@@ -2,6 +2,7 @@ module Update exposing (..)
 
 import AddressDict exposing (AddressDict)
 import Array exposing (Array)
+import BigInt
 import Browser
 import Browser.Navigation
 import Chain exposing (whenJust)
@@ -190,6 +191,7 @@ update msg model =
               , model.withDrawalAmount
                     |> TokenValue.fromString
                     |> (fetchDethPositionInfo <| chain)
+              , fetchFarmEndTime chain
               ]
                 |> Cmd.batch
             )
@@ -713,7 +715,7 @@ update msg model =
                     )
 
         UpdateNow newNow ->
-            if calcTimeLeft newNow <= 0 then
+            if calcTimeLeft newNow model.farmingPeriodEnds <= 0 then
                 ( model
                 , Cmd.none
                 )
@@ -1785,10 +1787,36 @@ update msg model =
                 )
 
         FetchFarmingPeriodEnd ->
-            ( model, Cmd.none )
+            let
+                chain =
+                    model.wallet
+                        |> Wallet.userInfo
+                        |> Chain.whenJust
+                            (\userInfo ->
+                                userInfo.chain
+                            )
+            in
+            ( model
+            , fetchFarmEndTime chain
+            )
 
         FarmingPeriodEndFetched fetchResult ->
-            ( model, Cmd.none )
+            case fetchResult of
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
+
+                Ok periodFinish ->
+                    ( { model
+                        | farmingPeriodEnds =
+                            periodFinish
+                                |> BigInt.toString
+                                |> String.toInt
+                                |> Maybe.withDefault 0
+                      }
+                    , Cmd.none
+                    )
 
 
 gotoRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
