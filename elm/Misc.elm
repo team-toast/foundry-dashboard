@@ -2,6 +2,7 @@ module Misc exposing (..)
 
 import AddressDict
 import Array exposing (Array, fromList)
+import BigInt
 import Browser.Navigation
 import Chain exposing (whenJust)
 import Config as ConfigFile
@@ -9,6 +10,7 @@ import Contracts.BucketSale.Wrappers as BucketSaleWrappers exposing (getTotalVal
 import Contracts.DEthWrapper as Death
 import Contracts.ERC20Wrapper as ERC20
 import Contracts.FryBalanceFetch
+import Contracts.Generated.StakingRewards as StakingRewardsContract
 import Contracts.Staking as StakingContract
 import Contracts.UniSwapGraph.Object exposing (..)
 import Contracts.UniSwapGraph.Object.Bundle as Bundle
@@ -18,6 +20,7 @@ import Contracts.UniSwapGraph.Scalar exposing (Id(..))
 import Contracts.UniSwapGraph.ScalarCodecs exposing (..)
 import Dict exposing (Dict)
 import ElementHelpers as EH
+import Eth
 import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
@@ -38,6 +41,7 @@ import Ports exposing (txIn, txOut)
 import Result.Extra
 import Routing exposing (Route(..))
 import Set
+import Task
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (Chain(..), Config, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, PriceValue, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Wallet)
@@ -109,10 +113,10 @@ emptyModel key now basePath cookieConsent =
     , userStakingInfo = Nothing
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
-    , farmingIsActive = True -- Set to true to enable farming interface - False will show inactive message
     , config = emptyConfig
     , chainSwitchInProgress = False
     , gtagHistory = GTag.emptyGtagHistory
+    , farmingPeriodEnds = 0
     }
 
 
@@ -666,11 +670,17 @@ validateInput input max =
             )
 
 
-calcTimeLeft : Time.Posix -> Int
-calcTimeLeft now =
+calcTimeLeft : Time.Posix -> Int -> Int
+calcTimeLeft now farmingPeriodEnds =
     let
         timeLeft =
-            Time.posixToMillis (TimeHelpers.sub (TimeHelpers.secondsToPosix ConfigFile.farmingPeriodEnds) now)
+            Time.posixToMillis
+                (TimeHelpers.sub
+                    (TimeHelpers.secondsToPosix
+                        farmingPeriodEnds
+                    )
+                    now
+                )
     in
     if timeLeft <= 0 then
         0
@@ -1108,3 +1118,13 @@ emptyConfig =
 emptyAddress : Address
 emptyAddress =
     Eth.Utils.unsafeToAddress ""
+
+
+fetchFarmEndTime : Chain -> Cmd Msg
+fetchFarmEndTime chain =
+    Eth.call
+        (ConfigFile.httpProviderUrl chain)
+        (StakingRewardsContract.periodFinish
+            (ConfigFile.stakingContractAddress chain)
+        )
+        |> Task.attempt Types.FarmingPeriodEndFetched

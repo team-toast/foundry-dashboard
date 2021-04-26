@@ -1,5 +1,6 @@
 module View.Farm exposing (..)
 
+import BigInt
 import Chain exposing (whenJust)
 import Config
 import Css exposing (verticalAlign)
@@ -30,20 +31,29 @@ view model =
     let
         dProfile =
             model.dProfile
+
+        chain =
+            model.wallet
+                |> Wallet.userInfo
+                |> whenJust
+                    (\userInfo ->
+                        userInfo.chain
+                    )
     in
-    (if not model.farmingIsActive then
-        [ titleEl dProfile "Farming has ended for now!" ]
+    (case chain of
+        Eth ->
+            [ titleEl dProfile "Farming for Fryers!"
+            , subTitleEl dProfile model.now model.farmingPeriodEnds
+            , farmVideoEl dProfile
+            , if model.chainSwitchInProgress then
+                loadingText |> text |> el [ Font.color almostWhite ]
 
-     else
-        [ titleEl dProfile "Farming for Fryers!"
-        , subTitleEl dProfile model.now
-        , farmVideoEl dProfile
-        , if model.chainSwitchInProgress then
-            loadingText |> text |> el [ Font.color almostWhite ]
+              else
+                bodyEl model
+            ]
 
-          else
-            bodyEl model
-        ]
+        _ ->
+            [ titleEl dProfile "Farming currently only available on mainnet." ]
     )
         |> column
             [ centerX
@@ -75,14 +85,19 @@ titleEl dProfile title =
             ]
 
 
-subTitleEl : DisplayProfile -> Time.Posix -> Element Msg
-subTitleEl dProfile now =
-    "Farming ends in "
-        ++ TimeHelpers.toConciseIntervalString
-            (TimeHelpers.sub
-                (TimeHelpers.secondsToPosix Config.farmingPeriodEnds)
-                now
-            )
+subTitleEl : DisplayProfile -> Time.Posix -> Int -> Element Msg
+subTitleEl dProfile now farmingPeriodEnds =
+    (if farmingPeriodEnds /= 0 then
+        "Farming ends in "
+            ++ TimeHelpers.toConciseIntervalString
+                (TimeHelpers.sub
+                    (TimeHelpers.secondsToPosix farmingPeriodEnds)
+                    now
+                )
+
+     else
+        loadingText
+    )
         |> text
         |> el
             [ Font.size <| responsiveVal dProfile 30 16
@@ -133,13 +148,16 @@ bodyEl model =
                         userInfo.chain
                     )
 
+        isFarmingActive =
+            calcTimeLeft model.now model.farmingPeriodEnds /= 0
+
         balancesEl =
             balancesElement
                 chain
                 dProfile
                 model.jurisdictionCheckStatus
                 model.now
-                model.farmingIsActive
+                isFarmingActive
                 model.wallet
                 model.userStakingInfo
                 model.depositWithdrawUXModel
@@ -159,57 +177,44 @@ bodyEl model =
                         dProfile
                         model.wallet
     in
-    case chain of
-        Eth ->
-            mainEl
-                ([ centerX
-                 , height <| px <| responsiveVal dProfile 500 400
-                 , width <| responsiveVal dProfile (px 800) (fill |> minimum 300)
-                 , padding <| responsiveVal dProfile 20 10
-                 , spacing <| responsiveVal dProfile 10 5
-                 ]
-                    ++ Theme.mainContainerBackgroundAttributes
-                    ++ Theme.mainContainerBorderAttributes
-                )
-                (case dProfile of
-                    EH.Desktop ->
-                        [ balancesEl
-                        , [ networkAndSwitch
-                          , apyEl
-                          ]
-                            |> column
-                                [ width fill
-                                , alignRight
-                                , alignTop
-                                , spacing 10
-                                ]
+    mainEl
+        ([ centerX
+         , height <| px <| responsiveVal dProfile 500 400
+         , width <| responsiveVal dProfile (px 800) (fill |> minimum 300)
+         , padding <| responsiveVal dProfile 20 10
+         , spacing <| responsiveVal dProfile 10 5
+         ]
+            ++ Theme.mainContainerBackgroundAttributes
+            ++ Theme.mainContainerBorderAttributes
+        )
+        (case dProfile of
+            EH.Desktop ->
+                [ balancesEl
+                , [ networkAndSwitch
+                  , apyEl
+                  ]
+                    |> column
+                        [ width fill
+                        , alignRight
+                        , alignTop
+                        , spacing 10
                         ]
+                ]
 
-                    EH.Mobile ->
-                        [ [ [ networkAndSwitch
-                            , apyEl
-                            ]
-                                |> row
-                                    [ width fill
-                                    , spacing 10
-                                    ]
-                          ]
-                            |> column
-                                []
-                        , balancesEl
-                        ]
-                )
-
-        _ ->
-            "Farming currently only available on mainnet."
-                |> text
-                |> el
-                    [ Font.size <| responsiveVal dProfile 30 16
-                    , Font.color EH.white
-                    , Font.medium
-                    , Font.italic
-                    , centerX
+            EH.Mobile ->
+                [ [ [ networkAndSwitch
+                    , apyEl
                     ]
+                        |> row
+                            [ width fill
+                            , spacing 10
+                            ]
+                  ]
+                    |> column
+                        []
+                , balancesEl
+                ]
+        )
 
 
 currentNetworkAndSwitchEl : DisplayProfile -> Wallet -> Element Msg

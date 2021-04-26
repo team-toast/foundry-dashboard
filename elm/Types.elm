@@ -2,12 +2,12 @@ module Types exposing (..)
 
 import AddressDict exposing (AddressDict)
 import Array exposing (Array)
+import BigInt exposing (BigInt)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
 import ElementHelpers as EH
-import Eth exposing (hashrate)
-import Eth.Net
+import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
@@ -85,10 +85,10 @@ type alias Model =
     , userStakingInfo : Maybe UserStakingInfo
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
-    , farmingIsActive : Bool
     , config : Config
     , chainSwitchInProgress : Bool
     , gtagHistory : GTag.GTagHistory
+    , farmingPeriodEnds : Int
     }
 
 
@@ -162,6 +162,8 @@ type Msg
     | WalletResponse (Result WalletConnectErr UserInfo)
     | ChainSwitchResponse (Result TxErr ())
     | TxSendResponse (Result TxErr TxHash)
+    | FetchFarmingPeriodEnd
+    | FarmingPeriodEndFetched (Result Http.Error BigInt)
 
 
 type alias PriceValue =

@@ -186,11 +186,6 @@ forbiddenJurisdictionCodes =
     Set.fromList [ "US" ]
 
 
-farmingPeriodEnds : Int
-farmingPeriodEnds =
-    1620387709
-
-
 bucketSaleTokensPerBucket : Int
 bucketSaleTokensPerBucket =
     30000
