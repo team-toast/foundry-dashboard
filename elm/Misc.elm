@@ -508,68 +508,6 @@ fetchApyCmd chain =
         Types.ApyFetched
 
 
-doApproveChainCmdFarm : Chain -> UserTx.Initiator Msg
-doApproveChainCmdFarm chain =
-    { notifiers =
-        { onMine = Just <| always Types.RefetchStakingInfoOrApy
-        , onSign = Nothing
-        }
-    , send = StakingContract.approveLiquidityToken chain
-    , txInfo = UserTx.StakingApprove
-    }
-
-
-doDepositChainCmdFarm : Chain -> TokenValue -> UserTx.Initiator Msg
-doDepositChainCmdFarm chain amount =
-    { notifiers =
-        { onMine = Just <| always Types.RefetchStakingInfoOrApy
-        , onSign = Just <| Types.DepositOrWithdrawSigned Types.Deposit amount
-        }
-    , send = StakingContract.stake chain amount
-    , txInfo = UserTx.StakingDeposit amount
-    }
-
-
-doWithdrawChainCmdFarm : Chain -> TokenValue -> UserTx.Initiator Msg
-doWithdrawChainCmdFarm chain amount =
-    { notifiers =
-        { onMine = Just <| always Types.RefetchStakingInfoOrApy
-        , onSign = Just <| Types.DepositOrWithdrawSigned Types.Withdraw amount
-        }
-    , send = StakingContract.withdraw chain amount
-    , txInfo = UserTx.StakingWithdraw amount
-    }
-
-
-doExitChainCmdFarm : Chain -> UserTx.Initiator Msg
-doExitChainCmdFarm chain =
-    { notifiers =
-        { onMine = Just <| always Types.RefetchStakingInfoOrApy
-        , onSign = Nothing
-        }
-    , send = StakingContract.exit chain
-    , txInfo = UserTx.StakingExit
-    }
-
-
-doClaimRewardsFarm : Chain -> UserTx.Initiator Msg
-doClaimRewardsFarm chain =
-    { notifiers =
-        { onMine = Just <| always Types.RefetchStakingInfoOrApy
-        , onSign = Nothing
-        }
-    , send = StakingContract.claimRewards chain
-    , txInfo = UserTx.StakingClaim
-    }
-
-
-getValidatedResponse : Int -> Address -> ValidatedResponseTracker -> Maybe ValidatedResponse
-getValidatedResponse pollId address validatedResponseTracker =
-    validatedResponseTracker
-        |> Dict.get pollId
-        |> Maybe.andThen (AddressDict.get address)
-
-
 insertValidatedResponse : LoggedSignedResponse -> ValidatedResponseTracker -> ValidatedResponseTracker
 insertValidatedResponse ( responseId, signedResponse ) validatedResponseTracker =
     let
@@ -757,16 +695,6 @@ signResponseCmd uInfo poll maybePollOptionId =
 encodeIntOrNull : Maybe Int -> Json.Encode.Value
 encodeIntOrNull =
     Maybe.map Json.Encode.int >> Maybe.withDefault Json.Encode.null
-
-
-encodeSignedResponse : SignedResponse -> Json.Encode.Value
-encodeSignedResponse signedResponse =
-    Json.Encode.object
-        [ ( "address", EthHelpers.encodeAddress signedResponse.address )
-        , ( "pollId", Json.Encode.int signedResponse.pollId )
-        , ( "pollOptionId", encodeIntOrNull signedResponse.maybePollOptionId )
-        , ( "sig", Json.Encode.string signedResponse.sig )
-        ]
 
 
 encodeResponseToValidate : ResponseToValidate -> Json.Encode.Value
@@ -971,38 +899,6 @@ fetchDethPositionInfo chain amount =
                 dEthVal
                 Types.DerivedEthRedeemableFetched
                 chain
-
-
-doDepositChainCmd : Address -> TokenValue -> UserTx.Initiator Msg
-doDepositChainCmd sender amount =
-    { notifiers =
-        { onMine =
-            always
-                Types.FetchUserEthBalance
-                |> Just
-        , onSign =
-            Types.DepositSigned
-                |> Just
-        }
-    , send = Death.deposit sender amount
-    , txInfo = UserTx.DEthDeposit
-    }
-
-
-doWithdrawChainCmd : Address -> TokenValue -> UserTx.Initiator Msg
-doWithdrawChainCmd receiver amount =
-    { notifiers =
-        { onMine =
-            always
-                Types.FetchUserDerivedEthBalance
-                |> Just
-        , onSign =
-            Types.WithdrawSigned
-                |> Just
-        }
-    , send = Death.redeem receiver amount
-    , txInfo = UserTx.DEthRedeem
-    }
 
 
 derivedEthInfoInit : UserDerivedEthInfo
