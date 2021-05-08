@@ -172,7 +172,7 @@ urlToLiquidityPool : Chain -> String
 urlToLiquidityPool chain =
     case chain of
         Eth ->
-            "https://app.uniswap.org/#/add/0x6c972b70c533e2e045f333ee28b9ffb8d717be69/ETH"
+            "https://app.uniswap.org/#/add/v2/0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69/ETH"
 
         BSC ->
             "https://exchange.pancakeswap.finance/#/add/BNB/0xc04e039aE8587e71f8024b36d630f841cc2106CC"
