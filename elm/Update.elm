@@ -921,14 +921,13 @@ update msg model =
             in
             case fetchResult of
                 Err httpErr ->
-                    ( if chain == Eth || chain == BSC then
-                        model
-                            |> (web3FetchError "staking info" httpErr
-                                    |> addUserNotice
-                               )
-
-                      else
-                        model
+                    ( --     if chain == Eth || chain == BSC then
+                      --     model
+                      --         |> (web3FetchError "staking info" httpErr
+                      --                 |> addUserNotice
+                      --            )
+                      --   else
+                      model
                     , Cmd.none
                     )
 
@@ -952,14 +951,13 @@ update msg model =
             in
             case fetchResult of
                 Err httpErr ->
-                    ( if chain == Eth || chain == BSC then
-                        model
-                            |> (web3FetchError "apy" httpErr
-                                    |> addUserNotice
-                               )
-
-                      else
-                        model
+                    ( --     if chain == Eth || chain == BSC then
+                      --     model
+                      --         |> (web3FetchError "apy" httpErr
+                      --                 |> addUserNotice
+                      --            )
+                      --   else
+                      model
                     , Cmd.none
                     )
 
@@ -986,7 +984,7 @@ update msg model =
             case pollsFetchedResult of
                 Err httpErr ->
                     ( model
-                        |> (httpFetchError "fetch polls" httpErr |> addUserNotice)
+                      -- |> (httpFetchError "fetch polls" httpErr |> addUserNotice)
                     , Cmd.none
                     )
 
