@@ -1680,7 +1680,7 @@ update msg model =
 
                             NetworkNotSupported ->
                                 ( { model
-                                    | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
+                                    | userNotices = UN.unexpectedError "This network is not supported." :: model.userNotices
                                     , wallet = NetworkReady
                                     , chainSwitchInProgress = False
                                   }
