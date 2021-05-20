@@ -7,7 +7,7 @@ import Element.Font
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
+import Misc exposing ( combineTreasuryBalance, calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
 import Theme
 import TokenValue exposing (TokenValue)
 import Types exposing (Chain(..), Model, Msg)
@@ -178,9 +178,10 @@ statsEl model =
                         |> floatTextOrLoadingText
                    )
 
-        treasuryBalance =
+        composedTreasuryBalance =
             "$ "
-                ++ (model.treasuryBalance
+                ++ (model.composedTreasuryBalance
+                        |> combineTreasuryBalance
                         |> tokenValueTextOrLoadingText
                    )
 
@@ -225,7 +226,7 @@ statsEl model =
                 |> statsRow
             , "Treasury"
                 |> statsHeading dProfile
-            , [ statsRowItem dProfile "Balance" treasuryBalance False
+            , [ statsRowItem dProfile "Balance" composedTreasuryBalance False
               ]
                 |> statsRow
             , "Liquidity"
@@ -279,7 +280,7 @@ statsEl model =
                     |> statsRow
               , "Treasury"
                     |> statsHeading dProfile
-              , [ statsRowItem dProfile "Balance" treasuryBalance False
+              , [ statsRowItem dProfile "Balance" composedTreasuryBalance False
                 ]
                     |> statsRow
               , "Liquidity"

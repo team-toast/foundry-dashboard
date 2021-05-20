@@ -11,7 +11,7 @@ import Eth.Sentry.Tx
 import Eth.Sentry.Wallet
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (emptyModel, fetchAllPollsCmd, fetchApyCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchDethPositionInfo, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalance, userInfo)
+import Misc exposing (emptyModel, fetchAllPollsCmd, fetchApyCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchDethPositionInfo, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalances, userInfo)
 import Ports
 import Routing
 import Time
@@ -135,7 +135,7 @@ init flags url key =
                   , fetchPermaFrostLockedTokenBalance
                   , fetchPermaFrostTotalSupply
                   , fetchBalancerPoolFryBalance
-                  , fetchTreasuryBalance
+                  , fetchTreasuryBalances
                   , fetchAllPollsCmd
                   , model.wallet
                         |> fetchDerivedEthBalance chain

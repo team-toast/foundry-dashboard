@@ -44,7 +44,7 @@ import Set
 import Task
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), Config, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, PriceValue, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Wallet)
+import Types exposing (Chain(..), ComposedTreasuryBalance, Config, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, PriceValue, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Wallet)
 import Url.Builder
 import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
@@ -100,7 +100,10 @@ emptyModel key now basePath cookieConsent =
     , balancerFryBalance = Nothing
     , permaFrostTotalSupply = Nothing
     , permaFrostBalanceLocked = Nothing
-    , treasuryBalance = Nothing
+    , composedTreasuryBalance =
+        { actual = Nothing
+        , hot = Nothing
+        }
     , userDerivedEthInfo = Nothing
     , jurisdictionCheckStatus = Types.WaitingForClick
     , depositAmount = ""
@@ -217,13 +220,20 @@ fetchBalancerPoolFryBalance =
         Types.FetchedBalancerFryBalance
 
 
-fetchTreasuryBalance : Cmd Msg
-fetchTreasuryBalance =
-    ERC20.getBalanceCmd
-        Eth
-        (ConfigFile.daiContractAddress Eth)
-        ConfigFile.treasuryForwarderAddress
-        Types.FetchedTreasuryBalance
+fetchTreasuryBalances : Cmd Msg
+fetchTreasuryBalances =
+    Cmd.batch
+        [ ERC20.getBalanceCmd
+            Eth
+            (ConfigFile.daiContractAddress Eth)
+            ConfigFile.treasuryForwarderAddress
+            Types.FetchedActualTreasuryBalance
+        , ERC20.getBalanceCmd
+            Eth
+            (ConfigFile.daiContractAddress Eth)
+            ConfigFile.hotTreasuryAddress
+            Types.FetchedHotTreasuryBalance
+        ]
 
 
 calcCircSupply : Maybe Int -> Array (Maybe TokenValue) -> Maybe TokenValue -> Maybe Float
@@ -458,29 +468,27 @@ calcPermafrostedTokensValue nrTokens tokenEthPrice ethUsdPrice =
             Nothing
 
 
-calcTreasuryBalance : Maybe Float -> Maybe Float -> Maybe TokenValue -> Maybe TokenValue
-calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
-    case daiPriceInEth of
-        Just daiInEth ->
-            case ethPriceInUsd of
-                Just ethInUsd ->
-                    case numberOfDaiTokens of
-                        Just daiTokenCount ->
-                            ((TokenValue.toFloatWithWarning <| daiTokenCount)
-                                * daiInEth
-                                * ethInUsd
-                            )
-                                |> TokenValue.fromFloatWithWarning
-                                |> Just
 
-                        _ ->
-                            Nothing
-
-                _ ->
-                    Nothing
-
-        _ ->
-            Nothing
+-- calcTreasuryBalance : Maybe Float -> Maybe Float -> Maybe TokenValue -> Maybe TokenValue
+-- calcTreasuryBalance daiPriceInEth ethPriceInUsd numberOfDaiTokens =
+--     case daiPriceInEth of
+--         Just daiInEth ->
+--             case ethPriceInUsd of
+--                 Just ethInUsd ->
+--                     case numberOfDaiTokens of
+--                         Just daiTokenCount ->
+--                             ((TokenValue.toFloatWithWarning <| daiTokenCount)
+--                                 * daiInEth
+--                                 * ethInUsd
+--                             )
+--                                 |> TokenValue.fromFloatWithWarning
+--                                 |> Just
+--                         _ ->
+--                             Nothing
+--                 _ ->
+--                     Nothing
+--         _ ->
+--             Nothing
 
 
 fetchStakingInfoOrApyCmd : Chain -> Wallet -> Cmd Msg
@@ -1128,3 +1136,16 @@ fetchFarmEndTime chain =
             (ConfigFile.stakingContractAddress chain)
         )
         |> Task.attempt Types.FarmingPeriodEndFetched
+
+
+combineTreasuryBalance : ComposedTreasuryBalance -> Maybe TokenValue
+combineTreasuryBalance combined =
+    case ( combined.actual, combined.hot ) of
+        ( Just actual, Just hot ) ->
+            Just <|
+                TokenValue.add
+                    actual
+                    hot
+
+        _ ->
+            Nothing

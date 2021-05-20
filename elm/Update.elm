@@ -181,7 +181,7 @@ update msg model =
               , fetchPermaFrostLockedTokenBalance
               , fetchPermaFrostTotalSupply
               , fetchBalancerPoolFryBalance
-              , fetchTreasuryBalance
+              , fetchTreasuryBalances
               , model.wallet
                     |> (fetchDerivedEthBalance <|
                             chain
@@ -696,7 +696,7 @@ update msg model =
                     , Cmd.none
                     )
 
-        FetchedTreasuryBalance fetchResult ->
+        FetchedActualTreasuryBalance fetchResult ->
             case fetchResult of
                 Err httpErr ->
                     ( model
@@ -705,11 +705,35 @@ update msg model =
 
                 Ok valueFetched ->
                     ( { model
-                        | treasuryBalance =
-                            calcTreasuryBalance
-                                model.currentDaiPriceEth
-                                model.currentEthPriceUsd
-                                (Just valueFetched)
+                        | composedTreasuryBalance =
+                            let
+                                oldCombined =
+                                    model.composedTreasuryBalance
+                            in
+                            { oldCombined
+                                | actual = Just valueFetched
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+        FetchedHotTreasuryBalance fetchResult ->
+            case fetchResult of
+                Err httpErr ->
+                    ( model
+                    , Cmd.none
+                    )
+
+                Ok valueFetched ->
+                    ( { model
+                        | composedTreasuryBalance =
+                            let
+                                oldCombined =
+                                    model.composedTreasuryBalance
+                            in
+                            { oldCombined
+                                | hot = Just valueFetched
+                            }
                       }
                     , Cmd.none
                     )

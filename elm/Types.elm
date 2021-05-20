@@ -72,7 +72,7 @@ type alias Model =
     , balancerFryBalance : Maybe TokenValue
     , permaFrostTotalSupply : Maybe TokenValue
     , permaFrostBalanceLocked : Maybe TokenValue
-    , treasuryBalance : Maybe TokenValue
+    , composedTreasuryBalance : ComposedTreasuryBalance
     , userDerivedEthInfo : Maybe UserDerivedEthInfo
     , jurisdictionCheckStatus : JurisdictionCheckStatus
     , depositAmount : String
@@ -116,7 +116,8 @@ type Msg
     | FetchedPermaFrostBalanceLocked (Result Http.Error TokenValue)
     | FetchedPermaFrostTotalSupply (Result Http.Error TokenValue)
     | FetchedBalancerFryBalance (Result Http.Error TokenValue)
-    | FetchedTreasuryBalance (Result Http.Error TokenValue)
+    | FetchedActualTreasuryBalance (Result Http.Error TokenValue)
+    | FetchedHotTreasuryBalance (Result Http.Error TokenValue)
     | DepositAmountChanged String
     | WithdrawalAmountChanged String
     | DepositClicked TokenValue
@@ -164,6 +165,12 @@ type Msg
     | TxSendResponse (Result TxErr TxHash)
     | FetchFarmingPeriodEnd
     | FarmingPeriodEndFetched (Result Http.Error BigInt)
+
+
+type alias ComposedTreasuryBalance =
+    { actual : Maybe TokenValue
+    , hot : Maybe TokenValue
+    }
 
 
 type alias PriceValue =

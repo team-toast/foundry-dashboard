@@ -105,6 +105,11 @@ treasuryForwarderAddress =
     Eth.Utils.unsafeToAddress "0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553"
 
 
+hotTreasuryAddress : Address
+hotTreasuryAddress =
+    Eth.Utils.unsafeToAddress "0x9C59BAD7674AC1b9485Ede5c19af3B42F0516392"
+
+
 bucketSaleAddress : Address
 bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
