@@ -276,10 +276,6 @@ interface IERC20 {
     );
 }
 
-interface IMakerPriceFeed {
-    function read() external view returns (bytes32);
-}
-
 /**
  * @dev Collection of functions related to the address type,
  */
@@ -608,21 +604,21 @@ contract StakingRewards is TokenWrapper, RewardsDistributionRecipient {
         }
     }
 
-    function notifyRewardAmount(uint256 reward)
+    function notifyRewardAmount(uint256 rewardAdded)
         external
         onlyRewardsDistribution
         updateReward(address(0))
     {
         if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(duration); // altered to allow variable durations
+            rewardRate = rewardAdded.div(duration); // altered to allow variable durations
         } else {
             uint256 remaining = periodFinish.sub(block.timestamp);
             uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(duration); // altered to allow variable durations
+            rewardRate = rewardAdded.add(leftover).div(duration); // altered to allow variable durations
         }
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp.add(duration); // altered to allow variable durations
-        emit RewardAdded(reward);
+        emit RewardAdded(rewardAdded);
     }
 }
 
@@ -647,6 +643,18 @@ contract BSCStakingRewardsScript is StakingRewards {
             0xe71C65Eb18faB7c8DD99598973fd8FA18570fb01, // _stakingToken = FRYBNBCakeLPToken,
             30 days
         ) // _duration = 30 days
+    {}
+}
+
+contract MaticStakingRewardsScript is StakingRewards {
+    constructor()
+        public
+        StakingRewards(
+            0x2F6e225d1e7eF017E00CF017AE05c23b34F0B1D7, // _owner = team toast address
+            0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063, // _rewardsToken = (pos) DAI on Matic
+            0x07af07c014E221f52F68cED635E5060873b9461B, // _stakingToken = what, FRY/MATIC token?
+            30 days // _duration = 30 days
+        )
     {}
 }
 
