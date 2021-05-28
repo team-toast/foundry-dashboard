@@ -1,4 +1,4 @@
-module View.Img exposing (bookmark, bsc, dollar, eth, hide, link, logo, replyArrow, speechBubble, spinner, xDai)
+module View.Img exposing (bookmark, bsc, dollar, eth, hide, link, logo, replyArrow, speechBubble, spinner)
 
 import Element exposing (Color, Element)
 import Svg exposing (Svg, g, path, polygon, svg)
@@ -45,16 +45,36 @@ bsc size =
         |> wrap
 
 
-xDai : Int -> Element msg
-xDai size =
-    svg [ viewBox "0 0 512 512", height size, width size ]
-        [ Svg.path
-            [ fill "#fff", d "M0 0v511h512V0H0z" ]
-            []
-        , Svg.path [ fill "#48a9a6", d "M40 40v86h172V40H40m258 0v86h172V40H298M40 298v172h172v-86h-86v-86H40m344 0v86h-86v86h172V298h-86z" ] []
-        , Svg.path [ d "M0 511c4.4687 1.875 10.1913 1 15 1h497c-4.469-1.875-10.191-1-15-1H0z" ] []
-        ]
-        |> wrap
+-- xDai : Int -> Element msg
+-- xDai size =
+--     svg [ viewBox "0 0 512 512", height size, width size ]
+--         [ Svg.path
+--             [ fill "#fff", d "M0 0v511h512V0H0z" ]
+--             []
+--         , Svg.path [ fill "#48a9a6", d "M40 40v86h172V40H40m258 0v86h172V40H298M40 298v172h172v-86h-86v-86H40m344 0v86h-86v86h172V298h-86z" ] []
+--         , Svg.path [ d "M0 511c4.4687 1.875 10.1913 1 15 1h497c-4.469-1.875-10.191-1-15-1H0z" ] []
+--         ]
+--         |> wrap
+
+-- matic : Int -> Element msg
+-- matic size =
+--     svg [ viewBox "0 0 38.4 33.5", height size, width size ]
+--         [ Svg.path
+--             [ fill "#fff", ]
+--         ]
+-- 	 viewBox="0 0 38.4 33.5" style="enable-background:new 0 0 38.4 33.5;" xml:space="preserve">
+-- <style type="text/css">
+-- 	.st0{fill:#8247E5;}
+-- </style>
+-- <g>
+-- 	<path class="st0" d="M29,10.2c-0.7-0.4-1.6-0.4-2.4,0L21,13.5l-3.8,2.1l-5.5,3.3c-0.7,0.4-1.6,0.4-2.4,0L5,16.3
+-- 		c-0.7-0.4-1.2-1.2-1.2-2.1v-5c0-0.8,0.4-1.6,1.2-2.1l4.3-2.5c0.7-0.4,1.6-0.4,2.4,0L16,7.2c0.7,0.4,1.2,1.2,1.2,2.1v3.3l3.8-2.2V7
+-- 		c0-0.8-0.4-1.6-1.2-2.1l-8-4.7c-0.7-0.4-1.6-0.4-2.4,0L1.2,5C0.4,5.4,0,6.2,0,7v9.4c0,0.8,0.4,1.6,1.2,2.1l8.1,4.7
+-- 		c0.7,0.4,1.6,0.4,2.4,0l5.5-3.2l3.8-2.2l5.5-3.2c0.7-0.4,1.6-0.4,2.4,0l4.3,2.5c0.7,0.4,1.2,1.2,1.2,2.1v5c0,0.8-0.4,1.6-1.2,2.1
+-- 		L29,28.8c-0.7,0.4-1.6,0.4-2.4,0l-4.3-2.5c-0.7-0.4-1.2-1.2-1.2-2.1V21l-3.8,2.2v3.3c0,0.8,0.4,1.6,1.2,2.1l8.1,4.7
+-- 		c0.7,0.4,1.6,0.4,2.4,0l8.1-4.7c0.7-0.4,1.2-1.2,1.2-2.1V17c0-0.8-0.4-1.6-1.2-2.1L29,10.2z"/>
+-- </g>
+-- </svg>
 
 
 link : Int -> Color -> Element msg

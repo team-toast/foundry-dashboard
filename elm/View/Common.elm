@@ -294,35 +294,35 @@ daiAmountInput dProfile attributes currentInput onChange =
         }
 
 
-viewChain : Types.Chain -> Element msg
-viewChain c =
-    let
-        txt =
-            case c of
-                Types.XDai ->
-                    "xDai"
+-- viewChain : Types.Chain -> Element msg
+-- viewChain c =
+--     let
+--         txt =
+--             case c of
+--                 Types.Eth ->
+--                     "Ethereum"
 
-                Types.Eth ->
-                    "Ethereum"
+--                 Types.BSC ->
+--                     "BSC"
 
-                Types.BSC ->
-                    "BSC"
+--                 Types.Matic ->
+--                     "Matic"
 
-        img =
-            case c of
-                Types.XDai ->
-                    View.Img.xDai 20
+--         img =
+--             case c of
+--                 Types.Eth ->
+--                     View.Img.eth 20 <| Element.rgb 0.5 0.5 1
 
-                Types.Eth ->
-                    View.Img.eth 20 <| Element.rgb 0.5 0.5 1
+--                 Types.BSC ->
+--                     View.Img.bsc 20
 
-                Types.BSC ->
-                    View.Img.bsc 20
-    in
-    [ img, text txt ]
-        |> row
-            [ spacing 10
-            ]
+--                 Types.Matic ->
+--                     View.Img.matic 20
+--     in
+--     [ img, text txt ]
+--         |> row
+--             [ spacing 10
+--             ]
 
 
 spinner : Int -> Color -> Element msg

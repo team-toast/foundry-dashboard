@@ -99,7 +99,7 @@ viewAddressAndLabel dProfile chain label address =
                     20
             ]
     , { url =
-            Config.blockExplorerUrl chain
+            Config.addressExplorerUrl chain
                 ++ (address
                         |> Eth.Utils.addressToString
                    )

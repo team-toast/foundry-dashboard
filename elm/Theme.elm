@@ -63,9 +63,9 @@ basicTheme =
     }
 
 
-xDai : Color
-xDai =
-    rgb255 7 132 112
+-- xDai : Color
+-- xDai =
+--     rgb255 7 132 112
 
 
 ethereum : Color

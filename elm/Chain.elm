@@ -1,4 +1,4 @@
-module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl, whenJust)
+module Chain exposing (chainDecoder, decodeChain, getConfig, getName, getProviderUrl, txUrl, whenJust)
 
 import Config
 import Element exposing (Color)
@@ -15,15 +15,8 @@ import Types exposing (Chain(..), ChainConfig, Config, Flags)
 
 getProviderUrl : Chain -> Config -> String
 getProviderUrl chain =
-    case chain of
-        Eth ->
-            .ethereum >> .providerUrl
-
-        XDai ->
-            .xDai >> .providerUrl
-
-        BSC ->
-            .bsc >> .providerUrl
+    getConfig chain
+        >> .providerUrl
 
 
 getConfig : Chain -> Config -> ChainConfig
@@ -32,8 +25,8 @@ getConfig chain =
         Eth ->
             .ethereum
 
-        XDai ->
-            .xDai
+        Matic ->
+            .matic
 
         BSC ->
             .bsc
@@ -45,26 +38,28 @@ txUrl chain hash =
         Eth ->
             Helpers.Eth.etherscanTxUrl hash
 
-        XDai ->
-            "https://blockscout.com/poa/xdai/tx/"
-                ++ Eth.Utils.txHashToString hash
-
+        -- XDai ->
+        --     "https://blockscout.com/poa/xdai/tx/"
+        --         ++ Eth.Utils.txHashToString hash
         BSC ->
             "https://bscscan.com/tx/"
                 ++ Eth.Utils.txHashToString hash
 
+        Matic ->
+            "https://explorer-mainnet.maticvigil.com/tx/"
+                ++ Eth.Utils.txHashToString hash
 
-getColor : Chain -> Color
-getColor chain =
-    case chain of
-        XDai ->
-            Theme.xDai
 
-        Eth ->
-            Theme.ethereum
 
-        BSC ->
-            Theme.bsc
+-- getColor : Chain -> Color
+-- getColor chain =
+--     case chain of
+--         Matic ->
+--             Theme.matic
+--         Eth ->
+--             Theme.ethereum
+--         BSC ->
+--             Theme.bsc
 
 
 getName : Chain -> String
@@ -73,8 +68,8 @@ getName chain =
         Eth ->
             "Eth"
 
-        XDai ->
-            "xDai"
+        Matic ->
+            "Matic"
 
         BSC ->
             "BSC"
@@ -108,8 +103,11 @@ decodeChain =
                         Types.Eth
                             |> Ok
 
-                    Eth.Net.Private 100 ->
-                        Types.XDai
+                    -- Eth.Net.Private 100 ->
+                    --     Types.XDai
+                    --         |> Ok
+                    Eth.Net.Private 137 ->
+                        Types.Matic
                             |> Ok
 
                     Eth.Net.Private 56 ->

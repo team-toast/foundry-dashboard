@@ -308,19 +308,19 @@ update msg model =
                     , cmd
                     )
 
-                XDai ->
+                Matic ->
                     let
                         ( newEventSentry, cmd ) =
                             EventSentry.update
                                 eventMsg
-                                model.sentries.xDai
+                                model.sentries.matic
                     in
                     ( { model
                         | sentries =
                             model.sentries
                                 |> (\ss ->
                                         { ss
-                                            | xDai =
+                                            | matic =
                                                 newEventSentry
                                         }
                                    )

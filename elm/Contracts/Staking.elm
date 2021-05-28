@@ -90,7 +90,7 @@ getUserStakingInfo chain userAddress msgConstructor =
     Eth.call
         (Config.httpProviderUrl chain)
         (StakingScripts.getData
-            (Config.stakingScriptsAddress chain)
+            (Config.stakingQueryScriptsAddress chain)
             (Config.stakingContractAddress chain)
             (Config.stakingPricePairAddress chain)
             userAddress
@@ -117,7 +117,7 @@ getApy chain msgConstructor =
     Eth.call
         (Config.httpProviderUrl chain)
         (StakingScripts.getData
-            (Config.stakingScriptsAddress chain)
+            (Config.stakingQueryScriptsAddress chain)
             (Config.stakingContractAddress chain)
             (Config.stakingPricePairAddress chain)
             EthHelpers.zeroAddress

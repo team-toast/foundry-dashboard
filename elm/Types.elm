@@ -47,7 +47,7 @@ type alias Model =
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , sentries :
-        { xDai : EventSentry Msg
+        { matic : EventSentry Msg
         , ethereum : EventSentry Msg
         , bsc : EventSentry Msg
         }
@@ -331,9 +331,10 @@ type InputValidationResult
 
 
 type Chain
-    = XDai
-    | Eth
+    -- = XDai
+    = Eth
     | BSC
+    | Matic
 
 
 type alias ChainConfig =
@@ -346,7 +347,7 @@ type alias ChainConfig =
 
 
 type alias Config =
-    { xDai : ChainConfig
+    { matic : ChainConfig
     , ethereum : ChainConfig
     , bsc : ChainConfig
     }

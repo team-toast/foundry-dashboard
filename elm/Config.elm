@@ -36,8 +36,13 @@ mainnetHttpProviderUrl chain =
         BSC ->
             "https://bsc-dataseed1.binance.org/"
 
-        XDai ->
-            testModeHttpProviderUrl
+        Matic ->
+            "https://rpc-mainnet.maticvigil.com"
+
+        -- XDai ->
+        --     "https://xdai-archive.blockscout.com"
+            
+        
 
 
 testModeHttpProviderUrl : String
@@ -58,9 +63,12 @@ daiContractAddress chain =
 
             BSC ->
                 "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3"
+            
+            Matic ->
+                "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
 
-            XDai ->
-                ""
+            -- XDai ->
+            --     ""
 
 
 erc20BalanceFetchBatchContractAddress : Address
@@ -77,13 +85,16 @@ fryContractAddress chain =
 
             BSC ->
                 "0xc04e039ae8587e71f8024b36d630f841cc2106cc"
+            
+            Matic ->
+                "0xc9BAA8cfdDe8E328787E29b4B078abf2DaDc2055"
 
-            XDai ->
-                ""
+            -- XDai ->
+            --     ""
 
 
-blockExplorerUrl : Chain -> String
-blockExplorerUrl chain =
+addressExplorerUrl : Chain -> String
+addressExplorerUrl chain =
     case chain of
         Eth ->
             "https://etherscan.io/address/"
@@ -91,8 +102,8 @@ blockExplorerUrl chain =
         BSC ->
             "https://bscscan.com/address/"
 
-        _ ->
-            ""
+        Matic ->
+            "https://explorer-mainnet.maticvigil.com/address/"
 
 
 teamToastMultiSigAddress : Address
@@ -125,8 +136,8 @@ stakingContractAddress chain =
             BSC ->
                 "0xC13aa70E9437349834B1B093f8C5922fdEF6496B"
 
-            XDai ->
-                ""
+            Matic ->
+                "0xd3dA0fCbB32aF2B03c0B3395CA3bc64a0ef01CFf"
 
 
 stakingLiquidityContractAddress : Chain -> Address
@@ -139,12 +150,12 @@ stakingLiquidityContractAddress chain =
             BSC ->
                 "0xe71c65eb18fab7c8dd99598973fd8fa18570fb01"
 
-            XDai ->
-                ""
+            Matic ->
+                "0x07af07c014E221f52F68cED635E5060873b9461B"
 
 
-stakingScriptsAddress : Chain -> Address
-stakingScriptsAddress chain =
+stakingQueryScriptsAddress : Chain -> Address
+stakingQueryScriptsAddress chain =
     Eth.Utils.unsafeToAddress <|
         case chain of
             Eth ->
@@ -153,8 +164,9 @@ stakingScriptsAddress chain =
             BSC ->
                 "0x6cefd06178B924b550F28bD9B9546338337d3B31"
 
-            XDai ->
-                ""
+            Matic ->
+                "0x8114c2EA3Aa9B0Adf501C7a63EFea2c2c6E4c0fC"
+
 
 
 stakingPricePairAddress : Chain -> Address
@@ -169,8 +181,11 @@ stakingPricePairAddress chain =
                 -- BUSD/BNB
                 "0x1b96b92314c44b159149f7e0303511fb2fc4774f"
 
-            XDai ->
-                ""
+            Matic ->
+                -- WMATIC/USDC
+                -- note that this pair is reversed. This will matter when the query contract does a less stupid price calculation
+                "0x6e7a5fafcec6bb1e78bae2a1f0b612012bf14827"
+
 
 
 urlToLiquidityPool : Chain -> String
@@ -182,8 +197,8 @@ urlToLiquidityPool chain =
         BSC ->
             "https://exchange.pancakeswap.finance/#/add/BNB/0xc04e039aE8587e71f8024b36d630f841cc2106CC"
 
-        XDai ->
-            ""
+        Matic ->
+            "https://quickswap.exchange/#/add/0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270/0xc9baa8cfdde8e328787e29b4b078abf2dadc2055"
 
 
 forbiddenJurisdictionCodes : Set String

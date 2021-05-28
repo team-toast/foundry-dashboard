@@ -67,10 +67,10 @@ init flags url key =
                             |> List.foldl
                                 (\data ->
                                     case data.chain of
-                                        Types.XDai ->
+                                        Types.Matic ->
                                             \config_ ->
                                                 { config_
-                                                    | xDai = data
+                                                    | matic = data
                                                 }
 
                                         Types.Eth ->
@@ -97,8 +97,8 @@ init flags url key =
                     ( ethSentry, ethCmd1, ethCmd2 ) =
                         startSentry model.config.ethereum
 
-                    ( xDaiSentry, xDaiCmd1, xDaiCmd2 ) =
-                        startSentry model.config.xDai
+                    ( maticSentry, maticCmd1, maticCmd2 ) =
+                        startSentry model.config.matic
 
                     ( bscSentry, bscCmd1, bscCmd2 ) =
                         startSentry model.config.bsc
@@ -120,7 +120,7 @@ init flags url key =
                         model.sentries
                             |> (\cs ->
                                     { cs
-                                        | xDai = xDaiSentry
+                                        | matic = maticSentry
                                         , ethereum = ethSentry
                                         , bsc = bscSentry
                                     }

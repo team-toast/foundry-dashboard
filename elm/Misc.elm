@@ -72,7 +72,7 @@ emptyModel key now basePath cookieConsent =
     , now = now
     , dProfile = EH.Desktop
     , sentries =
-        { xDai =
+        { matic =
             Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
         , ethereum =
             Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
@@ -1099,8 +1099,8 @@ addTrackedTx userTx notifiers tracker =
 
 emptyConfig : Config
 emptyConfig =
-    { xDai =
-        { chain = Types.XDai
+    { matic =
+        { chain = Types.Matic
 
         -- , contract = emptyAddress
         -- , startScanBlock = 0

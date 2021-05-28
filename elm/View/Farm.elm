@@ -40,20 +40,26 @@ view model =
                         userInfo.chain
                     )
     in
-    (case chain of
-        Eth ->
-            [ titleEl dProfile "Farming for Fryers!"
-            , subTitleEl dProfile model.now model.farmingPeriodEnds
-            , farmVideoEl dProfile
-            , if model.chainSwitchInProgress then
-                loadingText |> text |> el [ Font.color almostWhite ]
+    (if chain == Eth || chain == Matic then
+        [ titleEl dProfile "Farming for Fryers!"
+        , subTitleEl dProfile model.now model.farmingPeriodEnds
+        , farmVideoEl dProfile
+        , if model.chainSwitchInProgress then
+            loadingText |> text |> el [ Font.color almostWhite ]
 
-              else
-                bodyEl model
+          else
+            bodyEl model
+        ]
+
+     else
+        [ titleEl dProfile "Farming currently only available on Ethereum or Matic."
+        , Element.el
+            [ Element.centerX
+            , Font.color white
             ]
-
-        _ ->
-            [ titleEl dProfile "Farming currently only available on mainnet." ]
+          <|
+            Element.text "Switch your Metamask network to one of these networks to farm FRY."
+        ]
     )
         |> column
             [ centerX
@@ -229,16 +235,8 @@ currentNetworkAndSwitchEl dProfile wallet =
                     )
 
         farmText =
-            (case chain of
-                Eth ->
-                    "Farming on Mainnet"
-
-                BSC ->
-                    "Farming on BSC"
-
-                _ ->
-                    "Not supported"
-            )
+            "Farming on "
+                ++ Chain.getName chain
                 |> text
                 |> el
                     [ Font.color white
@@ -739,7 +737,7 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                     [ width <| px amountElWidth
                     , Element.clip
                     ]
-                    (balance |> TokenValue.toFloatString Nothing |> text)
+                    (balance |> TokenValue.toFloatString (Just 6) |> text)
         , el
             [ width <| responsiveVal dProfile (px 100) (fillPortion 1)
             , Font.color color
@@ -1077,10 +1075,10 @@ getLiquidityDescription : Chain -> String
 getLiquidityDescription chain =
     case chain of
         Eth ->
-            "ETHFRY"
+            "ETH-FRY"
 
         BSC ->
-            "BNBFRY"
+            "BNB-FRY"
 
-        _ ->
-            "ERROR"
+        Matic ->
+            "MATIC-FRY"
