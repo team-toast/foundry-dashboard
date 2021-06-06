@@ -652,7 +652,8 @@ contract MaticStakingRewardsScript is StakingRewards {
         StakingRewards(
             0x2F6e225d1e7eF017E00CF017AE05c23b34F0B1D7, // _owner = team toast address
             0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063, // _rewardsToken = (pos) DAI on Matic
-            0x07af07c014E221f52F68cED635E5060873b9461B, // _stakingToken = FRY/MATIC on QuickSwap
+            TODO, // _stakingToken = FRY/MATIC on QuickSwap
+            // Final bridged FRY contract on Matic is 0x48D3a72230e65380f63a05eE41A7BE31773c44b4.
             30 days // _duration = 30 days
         )
     {}
