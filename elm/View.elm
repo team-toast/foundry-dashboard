@@ -156,7 +156,8 @@ viewBody model =
             Sentiment.view model
 
         Routing.DerivedEth ->
-            DerivedEth.view model
+            --DerivedEth.view model
+            Element.none
 
         Routing.Stats ->
             Stats.view model
@@ -320,9 +321,10 @@ navigationButtons model =
     , navigationButton
         Routing.Stats
         model
-    , navigationButton
-        Routing.DerivedEth
-        model
+
+    --, navigationButton
+    --Routing.DerivedEth
+    --model
     ]
         |> row
             ([ responsiveVal model.dProfile 20 10
