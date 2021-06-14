@@ -1,5 +1,6 @@
 module Contracts.DEthWrapper exposing (..)
 
+import BigInt
 import Config exposing (derivedEthContractAddress)
 import Contracts.Generated.DEth as Death
 import Contracts.Generated.ERC20 as ERC20
@@ -16,7 +17,6 @@ deposit sender amount =
     Death.squanderMyEthForWorthlessBeans
         derivedEthContractAddress
         sender
-        (TokenValue.getEvmValue amount |> Just)
         |> Eth.toSend
 
 
@@ -24,8 +24,8 @@ redeem : Address -> TokenValue -> Eth.Send
 redeem receiver amount =
     Death.redeem
         derivedEthContractAddress
-        (TokenValue.getEvmValue amount)
         receiver
+        (TokenValue.getEvmValue amount)
         |> Eth.toSend
 
 
@@ -55,8 +55,8 @@ getRedeemable amount msgConstructor chain =
 
 unpackCalculatedRedemptionValue : Death.CalculateRedemptionValue -> ( TokenValue, TokenValue, TokenValue )
 unpackCalculatedRedemptionValue data =
-    ( TokenValue.tokenValue data.totalCollateralRedeemed
-    , TokenValue.tokenValue data.fee
+    ( TokenValue.tokenValue data.collateralRedeemed
+    , TokenValue.tokenValue <| BigInt.add data.protocolFee data.automationFee
     , TokenValue.tokenValue data.collateralReturned
     )
 
@@ -73,6 +73,6 @@ approveDEthToken =
 unpackCalculatedIssuanceAmount : Death.CalculateIssuanceAmount -> ( TokenValue, TokenValue, TokenValue )
 unpackCalculatedIssuanceAmount data =
     ( TokenValue.tokenValue data.actualCollateralAdded
-    , TokenValue.tokenValue data.fee
+    , TokenValue.tokenValue <| BigInt.add data.protocolFee data.automationFee
     , TokenValue.tokenValue data.tokensIssued
     )
