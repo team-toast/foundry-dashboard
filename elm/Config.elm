@@ -243,7 +243,7 @@ balancerPermafrostPool =
 
 derivedEthContractAddress : Address
 derivedEthContractAddress =
-    Eth.Utils.unsafeToAddress "0x5420dFecFaCcDAE68b406ce96079d37743Aa11Ae"
+    Eth.Utils.unsafeToAddress "0x3b6282e75e0465eb5948edc5f0397f9e9688cf59"
 
 
 ethAddress : Address
