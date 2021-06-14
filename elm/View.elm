@@ -156,8 +156,7 @@ viewBody model =
             Sentiment.view model
 
         Routing.DerivedEth ->
-            --DerivedEth.view model
-            Element.none
+            DerivedEth.view model
 
         Routing.Stats ->
             Stats.view model
