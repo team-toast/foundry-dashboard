@@ -1304,7 +1304,6 @@ update msg model =
                             Death.squanderMyEthForWorthlessBeans
                                 Config.derivedEthContractAddress
                                 uInfo.address
-                                (TokenValue.getEvmValue amount |> Just)
                                 |> (\call ->
                                         { call | from = Just uInfo.address }
                                    )
@@ -1340,8 +1339,8 @@ update msg model =
                         txParams =
                             Death.redeem
                                 Config.derivedEthContractAddress
-                                (TokenValue.getEvmValue amount)
                                 uInfo.address
+                                (TokenValue.getEvmValue amount)
                                 |> (\call ->
                                         { call | from = Just uInfo.address }
                                    )

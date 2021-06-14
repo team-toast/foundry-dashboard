@@ -1,11 +1,72 @@
 module Contracts.Generated.DEth exposing
-    ( CalculateIssuanceAmount
+    ( Approval
+    , AutomationSettingsChanged
+    , CalculateIssuanceAmount
     , CalculateRedemptionValue
+    , GetCollateral
+    , Issued
+    , LogNote
+    , LogSetAuthority
+    , LogSetOwner
+    , Redeemed
+    , Transfer
+    , allowance
+    , approvalDecoder
+    , approvalEvent
+    , approve
+    , authority
+    , automate
+    , automationFeePerc
+    , automationSettingsChangedDecoder
+    , automationSettingsChangedEvent
     , balanceOf
+    , cache
     , calculateIssuanceAmount
+    , calculateIssuanceAmountDecoder
     , calculateRedemptionValue
+    , calculateRedemptionValueDecoder
+    , cdpId
+    , changeGulper
+    , decimals
+    , decreaseAllowance
+    , ethGemJoin
+    , getCollateral
+    , getCollateralDecoder
+    , getCollateralPriceRAY
+    , getExcessCollateral
+    , getRatio
+    , giveCDPToDSProxy
+    , gulper
+    , increaseAllowance
+    , issuedDecoder
+    , issuedEvent
+    , logNoteDecoder
+    , logNoteEvent
+    , logSetAuthorityDecoder
+    , logSetAuthorityEvent
+    , logSetOwnerDecoder
+    , logSetOwnerEvent
+    , makerManager
+    , minRedemptionRatio
+    , name
+    , oracle
+    , owner
     , redeem
+    , redeemedDecoder
+    , redeemedEvent
+    , riskLimit
+    , saverProxy
+    , saverProxyActions
+    , setAuthority
+    , setCache
+    , setOwner
     , squanderMyEthForWorthlessBeans
+    , symbol
+    , totalSupply
+    , transfer
+    , transferDecoder
+    , transferEvent
+    , transferFrom
     )
 
 import BigInt exposing (BigInt)
@@ -24,6 +85,91 @@ import Json.Decode.Pipeline exposing (custom)
    Compatible with elm-ethereum v4.0.0
 
 -}
+-- allowance(address,address) function
+
+
+allowance : Address -> Address -> Address -> Call BigInt
+allowance contractAddress owner_ spender_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "dd62ed3e" [ E.address owner_, E.address spender_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- approve(address,uint256) function
+
+
+approve : Address -> Address -> BigInt -> Call Bool
+approve contractAddress spender_ amount_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "095ea7b3" [ E.address spender_, E.uint amount_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.bool
+    }
+
+
+
+-- authority() function
+
+
+authority : Address -> Call Address
+authority contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "bf7e214f" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- automate(uint256,uint256,uint256,uint256,uint256,uint256) function
+
+
+automate : Address -> BigInt -> BigInt -> BigInt -> BigInt -> BigInt -> BigInt -> Call ()
+automate contractAddress repaymentRatio_ targetRatio_ boostRatio_ minRedemptionRatio_ automationFeePerc_ riskLimit_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "4fc9f583" [ E.uint repaymentRatio_, E.uint targetRatio_, E.uint boostRatio_, E.uint minRedemptionRatio_, E.uint automationFeePerc_, E.uint riskLimit_ ]
+    , nonce = Nothing
+    , decoder = Decode.succeed ()
+    }
+
+
+
+-- automationFeePerc() function
+
+
+automationFeePerc : Address -> Call BigInt
+automationFeePerc contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "024c2336" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
 -- balanceOf(address) function
 
 
@@ -41,12 +187,31 @@ balanceOf contractAddress account_ =
 
 
 
---calculateIssuanceAmount(uint256) function
+-- cache() function
+
+
+cache : Address -> Call Address
+cache contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "60c7d295" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- calculateIssuanceAmount(uint256) function
 
 
 type alias CalculateIssuanceAmount =
-    { actualCollateralAdded : BigInt
-    , fee : BigInt
+    { protocolFee : BigInt
+    , automationFee : BigInt
+    , actualCollateralAdded : BigInt
+    , accreditedCollateral : BigInt
     , tokensIssued : BigInt
     }
 
@@ -70,6 +235,8 @@ calculateIssuanceAmountDecoder =
         |> andMap D.uint
         |> andMap D.uint
         |> andMap D.uint
+        |> andMap D.uint
+        |> andMap D.uint
         |> toElmDecoder
 
 
@@ -78,8 +245,9 @@ calculateIssuanceAmountDecoder =
 
 
 type alias CalculateRedemptionValue =
-    { totalCollateralRedeemed : BigInt
-    , fee : BigInt
+    { protocolFee : BigInt
+    , automationFee : BigInt
+    , collateralRedeemed : BigInt
     , collateralReturned : BigInt
     }
 
@@ -103,21 +271,433 @@ calculateRedemptionValueDecoder =
         |> andMap D.uint
         |> andMap D.uint
         |> andMap D.uint
+        |> andMap D.uint
         |> toElmDecoder
 
 
 
--- redeem(uint256,address) function
+-- cdpId() function
 
 
-redeem : Address -> BigInt -> Address -> Call ()
-redeem contractAddress tokensToRedeem_ receiver_ =
+cdpId : Address -> Call BigInt
+cdpId contractAddress =
     { to = Just contractAddress
     , from = Nothing
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| E.functionCall "7bde82f2" [ E.uint tokensToRedeem_, E.address receiver_ ]
+    , data = Just <| E.functionCall "4a1a066b" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- changeGulper(address) function
+
+
+changeGulper : Address -> Address -> Call ()
+changeGulper contractAddress newGulper_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "7edd39bc" [ E.address newGulper_ ]
+    , nonce = Nothing
+    , decoder = Decode.succeed ()
+    }
+
+
+
+-- decimals() function
+
+
+decimals : Address -> Call BigInt
+decimals contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "313ce567" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- decreaseAllowance(address,uint256) function
+
+
+decreaseAllowance : Address -> Address -> BigInt -> Call Bool
+decreaseAllowance contractAddress spender_ subtractedValue_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "a457c2d7" [ E.address spender_, E.uint subtractedValue_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.bool
+    }
+
+
+
+-- ethGemJoin() function
+
+
+ethGemJoin : Address -> Call Address
+ethGemJoin contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "64a0a12f" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- getCollateral() function
+
+
+type alias GetCollateral =
+    { priceRAY : BigInt
+    , totalCollateral : BigInt
+    , debt : BigInt
+    , collateralDenominatedDebt : BigInt
+    , excessCollateral : BigInt
+    }
+
+
+getCollateral : Address -> Call GetCollateral
+getCollateral contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "5c1548fb" []
+    , nonce = Nothing
+    , decoder = getCollateralDecoder
+    }
+
+
+getCollateralDecoder : Decoder GetCollateral
+getCollateralDecoder =
+    abiDecode GetCollateral
+        |> andMap D.uint
+        |> andMap D.uint
+        |> andMap D.uint
+        |> andMap D.uint
+        |> andMap D.uint
+        |> toElmDecoder
+
+
+
+-- getCollateralPriceRAY() function
+
+
+getCollateralPriceRAY : Address -> Call BigInt
+getCollateralPriceRAY contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "470052cc" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- getExcessCollateral() function
+
+
+getExcessCollateral : Address -> Call BigInt
+getExcessCollateral contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "a4e3c311" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- getRatio() function
+
+
+getRatio : Address -> Call BigInt
+getRatio contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "ec1ebd7a" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- giveCDPToDSProxy(address) function
+
+
+giveCDPToDSProxy : Address -> Address -> Call ()
+giveCDPToDSProxy contractAddress dsProxy_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "ea65212f" [ E.address dsProxy_ ]
+    , nonce = Nothing
+    , decoder = Decode.succeed ()
+    }
+
+
+
+-- gulper() function
+
+
+gulper : Address -> Call Address
+gulper contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "0c730584" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- increaseAllowance(address,uint256) function
+
+
+increaseAllowance : Address -> Address -> BigInt -> Call Bool
+increaseAllowance contractAddress spender_ addedValue_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "39509351" [ E.address spender_, E.uint addedValue_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.bool
+    }
+
+
+
+-- makerManager() function
+
+
+makerManager : Address -> Call Address
+makerManager contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "7ae0a3d5" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- minRedemptionRatio() function
+
+
+minRedemptionRatio : Address -> Call BigInt
+minRedemptionRatio contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "5ac0f2bb" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- name() function
+
+
+name : Address -> Call String
+name contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "06fdde03" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.string
+    }
+
+
+
+-- oracle() function
+
+
+oracle : Address -> Call Address
+oracle contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "7dc0d1d0" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- owner() function
+
+
+owner : Address -> Call Address
+owner contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "8da5cb5b" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- redeem(address,uint256) function
+
+
+redeem : Address -> Address -> BigInt -> Call ()
+redeem contractAddress receiver_ tokensToRedeem_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "1e9a6950" [ E.address receiver_, E.uint tokensToRedeem_ ]
+    , nonce = Nothing
+    , decoder = Decode.succeed ()
+    }
+
+
+
+-- riskLimit() function
+
+
+riskLimit : Address -> Call BigInt
+riskLimit contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "b51fa45a" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- saverProxy() function
+
+
+saverProxy : Address -> Call Address
+saverProxy contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "ebc723cb" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- saverProxyActions() function
+
+
+saverProxyActions : Address -> Call Address
+saverProxyActions contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "c70c82db" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.address
+    }
+
+
+
+-- setAuthority(address) function
+
+
+setAuthority : Address -> Address -> Call ()
+setAuthority contractAddress authority__ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "7a9e5e4b" [ E.address authority__ ]
+    , nonce = Nothing
+    , decoder = Decode.succeed ()
+    }
+
+
+
+-- setCache(address) function
+
+
+setCache : Address -> Address -> Call Bool
+setCache contractAddress cacheAddr_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "948f5076" [ E.address cacheAddr_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.bool
+    }
+
+
+
+-- setOwner(address) function
+
+
+setOwner : Address -> Address -> Call ()
+setOwner contractAddress owner__ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "13af4035" [ E.address owner__ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
     }
@@ -127,14 +707,344 @@ redeem contractAddress tokensToRedeem_ receiver_ =
 -- squanderMyEthForWorthlessBeans(address) function
 
 
-squanderMyEthForWorthlessBeans : Address -> Address -> Maybe BigInt -> Call ()
-squanderMyEthForWorthlessBeans contractAddress receiver_ amount =
+squanderMyEthForWorthlessBeans : Address -> Address -> Call ()
+squanderMyEthForWorthlessBeans contractAddress receiver_ =
     { to = Just contractAddress
     , from = Nothing
     , gas = Nothing
     , gasPrice = Nothing
-    , value = amount
+    , value = Nothing
     , data = Just <| E.functionCall "026a9f93" [ E.address receiver_ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
     }
+
+
+
+-- symbol() function
+
+
+symbol : Address -> Call String
+symbol contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "95d89b41" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.string
+    }
+
+
+
+-- totalSupply() function
+
+
+totalSupply : Address -> Call BigInt
+totalSupply contractAddress =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "18160ddd" []
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
+
+-- transfer(address,uint256) function
+
+
+transfer : Address -> Address -> BigInt -> Call Bool
+transfer contractAddress recipient_ amount_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "a9059cbb" [ E.address recipient_, E.uint amount_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.bool
+    }
+
+
+
+-- transferFrom(address,address,uint256) function
+
+
+transferFrom : Address -> Address -> Address -> BigInt -> Call Bool
+transferFrom contractAddress sender_ recipient_ amount_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "23b872dd" [ E.address sender_, E.address recipient_, E.uint amount_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.bool
+    }
+
+
+
+-- Approval(address,address,uint256) event
+
+
+type alias Approval =
+    { owner : Address
+    , spender : Address
+    , value : BigInt
+    }
+
+
+approvalEvent : Address -> Maybe Address -> Maybe Address -> LogFilter
+approvalEvent contractAddress owner_ spender_ =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics =
+        [ Just <| U.unsafeToHex "8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925"
+        , Maybe.map (abiEncode << E.address) owner_
+        , Maybe.map (abiEncode << E.address) spender_
+        ]
+    }
+
+
+approvalDecoder : Decoder Approval
+approvalDecoder =
+    Decode.succeed Approval
+        |> custom (topic 1 D.address)
+        |> custom (topic 2 D.address)
+        |> custom (data 0 D.uint)
+
+
+
+-- AutomationSettingsChanged(uint256,uint256,uint256,uint256,uint256,uint256) event
+
+
+type alias AutomationSettingsChanged =
+    { repaymentRatio : BigInt
+    , targetRatio : BigInt
+    , boostRatio : BigInt
+    , minRedemptionRatio : BigInt
+    , automationFeePerc : BigInt
+    , riskLimit : BigInt
+    }
+
+
+automationSettingsChangedEvent : Address -> LogFilter
+automationSettingsChangedEvent contractAddress =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics = [ Just <| U.unsafeToHex "dbc6a9294fc89b84dee26ae1c98c64cca3db89fe1f6ef50027780e094f9d53d7" ]
+    }
+
+
+automationSettingsChangedDecoder : Decoder AutomationSettingsChanged
+automationSettingsChangedDecoder =
+    Decode.succeed AutomationSettingsChanged
+        |> custom (data 0 D.uint)
+        |> custom (data 1 D.uint)
+        |> custom (data 2 D.uint)
+        |> custom (data 3 D.uint)
+        |> custom (data 4 D.uint)
+        |> custom (data 5 D.uint)
+
+
+
+-- Issued(address,uint256,uint256,uint256,uint256,uint256,uint256) event
+
+
+type alias Issued =
+    { receiver : Address
+    , suppliedCollateral : BigInt
+    , protocolFee : BigInt
+    , automationFee : BigInt
+    , actualCollateralAdded : BigInt
+    , accreditedCollateral : BigInt
+    , tokensIssued : BigInt
+    }
+
+
+issuedEvent : Address -> LogFilter
+issuedEvent contractAddress =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics = [ Just <| U.unsafeToHex "2982905875ae47bb92b8b1c9373efd845be807ed05fb869e3bbeab0d7a3b9ca0" ]
+    }
+
+
+issuedDecoder : Decoder Issued
+issuedDecoder =
+    Decode.succeed Issued
+        |> custom (data 0 D.address)
+        |> custom (data 1 D.uint)
+        |> custom (data 2 D.uint)
+        |> custom (data 3 D.uint)
+        |> custom (data 4 D.uint)
+        |> custom (data 5 D.uint)
+        |> custom (data 6 D.uint)
+
+
+
+-- LogNote(bytes4,address,bytes32,bytes32,uint256,bytes) event
+
+
+type alias LogNote =
+    { sig : Hex
+    , guy : Address
+    , foo : Hex
+    , bar : Hex
+    , wad : BigInt
+    , fax : Hex
+    }
+
+
+logNoteEvent : Address -> Maybe Hex -> Maybe Address -> Maybe Hex -> Maybe Hex -> LogFilter
+logNoteEvent contractAddress sig_ guy_ foo_ bar_ =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics =
+        [ Just <| U.unsafeToHex "644843f351d3fba4abcd60109eaff9f54bac8fb8ccf0bab941009c21df21cf31"
+        , Maybe.map (abiEncode << E.staticBytes 4) sig_
+        , Maybe.map (abiEncode << E.address) guy_
+        , Maybe.map (abiEncode << E.staticBytes 32) foo_
+        , Maybe.map (abiEncode << E.staticBytes 32) bar_
+        ]
+    }
+
+
+logNoteDecoder : Decoder LogNote
+logNoteDecoder =
+    Decode.succeed LogNote
+        |> custom (topic 1 (D.staticBytes 4))
+        |> custom (topic 2 D.address)
+        |> custom (topic 3 (D.staticBytes 32))
+        |> custom (topic 4 (D.staticBytes 32))
+        |> custom (data 0 D.uint)
+        |> custom (data 1 D.dynamicBytes)
+
+
+
+-- LogSetAuthority(address) event
+
+
+type alias LogSetAuthority =
+    { authority : Address }
+
+
+logSetAuthorityEvent : Address -> Maybe Address -> LogFilter
+logSetAuthorityEvent contractAddress authority_ =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics =
+        [ Just <| U.unsafeToHex "1abebea81bfa2637f28358c371278fb15ede7ea8dd28d2e03b112ff6d936ada4"
+        , Maybe.map (abiEncode << E.address) authority_
+        ]
+    }
+
+
+logSetAuthorityDecoder : Decoder LogSetAuthority
+logSetAuthorityDecoder =
+    Decode.succeed LogSetAuthority
+        |> custom (topic 1 D.address)
+
+
+
+-- LogSetOwner(address) event
+
+
+type alias LogSetOwner =
+    { owner : Address }
+
+
+logSetOwnerEvent : Address -> Maybe Address -> LogFilter
+logSetOwnerEvent contractAddress owner_ =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics =
+        [ Just <| U.unsafeToHex "ce241d7ca1f669fee44b6fc00b8eba2df3bb514eed0f6f668f8f89096e81ed94"
+        , Maybe.map (abiEncode << E.address) owner_
+        ]
+    }
+
+
+logSetOwnerDecoder : Decoder LogSetOwner
+logSetOwnerDecoder =
+    Decode.succeed LogSetOwner
+        |> custom (topic 1 D.address)
+
+
+
+-- Redeemed(address,address,uint256,uint256,uint256,uint256,uint256) event
+
+
+type alias Redeemed =
+    { redeemer : Address
+    , receiver : Address
+    , tokensRedeemed : BigInt
+    , protocolFee : BigInt
+    , automationFee : BigInt
+    , collateralRedeemed : BigInt
+    , collateralReturned : BigInt
+    }
+
+
+redeemedEvent : Address -> LogFilter
+redeemedEvent contractAddress =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics = [ Just <| U.unsafeToHex "347ee37487f7d4fe0b4d3777823c6a71c110e3df43f4f3d35356cf6909e9abdb" ]
+    }
+
+
+redeemedDecoder : Decoder Redeemed
+redeemedDecoder =
+    Decode.succeed Redeemed
+        |> custom (data 0 D.address)
+        |> custom (data 1 D.address)
+        |> custom (data 2 D.uint)
+        |> custom (data 3 D.uint)
+        |> custom (data 4 D.uint)
+        |> custom (data 5 D.uint)
+        |> custom (data 6 D.uint)
+
+
+
+-- Transfer(address,address,uint256) event
+
+
+type alias Transfer =
+    { from : Address
+    , to : Address
+    , value : BigInt
+    }
+
+
+transferEvent : Address -> Maybe Address -> Maybe Address -> LogFilter
+transferEvent contractAddress from_ to_ =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics =
+        [ Just <| U.unsafeToHex "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+        , Maybe.map (abiEncode << E.address) from_
+        , Maybe.map (abiEncode << E.address) to_
+        ]
+    }
+
+
+transferDecoder : Decoder Transfer
+transferDecoder =
+    Decode.succeed Transfer
+        |> custom (topic 1 D.address)
+        |> custom (topic 2 D.address)
+        |> custom (data 0 D.uint)
