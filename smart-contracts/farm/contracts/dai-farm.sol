@@ -710,16 +710,20 @@ contract QueryScript {
                 .div(_rewards.totalSupply());
     }
     
-    function getStakedValue(StakingRewards _rewards, IUniswap _pricePair)
+    function getStakedValue(
+            StakingRewards _rewards, 
+            uint _rewardRefReserve, 
+            IUniswap _pricePair, 
+            uint _pricePairRefReserve)
         public
         view
         returns (uint _totalStakedValue)
     {
         IUniswap stakingToken = IUniswap(address(_rewards.stakingToken()));
         
-        uint fryPrice = getTokenPairPrice(_pricePair)
+        uint fryPrice = getTokenPairPrice(_pricePair, _pricePairRefReserve)
             .mul(10**18)
-            .div(getTokenPairPrice(stakingToken));
+            .div(getTokenPairPrice(stakingToken, _pricePairRefReserve));
             
         _totalStakedValue = fryPrice
             .mul(getBiggerReserve(stakingToken))
@@ -740,14 +744,14 @@ contract QueryScript {
         _reserve = Math.max(reserve0, reserve1);
     }
 
-    function getTokenPairPrice(IUniswap _tokenPair)
+    function getTokenPairPrice(IUniswap _tokenPair, uint reserve)
         public
         view
         returns (uint _price)
     {
         (uint reserve0, uint reserve1, ) = _tokenPair.getReserves();
-        _price = reserve0 > reserve1 ?
-            reserve0.mul(10**18).div(reserve1) :
-            reserve1.mul(10**18).div(reserve0);
+        _price = reserve == 0 ?
+            reserve0.mul(10**18).div(reserve0) :
+            reserve1.mul(10**18).div(reserve1);
     }
 }
