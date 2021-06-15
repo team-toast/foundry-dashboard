@@ -17,6 +17,13 @@ deposit sender amount =
     Death.squanderMyEthForWorthlessBeans
         derivedEthContractAddress
         sender
+        |> (\call ->
+                { call
+                    | value =
+                        TokenValue.getEvmValue amount
+                            |> Just
+                }
+           )
         |> Eth.toSend
 
 
