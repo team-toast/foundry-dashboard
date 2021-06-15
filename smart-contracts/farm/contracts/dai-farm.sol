@@ -650,6 +650,18 @@ contract BSCStakingRewardsScript is StakingRewards {
     {}
 }
 
+contract MaticStakingRewardsScript is StakingRewards {
+    constructor()
+        public
+        StakingRewards(
+            0xF7396C708Ad9127B6684b7fd690083158d2ebdE5, // _owner = TeamToastMultsig
+            0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063, // _rewardsToken = DAI (on matic)
+            0x48D3a72230e65380f63a05eE41A7BE31773c44b4, // _stakingToken = FRYMATICUniswapLPToken,
+            30 days
+        ) // _duration = 30 days
+    {}
+}
+
 contract IUniswap {
     function getReserves()
         public
@@ -669,7 +681,9 @@ contract QueryScript {
     // assumes a Uniswap XYZ_ETH pair, where XYZ is reserve0
     function getData(
         StakingRewards _rewards,
+        uint _rewardsRefReserve,
         IUniswap _pricePair,
+        uint _pricePairRefReserve,
         address _staker
     )
         public
@@ -694,7 +708,7 @@ contract QueryScript {
         _rewardRate = _rewards.rewardRate();
         _timestamp = now;
             
-        _totalStakedValue = getStakedValue(_rewards, _pricePair);
+        _totalStakedValue = getStakedValue(_rewards, _rewardsRefReserve, _pricePair, _pricePairRefReserve);
 
         _APY = _totalStakedValue == 0 ? 
             0 :
@@ -712,7 +726,7 @@ contract QueryScript {
     
     function getStakedValue(
             StakingRewards _rewards, 
-            uint _rewardRefReserve, 
+            uint _rewardsRefReserve, 
             IUniswap _pricePair, 
             uint _pricePairRefReserve)
         public
@@ -723,7 +737,7 @@ contract QueryScript {
         
         uint fryPrice = getTokenPairPrice(_pricePair, _pricePairRefReserve)
             .mul(10**18)
-            .div(getTokenPairPrice(stakingToken, _pricePairRefReserve));
+            .div(getTokenPairPrice(stakingToken, _rewardsRefReserve));
             
         _totalStakedValue = fryPrice
             .mul(getBiggerReserve(stakingToken))
