@@ -740,12 +740,14 @@ contract QueryScript {
             .div(getTokenPairPrice(stakingToken, _rewardsRefReserve));
             
         _totalStakedValue = fryPrice
-            .mul(getBiggerReserve(stakingToken))
+            .mul(getReserve(stakingToken, _rewardsRefReserve));
+            
+        _totalStakedValue = _totalStakedValue 
             .mul(10**18) // add precision before dividing
             .div(_rewards.stakingToken().totalSupply())
             .mul(_rewards.totalSupply())
             .div(10**18) // remove precision after dividing
-            .div(10**18) // remove prevision from fryPrive 
+            .div(10**18) // remove prevision from fryPrice 
             .mul(2); // mul by two to get the value of both sides of the pair
     }
     
@@ -757,6 +759,18 @@ contract QueryScript {
         (uint reserve0, uint reserve1, ) = _tokenPair.getReserves();
         _reserve = Math.max(reserve0, reserve1);
     }
+    
+    function getReserve(IUniswap _tokenPair, uint _reserve)
+        public
+        view
+        returns (uint _reserveAmount)
+    {
+        (uint reserve0, uint reserve1, ) = _tokenPair.getReserves();
+        _reserveAmount = _reserve == 0 ?
+            reserve0 : 
+            reserve1;
+    }
+    
 
     function getTokenPairPrice(IUniswap _tokenPair, uint reserve)
         public
@@ -765,7 +779,7 @@ contract QueryScript {
     {
         (uint reserve0, uint reserve1, ) = _tokenPair.getReserves();
         _price = reserve == 0 ?
-            reserve0.mul(10**18).div(reserve0) :
-            reserve1.mul(10**18).div(reserve1);
+            reserve0.mul(10**18).div(reserve1) :
+            reserve1.mul(10**18).div(reserve0);
     }
 }
