@@ -656,7 +656,7 @@ contract MaticStakingRewardsScript is StakingRewards {
         StakingRewards(
             0xF7396C708Ad9127B6684b7fd690083158d2ebdE5, // _owner = TeamToastMultsig
             0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063, // _rewardsToken = DAI (on matic)
-            0x48D3a72230e65380f63a05eE41A7BE31773c44b4, // _stakingToken = FRYMATICUniswapLPToken,
+            0x661A67Cb1773669604Ebb95aac63fF31e0F7dc25, // _stakingToken = FRYMATICUniswapLPToken,
             30 days
         ) // _duration = 30 days
     {}
