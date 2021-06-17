@@ -1305,7 +1305,12 @@ update msg model =
                                 Config.derivedEthContractAddress
                                 uInfo.address
                                 |> (\call ->
-                                        { call | from = Just uInfo.address }
+                                        { call
+                                            | from = Just uInfo.address
+                                            , value =
+                                                TokenValue.getEvmValue amount
+                                                    |> Just
+                                        }
                                    )
                                 |> Eth.toSend
                                 |> Eth.encodeSend
