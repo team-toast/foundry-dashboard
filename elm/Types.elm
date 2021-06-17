@@ -5,6 +5,7 @@ import Array exposing (Array)
 import BigInt exposing (BigInt)
 import Browser
 import Browser.Navigation
+import Contracts.Generated.DEth as Death
 import Dict exposing (Dict)
 import ElementHelpers as EH
 import Eth
@@ -124,13 +125,13 @@ type Msg
     | WithdrawClicked TokenValue
     | UserEthBalanceFetched (Result Http.Error TokenValue)
     | UserDerivedEthBalanceFetched (Result Http.Error TokenValue)
-    | DerivedEthRedeemableFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
+    | DerivedEthRedeemableFetched (Result Http.Error Death.CalculateRedemptionValue)
     | ApproveTokenSpend
     | DepositSigned (Result String TxHash)
     | WithdrawSigned (Result String TxHash)
     | FetchUserEthBalance
     | FetchUserDerivedEthBalance
-    | DerivedEthIssuanceDetailFetched (Result Http.Error ( TokenValue, TokenValue, TokenValue ))
+    | DerivedEthIssuanceDetailFetched (Result Http.Error Death.CalculateIssuanceAmount)
     | GotoRoute Route
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
@@ -204,11 +205,11 @@ type alias UserDerivedEthInfo =
     { ethBalance : TokenValue
     , dEthBalance : TokenValue
     , totalCollateralRedeemed : TokenValue
-    , redeemFee : TokenValue
+    , redeemFee : FeePair
     , collateralReturned : TokenValue
     , dEthAllowance : TokenValue
     , actualCollateralAdded : TokenValue
-    , depositFee : TokenValue
+    , depositFee : FeePair
     , tokensIssued : TokenValue
     }
 
@@ -219,6 +220,12 @@ type alias DepositOrWithdrawUXModel =
 
 type alias AmountUXModel =
     { amountInput : String
+    }
+
+
+type alias FeePair =
+    { protocolFee : TokenValue
+    , automationFee : TokenValue
     }
 
 

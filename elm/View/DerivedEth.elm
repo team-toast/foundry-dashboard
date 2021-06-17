@@ -8,7 +8,7 @@ import Element.Border
 import Element.Font as Font
 import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
-import Misc exposing (derivedEthInfoInit, userInfo)
+import Misc exposing (userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
 import Types exposing (Chain(..), InputValidationResult, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
@@ -125,7 +125,7 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                         depositAmount
                         "ETH"
                         Types.DepositAmountChanged
-                        maybeUserDerivedEthInfo
+                        userDerivedEthInfo
                     , investOrWithdrawEl
                         dProfile
                         "dETH -> ETH"
@@ -133,7 +133,7 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                         withdrawalAmount
                         "dETH"
                         Types.WithdrawalAmountChanged
-                        maybeUserDerivedEthInfo
+                        userDerivedEthInfo
                     ]
     )
         |> responsiveVal dProfile
@@ -152,9 +152,9 @@ investOrWithdrawEl :
     -> String
     -> String
     -> (String -> Msg)
-    -> Maybe UserDerivedEthInfo
+    -> UserDerivedEthInfo
     -> Element Msg
-investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUserDerivedEthInfo =
+investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEthInfo =
     let
         textFontSize =
             Font.size (responsiveVal dProfile 22 16)
@@ -176,9 +176,6 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg maybeUs
 
                 Just val ->
                     val
-
-        userDEthInfo =
-            Maybe.withDefault derivedEthInfoInit maybeUserDerivedEthInfo
 
         userBalance =
             if tokenName == "ETH" then
@@ -312,45 +309,46 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
             responsiveVal dProfile 16 10
                 |> Font.size
 
-        ( text1, text2, text3 ) =
+        elems =
             if tokenName == "ETH" then
-                ( "Actual ETH Added:", "Deposit Fee:", "dETH Received:" )
+                [ depositRedeemInfoItemEl
+                    textFontSize
+                    "Actual ETH Added"
+                    userDEthInfo.actualCollateralAdded
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Deposit Protocol Fee"
+                    userDEthInfo.depositFee.protocolFee
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Deposit Automation Fee"
+                    userDEthInfo.depositFee.automationFee
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "dETH Received"
+                    userDEthInfo.tokensIssued
+                ]
 
             else
-                ( "Total ETH Redeemable:", "Withdrawal Fee:", "Total ETH Received:" )
-
-        ( val1, val2, val3 ) =
-            if tokenName == "ETH" then
-                ( userDEthInfo.actualCollateralAdded
-                    |> tokenValueToString
-                , userDEthInfo.depositFee
-                    |> tokenValueToString
-                , userDEthInfo.tokensIssued
-                    |> tokenValueToString
-                )
-
-            else
-                ( userDEthInfo.totalCollateralRedeemed
-                    |> tokenValueToString
-                , userDEthInfo.redeemFee
-                    |> tokenValueToString
-                , userDEthInfo.collateralReturned
-                    |> tokenValueToString
-                )
+                [ depositRedeemInfoItemEl
+                    textFontSize
+                    "Total ETH Received"
+                    userDEthInfo.collateralReturned
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Total ETH Redeemable"
+                    userDEthInfo.totalCollateralRedeemed
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Withdrawal Protocol Fee"
+                    userDEthInfo.redeemFee.protocolFee
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Withdrawal Automation Fee"
+                    userDEthInfo.redeemFee.automationFee
+                ]
     in
-    [ depositRedeemInfoItemEl
-        textFontSize
-        text2
-        val2
-    , depositRedeemInfoItemEl
-        textFontSize
-        text1
-        val1
-    , depositRedeemInfoItemEl
-        textFontSize
-        text3
-        val3
-    ]
+    elems
         |> column
             ([ width fill
              , spacing 5
@@ -361,14 +359,15 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
             )
 
 
-depositRedeemInfoItemEl : Attribute Msg -> String -> String -> Element Msg
+depositRedeemInfoItemEl : Attribute Msg -> String -> TokenValue -> Element Msg
 depositRedeemInfoItemEl textFontSize rowLabel rowValue =
     [ text
-        rowLabel
+        (rowLabel ++ ":")
         |> el
             [ textFontSize ]
-    , text
-        rowValue
+    , rowValue
+        |> tokenValueToString
+        |> text
         |> el
             [ textFontSize
             , alignRight
@@ -549,6 +548,9 @@ msgInsteadOfButton dProfile textToDisplay color =
 tokenValueToString : TokenValue -> String
 tokenValueToString tokenValue =
     let
+        decimalWidth =
+            5
+
         evm =
             tokenValue
                 |> TokenValue.getEvmValue
@@ -558,18 +560,18 @@ tokenValueToString tokenValue =
             evm
                 |> String.length
     in
-    if evmLength <= 18 then
+    if evmLength <= decimalWidth then
         evm
-            |> String.padLeft 18 '0'
+            |> String.padLeft decimalWidth '0'
             |> (++) "0."
 
     else
         evm
-            |> String.right 18
+            |> String.right decimalWidth
             |> (++)
                 "."
             |> (++)
                 (evm
                     |> String.left
-                        (evmLength - 18)
+                        (evmLength - decimalWidth)
                 )

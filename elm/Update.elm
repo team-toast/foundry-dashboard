@@ -1367,15 +1367,8 @@ update msg model =
                         | userDerivedEthInfo =
                             (case model.userDerivedEthInfo of
                                 Nothing ->
-                                    { ethBalance = tokenValue
-                                    , dEthBalance = TokenValue.zero
-                                    , totalCollateralRedeemed = TokenValue.zero
-                                    , redeemFee = TokenValue.zero
-                                    , collateralReturned = TokenValue.zero
-                                    , dEthAllowance = TokenValue.zero
-                                    , actualCollateralAdded = TokenValue.zero
-                                    , depositFee = TokenValue.zero
-                                    , tokensIssued = TokenValue.zero
+                                    { derivedEthInfoInit
+                                        | ethBalance = tokenValue
                                     }
 
                                 Just oldUserDerivedEthInfoModel ->
@@ -1400,15 +1393,8 @@ update msg model =
                         | userDerivedEthInfo =
                             (case model.userDerivedEthInfo of
                                 Nothing ->
-                                    { ethBalance = TokenValue.zero
-                                    , dEthBalance = tokenValue
-                                    , totalCollateralRedeemed = TokenValue.zero
-                                    , redeemFee = TokenValue.zero
-                                    , collateralReturned = TokenValue.zero
-                                    , dEthAllowance = TokenValue.zero
-                                    , actualCollateralAdded = TokenValue.zero
-                                    , depositFee = TokenValue.zero
-                                    , tokensIssued = TokenValue.zero
+                                    { derivedEthInfoInit
+                                        | dEthBalance = tokenValue
                                     }
 
                                 Just oldUserDerivedEthInfoModel ->
@@ -1428,27 +1414,28 @@ update msg model =
                     , Cmd.none
                     )
 
-                Ok ( totalCollateral, fee, returnedCollateral ) ->
+                Ok data ->
+                    let
+                        redeemFee =
+                            { protocolFee = TokenValue.tokenValue data.protocolFee
+                            , automationFee = TokenValue.tokenValue data.automationFee
+                            }
+                    in
                     ( { model
                         | userDerivedEthInfo =
                             (case model.userDerivedEthInfo of
                                 Nothing ->
-                                    { ethBalance = TokenValue.zero
-                                    , dEthBalance = TokenValue.zero
-                                    , totalCollateralRedeemed = totalCollateral
-                                    , redeemFee = fee
-                                    , collateralReturned = returnedCollateral
-                                    , dEthAllowance = TokenValue.zero
-                                    , actualCollateralAdded = TokenValue.zero
-                                    , depositFee = TokenValue.zero
-                                    , tokensIssued = TokenValue.zero
+                                    { derivedEthInfoInit
+                                        | totalCollateralRedeemed = TokenValue.tokenValue data.collateralRedeemed
+                                        , redeemFee = redeemFee
+                                        , collateralReturned = TokenValue.tokenValue data.collateralReturned
                                     }
 
                                 Just oldUserDerivedEthInfoModel ->
                                     { oldUserDerivedEthInfoModel
-                                        | totalCollateralRedeemed = totalCollateral
-                                        , redeemFee = fee
-                                        , collateralReturned = returnedCollateral
+                                        | totalCollateralRedeemed = TokenValue.tokenValue data.collateralRedeemed
+                                        , redeemFee = redeemFee
+                                        , collateralReturned = TokenValue.tokenValue data.collateralReturned
                                     }
                             )
                                 |> Just
@@ -1576,27 +1563,28 @@ update msg model =
                     , Cmd.none
                     )
 
-                Ok ( actualCollateralAdded, depositFee, tokensIssued ) ->
+                Ok data ->
+                    let
+                        depositFee =
+                            { protocolFee = TokenValue.tokenValue data.protocolFee
+                            , automationFee = TokenValue.tokenValue data.automationFee
+                            }
+                    in
                     ( { model
                         | userDerivedEthInfo =
                             (case model.userDerivedEthInfo of
                                 Nothing ->
-                                    { ethBalance = TokenValue.zero
-                                    , dEthBalance = TokenValue.zero
-                                    , totalCollateralRedeemed = TokenValue.zero
-                                    , redeemFee = TokenValue.zero
-                                    , collateralReturned = TokenValue.zero
-                                    , dEthAllowance = TokenValue.zero
-                                    , actualCollateralAdded = actualCollateralAdded
-                                    , depositFee = depositFee
-                                    , tokensIssued = tokensIssued
+                                    { derivedEthInfoInit
+                                        | actualCollateralAdded = TokenValue.tokenValue data.actualCollateralAdded
+                                        , depositFee = depositFee
+                                        , tokensIssued = TokenValue.tokenValue data.tokensIssued
                                     }
 
                                 Just oldUserDerivedEthInfoModel ->
                                     { oldUserDerivedEthInfoModel
-                                        | actualCollateralAdded = actualCollateralAdded
+                                        | actualCollateralAdded = TokenValue.tokenValue data.actualCollateralAdded
                                         , depositFee = depositFee
-                                        , tokensIssued = tokensIssued
+                                        , tokensIssued = TokenValue.tokenValue data.tokensIssued
                                     }
                             )
                                 |> Just
