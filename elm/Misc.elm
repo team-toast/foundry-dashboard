@@ -2,11 +2,10 @@ module Misc exposing (..)
 
 import AddressDict
 import Array exposing (Array, fromList)
-import BigInt
 import Browser.Navigation
 import Chain exposing (whenJust)
-import Config as ConfigFile
-import Contracts.BucketSale.Wrappers as BucketSaleWrappers exposing (getTotalValueEnteredForBucket)
+import Config
+import Contracts.BucketSale.Wrappers exposing (getTotalValueEnteredForBucket)
 import Contracts.DEthWrapper as Death
 import Contracts.ERC20Wrapper as ERC20
 import Contracts.FryBalanceFetch
@@ -21,32 +20,27 @@ import Contracts.UniSwapGraph.ScalarCodecs exposing (..)
 import Dict exposing (Dict)
 import ElementHelpers as EH
 import Eth
-import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
 import GTag
 import Graphql.Http
-import Graphql.Operation exposing (RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers exposing (toConciseIntervalString)
 import Helpers.Tuple exposing (tuple3MapSecond)
 import Http
-import Json.Decode as Decoder exposing (Decoder, Error, Value)
+import Json.Decode as Decoder exposing (Decoder)
 import Json.Encode
 import Maybe.Extra exposing (isNothing)
 import Ports exposing (txIn, txOut)
-import Result.Extra
 import Routing exposing (Route(..))
-import Set
 import Task
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), ComposedTreasuryBalance, Config, Jurisdiction, JurisdictionCheckStatus, LocationInfo, LoggedSignedResponse, Model, Msg, Poll, PollOption, PriceValue, ResponseToValidate, SigValidationResult, SignedResponse, UserDerivedEthInfo, UserInfo, UserStakingInfo, ValidatedResponse, ValidatedResponseTracker, Wallet)
+import Types exposing (..)
 import Url.Builder
-import UserNotice exposing (noWeb3Provider)
 import UserTx exposing (TxInfo)
 import Wallet
 
@@ -58,7 +52,7 @@ emptyModel key now basePath cookieConsent =
             TxSentry.init
                 ( txOut, txIn )
                 Types.TxSentryMsg
-                (ConfigFile.httpProviderUrl Eth)
+                (Config.httpProviderUrl Eth)
 
         ( wallet, walletNotices ) =
             ( Types.Connecting
@@ -155,7 +149,7 @@ resultToken =
 fetchEthPrice : Cmd Msg
 fetchEthPrice =
     Query.bundle identity { id = Id "1" } resultBundle
-        |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
+        |> Graphql.Http.queryRequest Config.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedEthPrice
 
 
@@ -165,10 +159,10 @@ fetchDaiPrice =
         { id =
             Id <|
                 Eth.Utils.addressToString <|
-                    ConfigFile.daiContractAddress Eth
+                    Config.daiContractAddress Eth
         }
         resultToken
-        |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
+        |> Graphql.Http.queryRequest Config.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedDaiPrice
 
 
@@ -178,10 +172,10 @@ fetchFryPrice =
         { id =
             Id <|
                 Eth.Utils.addressToString <|
-                    ConfigFile.fryContractAddress Eth
+                    Config.fryContractAddress Eth
         }
         resultToken
-        |> Graphql.Http.queryRequest ConfigFile.uniswapGraphQL
+        |> Graphql.Http.queryRequest Config.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedFryPrice
 
 
@@ -198,8 +192,8 @@ fetchPermaFrostLockedTokenBalance : Cmd Msg
 fetchPermaFrostLockedTokenBalance =
     ERC20.getBalanceCmd
         Eth
-        ConfigFile.balancerPermafrostPool
-        ConfigFile.burnAddress
+        Config.balancerPermafrostPool
+        Config.burnAddress
         Types.FetchedPermaFrostBalanceLocked
 
 
@@ -207,7 +201,7 @@ fetchPermaFrostTotalSupply : Cmd Msg
 fetchPermaFrostTotalSupply =
     ERC20.getTotalSupply
         Eth
-        ConfigFile.balancerPermafrostPool
+        Config.balancerPermafrostPool
         Types.FetchedPermaFrostTotalSupply
 
 
@@ -215,8 +209,8 @@ fetchBalancerPoolFryBalance : Cmd Msg
 fetchBalancerPoolFryBalance =
     ERC20.getBalanceCmd
         Eth
-        (ConfigFile.fryContractAddress Eth)
-        ConfigFile.balancerPermafrostPool
+        (Config.fryContractAddress Eth)
+        Config.balancerPermafrostPool
         Types.FetchedBalancerFryBalance
 
 
@@ -225,13 +219,13 @@ fetchTreasuryBalances =
     Cmd.batch
         [ ERC20.getBalanceCmd
             Eth
-            (ConfigFile.daiContractAddress Eth)
-            ConfigFile.treasuryForwarderAddress
+            (Config.daiContractAddress Eth)
+            Config.treasuryForwarderAddress
             Types.FetchedActualTreasuryBalance
         , ERC20.getBalanceCmd
             Eth
-            (ConfigFile.daiContractAddress Eth)
-            ConfigFile.hotTreasuryAddress
+            (Config.daiContractAddress Eth)
+            Config.hotTreasuryAddress
             Types.FetchedHotTreasuryBalance
         ]
 
@@ -259,7 +253,7 @@ calcCircSupply currentBucketId totalTeamTokens totalPermaFrostedTokens =
                     Just tpt ->
                         Just <|
                             toFloat
-                                (ConfigFile.bucketSaleTokensPerBucket
+                                (Config.bucketSaleTokensPerBucket
                                     * bucketId
                                 )
                                 + ttt
@@ -302,7 +296,7 @@ calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
             case currentEthPriceUsd of
                 Just eth ->
                     Just <|
-                        toFloat ConfigFile.fryTotalSupply
+                        toFloat Config.fryTotalSupply
                             * fry
                             * eth
 
@@ -316,10 +310,10 @@ calcFullyDilutedMarketCap currentFryPriceEth currentEthPriceUsd =
 getCurrentBucketId : Int -> Maybe Int
 getCurrentBucketId now =
     Just <|
-        (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix ConfigFile.saleStarted)
+        (TimeHelpers.sub (Time.millisToPosix now) (Time.millisToPosix Config.saleStarted)
             |> TimeHelpers.posixToSeconds
         )
-            // (ConfigFile.bucketSaleBucketInterval
+            // (Config.bucketSaleBucketInterval
                     |> TimeHelpers.posixToSeconds
                )
 
@@ -341,14 +335,14 @@ getBucketRemainingTimeText bucketId now =
 getBucketStartTime : Int -> Time.Posix
 getBucketStartTime bucketId =
     Time.millisToPosix
-        (ConfigFile.saleStarted + (bucketId * Time.posixToMillis ConfigFile.bucketSaleBucketInterval))
+        (Config.saleStarted + (bucketId * Time.posixToMillis Config.bucketSaleBucketInterval))
 
 
 getBucketEndTime : Int -> Time.Posix
 getBucketEndTime bucketId =
     TimeHelpers.add
         (getBucketStartTime bucketId)
-        ConfigFile.bucketSaleBucketInterval
+        Config.bucketSaleBucketInterval
 
 
 calcEffectivePricePerToken : Maybe TokenValue -> Maybe Float -> Maybe Float -> String
@@ -356,11 +350,11 @@ calcEffectivePricePerToken totalValueEntered tokenValueEth ethValueUsd =
     let
         tpb =
             toFloat <|
-                if ConfigFile.bucketSaleTokensPerBucket < 1 then
+                if Config.bucketSaleTokensPerBucket < 1 then
                     1
 
                 else
-                    ConfigFile.bucketSaleTokensPerBucket
+                    Config.bucketSaleTokensPerBucket
     in
     case totalValueEntered of
         Just tve ->
@@ -950,7 +944,7 @@ fetchDerivedEthBalance chain wallet =
         Just uInfo ->
             ERC20.getBalanceCmd
                 chain
-                ConfigFile.derivedEthContractAddress
+                Config.derivedEthContractAddress
                 uInfo.address
                 Types.UserDerivedEthBalanceFetched
 
@@ -963,9 +957,10 @@ fetchIssuanceDetail chain depositAmount =
 
         Just amount ->
             Death.getIssuanceDetail
+                Config.derivedEthContractAddress
+                (Config.httpProviderUrl chain)
                 amount
-                Types.DerivedEthIssuanceDetailFetched
-                chain
+                |> Task.attempt Types.DerivedEthIssuanceDetailFetched
 
 
 fetchDethPositionInfo : Chain -> Maybe TokenValue -> Cmd Msg
@@ -976,9 +971,10 @@ fetchDethPositionInfo chain amount =
 
         Just dEthVal ->
             Death.getRedeemable
+                Config.derivedEthContractAddress
+                (Config.httpProviderUrl chain)
                 dEthVal
-                Types.DerivedEthRedeemableFetched
-                chain
+                |> Task.attempt Types.DerivedEthRedeemableFetched
 
 
 doDepositChainCmd : Address -> TokenValue -> UserTx.Initiator Msg
@@ -992,7 +988,11 @@ doDepositChainCmd sender amount =
             Types.DepositSigned
                 |> Just
         }
-    , send = Death.deposit sender amount
+    , send =
+        Death.deposit
+            Config.derivedEthContractAddress
+            sender
+            amount
     , txInfo = UserTx.DEthDeposit
     }
 
@@ -1008,7 +1008,11 @@ doWithdrawChainCmd receiver amount =
             Types.WithdrawSigned
                 |> Just
         }
-    , send = Death.redeem receiver amount
+    , send =
+        Death.redeem
+            Config.derivedEthContractAddress
+            receiver
+            amount
     , txInfo = UserTx.DEthRedeem
     }
 
@@ -1018,11 +1022,11 @@ derivedEthInfoInit =
     { ethBalance = TokenValue.zero
     , dEthBalance = TokenValue.zero
     , totalCollateralRedeemed = TokenValue.zero
-    , redeemFee = TokenValue.zero
+    , redeemFee = Types.FeePair TokenValue.zero TokenValue.zero
     , collateralReturned = TokenValue.zero
     , dEthAllowance = TokenValue.zero
     , actualCollateralAdded = TokenValue.zero
-    , depositFee = TokenValue.zero
+    , depositFee = Types.FeePair TokenValue.zero TokenValue.zero
     , tokensIssued = TokenValue.zero
     }
 
@@ -1097,7 +1101,7 @@ addTrackedTx userTx notifiers tracker =
     )
 
 
-emptyConfig : Config
+emptyConfig : Types.Config
 emptyConfig =
     { xDai =
         { chain = Types.XDai
@@ -1131,9 +1135,9 @@ emptyAddress =
 fetchFarmEndTime : Chain -> Cmd Msg
 fetchFarmEndTime chain =
     Eth.call
-        (ConfigFile.httpProviderUrl chain)
+        (Config.httpProviderUrl chain)
         (StakingRewardsContract.periodFinish
-            (ConfigFile.stakingContractAddress chain)
+            (Config.stakingContractAddress chain)
         )
         |> Task.attempt Types.FarmingPeriodEndFetched
 
