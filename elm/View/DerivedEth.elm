@@ -291,6 +291,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
                         (fill
                             |> minimum blockHeightMin
                         )
+                   , Font.family [ Font.monospace ]
                    ]
             )
 
