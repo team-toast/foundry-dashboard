@@ -200,7 +200,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
         (tokenName
             ++ " balance: "
             ++ (userBalance
-                    |> tokenValueToString
+                    |> TokenValue.toFloatString (Just 4)
                )
         )
         |> el
@@ -366,7 +366,7 @@ depositRedeemInfoItemEl textFontSize rowLabel rowValue =
         |> el
             [ textFontSize ]
     , rowValue
-        |> tokenValueToString
+        |> TokenValue.toFloatString (Just 4)
         |> text
         |> el
             [ textFontSize
@@ -391,7 +391,7 @@ percentageButtonsEl dProfile buttonMsg userBalance =
         buttonStyle
         "25%"
         ((TokenValue.div (TokenValue.mul userBalance 25) 100
-            |> tokenValueToString
+            |> TokenValue.toFloatString (Just 4)
             |> buttonMsg
          )
             |> Just
@@ -401,7 +401,7 @@ percentageButtonsEl dProfile buttonMsg userBalance =
         buttonStyle
         "50%"
         ((TokenValue.div (TokenValue.mul userBalance 50) 100
-            |> tokenValueToString
+            |> TokenValue.toFloatString (Just 4)
             |> buttonMsg
          )
             |> Just
@@ -411,7 +411,7 @@ percentageButtonsEl dProfile buttonMsg userBalance =
         buttonStyle
         "75%"
         ((TokenValue.div (TokenValue.mul userBalance 75) 100
-            |> tokenValueToString
+            |> TokenValue.toFloatString (Just 4)
             |> buttonMsg
          )
             |> Just
@@ -421,7 +421,7 @@ percentageButtonsEl dProfile buttonMsg userBalance =
         buttonStyle
         "100%"
         ((userBalance
-            |> tokenValueToString
+            |> TokenValue.toFloatString (Just 4)
             |> buttonMsg
          )
             |> Just
@@ -545,33 +545,3 @@ msgInsteadOfButton dProfile textToDisplay color =
             ]
 
 
-tokenValueToString : TokenValue -> String
-tokenValueToString tokenValue =
-    let
-        decimalWidth =
-            5
-
-        evm =
-            tokenValue
-                |> TokenValue.getEvmValue
-                |> BigInt.toString
-
-        evmLength =
-            evm
-                |> String.length
-    in
-    if evmLength <= decimalWidth then
-        evm
-            |> String.padLeft decimalWidth '0'
-            |> (++) "0."
-
-    else
-        evm
-            |> String.right decimalWidth
-            |> (++)
-                "."
-            |> (++)
-                (evm
-                    |> String.left
-                        (evmLength - decimalWidth)
-                )
