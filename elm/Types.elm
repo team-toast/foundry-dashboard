@@ -330,11 +330,10 @@ type alias VoteBarBlock =
     }
 
 
-type InputValidationResult
-    = InputValid
-    | InputLessThan
+type InputValidationError
+    = InputLessThan
     | InputGreaterThan
-    | InputUndefined
+    | InputInvalid
 
 
 type Chain

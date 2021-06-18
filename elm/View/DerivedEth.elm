@@ -8,10 +8,11 @@ import Element.Border
 import Element.Font as Font
 import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
+import Maybe.Extra
 import Misc exposing (userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), InputValidationResult, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
+import Types exposing (Chain(..), InputValidationError, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
 import View.Common exposing (..)
 import Wallet
 
@@ -145,6 +146,27 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
             ]
 
 
+validationErrorToString : InputValidationError -> String
+validationErrorToString validationError =
+    case validationError of
+        Types.InputGreaterThan ->
+            "You don't have that much!"
+
+        Types.InputLessThan ->
+            "Need a positive number!"
+
+        Types.InputInvalid ->
+            "Can't interpret that number!"
+
+
+inputErrorEl : DisplayProfile -> String -> Element Msg
+inputErrorEl dProfile errStr =
+    Element.rgba 1 0 0 0.8
+        |> msgInsteadOfButton
+            dProfile
+            errStr
+
+
 investOrWithdrawEl :
     DisplayProfile
     -> String
@@ -169,13 +191,8 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             else
                 ( Types.WithdrawalAmountChanged, Types.WithdrawClicked )
 
-        msgAmount =
-            case TokenValue.fromString inputAmount of
-                Nothing ->
-                    TokenValue.zero
-
-                Just val ->
-                    val
+        msgAmountResult =
+            validateInput inputAmount userBalance
 
         userBalance =
             if tokenName == "ETH" then
@@ -183,9 +200,6 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
 
             else
                 userDEthInfo.dEthBalance
-
-        inputValid =
-            validateInput inputAmount userBalance
 
         blockHeightMin =
             responsiveVal dProfile 280 220
@@ -220,9 +234,10 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             dProfile
             []
             buttonText
-            (msgAmount
-                |> clickedMsg
-                |> Just
+            (msgAmountResult
+                |> Maybe.map Result.toMaybe
+                |> Maybe.Extra.join
+                |> Maybe.map clickedMsg
             )
         ]
             |> row
@@ -240,50 +255,28 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
                 , bottom = 10
                 }
             ]
+    , case msgAmountResult of
+        Nothing ->
+            Element.none
+
+        Just (Err validationError) ->
+            inputErrorEl dProfile (validationErrorToString validationError)
+
+        Just (Ok _) ->
+            depositRedeemInfoEl
+                dProfile
+                tokenName
+                userDEthInfo
+                |> el
+                    [ width fill
+                    , paddingEach
+                        { top = 0
+                        , left = responsiveVal dProfile 20 10
+                        , right = responsiveVal dProfile 20 10
+                        , bottom = 0
+                        }
+                    ]
     ]
-        ++ (if userBalance == TokenValue.zero then
-                [ Element.rgba 1 0 0 0.8
-                    |> msgInsteadOfButton
-                        dProfile
-                        ("Your " ++ tokenName ++ " balance is zero")
-                ]
-
-            else if inputValid == Types.InputGreaterThan then
-                [ Element.rgba 1 0 0 0.8
-                    |> msgInsteadOfButton
-                        dProfile
-                        "Value too high!"
-                ]
-
-            else if inputValid == Types.InputLessThan then
-                [ Element.rgba 1 0 0 0.8
-                    |> msgInsteadOfButton
-                        dProfile
-                        "Value too low!"
-                ]
-
-            else
-                []
-           )
-        ++ (if inputValid == Types.InputValid then
-                [ depositRedeemInfoEl
-                    dProfile
-                    tokenName
-                    userDEthInfo
-                    |> el
-                        [ width fill
-                        , paddingEach
-                            { top = 0
-                            , left = responsiveVal dProfile 20 10
-                            , right = responsiveVal dProfile 20 10
-                            , bottom = 0
-                            }
-                        ]
-                ]
-
-            else
-                []
-           )
         |> column
             (Theme.mainContainerBorderAttributes
                 ++ Theme.mainContainerBackgroundAttributes
@@ -453,7 +446,7 @@ inputEl dProfile inputAmount userBalance msg =
                 30
                 23
 
-        inputValid =
+        inputValidateResult =
             validateInput inputAmount userBalance
 
         inputStyles =
@@ -468,13 +461,14 @@ inputEl dProfile inputAmount userBalance msg =
             , centerX
             , Font.size (responsiveVal dProfile 20 14)
             ]
-                ++ (if inputValid /= Types.InputUndefined && inputValid /= Types.InputValid then
-                        [ Element.Border.width 2
-                        , Element.Border.color <| Theme.darkRed
-                        ]
+                ++ (case inputValidateResult of
+                        Just (Err _) ->
+                            [ Element.Border.width 2
+                            , Element.Border.color <| Theme.darkRed
+                            ]
 
-                    else
-                        []
+                        _ ->
+                            []
                    )
     in
     { onChange = msg
@@ -513,21 +507,26 @@ buttonEl dProfile attributes buttonLabel msg =
             )
 
 
-validateInput : String -> TokenValue -> InputValidationResult
+validateInput : String -> TokenValue -> Maybe (Result InputValidationError TokenValue)
 validateInput input max =
-    case TokenValue.fromString input of
-        Nothing ->
-            Types.InputUndefined
+    if String.trim input == "" then
+        Nothing
 
-        Just val ->
-            if TokenValue.compare val TokenValue.zero == LT then
-                Types.InputLessThan
+    else
+        Just <|
+            case TokenValue.fromString input of
+                Nothing ->
+                    Err Types.InputInvalid
 
-            else if TokenValue.compare val max == GT then
-                Types.InputGreaterThan
+                Just val ->
+                    if TokenValue.compare val TokenValue.zero == LT then
+                        Err Types.InputLessThan
 
-            else
-                Types.InputValid
+                    else if TokenValue.compare val max == GT then
+                        Err Types.InputGreaterThan
+
+                    else
+                        Ok val
 
 
 msgInsteadOfButton : DisplayProfile -> String -> Color -> Element Msg
@@ -543,5 +542,3 @@ msgInsteadOfButton dProfile textToDisplay color =
             , Font.italic
             , Font.color color
             ]
-
-
