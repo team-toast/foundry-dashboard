@@ -696,7 +696,7 @@ update msg model =
                     , Cmd.none
                     )
 
-        FetchedActualTreasuryBalance fetchResult ->
+        FetchedTreasuryBalance treasuryIndex fetchResult ->
             case fetchResult of
                 Err httpErr ->
                     ( model
@@ -706,34 +706,9 @@ update msg model =
                 Ok valueFetched ->
                     ( { model
                         | composedTreasuryBalance =
-                            let
-                                oldCombined =
-                                    model.composedTreasuryBalance
-                            in
-                            { oldCombined
-                                | actual = Just valueFetched
-                            }
-                      }
-                    , Cmd.none
-                    )
-
-        FetchedHotTreasuryBalance fetchResult ->
-            case fetchResult of
-                Err httpErr ->
-                    ( model
-                    , Cmd.none
-                    )
-
-                Ok valueFetched ->
-                    ( { model
-                        | composedTreasuryBalance =
-                            let
-                                oldCombined =
-                                    model.composedTreasuryBalance
-                            in
-                            { oldCombined
-                                | hot = Just valueFetched
-                            }
+                            model.composedTreasuryBalance
+                                |> List.Extra.setAt treasuryIndex
+                                    (Just valueFetched)
                       }
                     , Cmd.none
                     )

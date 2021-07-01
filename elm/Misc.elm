@@ -33,6 +33,7 @@ import Helpers.Tuple exposing (tuple3MapSecond)
 import Http
 import Json.Decode as Decoder exposing (Decoder)
 import Json.Encode
+import List.Extra
 import Maybe.Extra exposing (isNothing)
 import Ports exposing (txIn, txOut)
 import Routing exposing (Route(..))
@@ -95,9 +96,9 @@ emptyModel key now basePath cookieConsent =
     , permaFrostTotalSupply = Nothing
     , permaFrostBalanceLocked = Nothing
     , composedTreasuryBalance =
-        { actual = Nothing
-        , hot = Nothing
-        }
+        List.repeat
+            (List.length Config.treasuryAddresses)
+            Nothing
     , userDerivedEthInfo = Nothing
     , jurisdictionCheckStatus = Types.WaitingForClick
     , depositAmount = ""
@@ -216,18 +217,16 @@ fetchBalancerPoolFryBalance =
 
 fetchTreasuryBalances : Cmd Msg
 fetchTreasuryBalances =
-    Cmd.batch
-        [ ERC20.getBalanceCmd
-            Eth
-            (Config.daiContractAddress Eth)
-            Config.treasuryForwarderAddress
-            Types.FetchedActualTreasuryBalance
-        , ERC20.getBalanceCmd
-            Eth
-            (Config.daiContractAddress Eth)
-            Config.hotTreasuryAddress
-            Types.FetchedHotTreasuryBalance
-        ]
+    Config.treasuryAddresses
+        |> List.indexedMap
+            (\id addr ->
+                ERC20.getBalanceCmd
+                    Eth
+                    (Config.daiContractAddress Eth)
+                    addr
+                    (Types.FetchedTreasuryBalance id)
+            )
+        |> Cmd.batch
 
 
 calcCircSupply : Maybe Int -> Array (Maybe TokenValue) -> Maybe TokenValue -> Maybe Float
@@ -1143,13 +1142,6 @@ fetchFarmEndTime chain =
 
 
 combineTreasuryBalance : ComposedTreasuryBalance -> Maybe TokenValue
-combineTreasuryBalance combined =
-    case ( combined.actual, combined.hot ) of
-        ( Just actual, Just hot ) ->
-            Just <|
-                TokenValue.add
-                    actual
-                    hot
-
-        _ ->
-            Nothing
+combineTreasuryBalance =
+    Maybe.Extra.combine
+        >> Maybe.map (List.foldl TokenValue.add TokenValue.zero)

@@ -100,14 +100,17 @@ teamToastMultiSigAddress =
     Eth.Utils.unsafeToAddress "0xF7396C708Ad9127B6684b7fd690083158d2ebdE5"
 
 
-treasuryForwarderAddress : Address
-treasuryForwarderAddress =
-    Eth.Utils.unsafeToAddress "0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553"
-
-
-hotTreasuryAddress : Address
-hotTreasuryAddress =
+mainTreasuryAddress : Address
+mainTreasuryAddress =
     Eth.Utils.unsafeToAddress "0x9C59BAD7674AC1b9485Ede5c19af3B42F0516392"
+
+
+treasuryAddresses : List Address
+treasuryAddresses =
+    [ mainTreasuryAddress
+    , Eth.Utils.unsafeToAddress "0xecB864Bfed3260388d1a7f8F182053F406074C5a"
+    , Eth.Utils.unsafeToAddress "0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553"
+    ]
 
 
 bucketSaleAddress : Address
@@ -244,8 +247,3 @@ balancerPermafrostPool =
 derivedEthContractAddress : Address
 derivedEthContractAddress =
     Eth.Utils.unsafeToAddress "0x3b6282e75e0465eb5948edc5f0397f9e9688cf59"
-
-
-ethAddress : Address
-ethAddress =
-    Eth.Utils.unsafeToAddress "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"

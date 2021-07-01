@@ -57,7 +57,7 @@ viewAddresses chain dProfile =
     , viewAddressAndLabel dProfile chain "FRY token" (Config.fryContractAddress chain)
     , case chain of
         Eth ->
-            viewAddressAndLabel dProfile chain "Treasury" Config.treasuryForwarderAddress
+            viewAddressAndLabel dProfile chain "Treasury" Config.mainTreasuryAddress
 
         _ ->
             Element.none

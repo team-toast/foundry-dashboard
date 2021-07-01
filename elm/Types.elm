@@ -117,8 +117,7 @@ type Msg
     | FetchedPermaFrostBalanceLocked (Result Http.Error TokenValue)
     | FetchedPermaFrostTotalSupply (Result Http.Error TokenValue)
     | FetchedBalancerFryBalance (Result Http.Error TokenValue)
-    | FetchedActualTreasuryBalance (Result Http.Error TokenValue)
-    | FetchedHotTreasuryBalance (Result Http.Error TokenValue)
+    | FetchedTreasuryBalance Int (Result Http.Error TokenValue)
     | DepositAmountChanged String
     | WithdrawalAmountChanged String
     | DepositClicked TokenValue
@@ -169,9 +168,7 @@ type Msg
 
 
 type alias ComposedTreasuryBalance =
-    { actual : Maybe TokenValue
-    , hot : Maybe TokenValue
-    }
+    List (Maybe TokenValue)
 
 
 type alias PriceValue =
