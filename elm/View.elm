@@ -1,7 +1,9 @@
 module View exposing (view)
 
+import BigInt
 import Browser
 import Browser.Navigation
+import Config
 import Element exposing (Element, alignBottom, alignRight, alignTop, below, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, link, maximum, moveRight, newTabLink, none, padding, paddingXY, paragraph, rgba, row, scrollbarY, shrink, spacing, text, width)
 import Element.Background
 import Element.Border
@@ -12,6 +14,7 @@ import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (TxHash)
 import Eth.Utils
 import Helpers.Eth as EthHelpers
+import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Html.Attributes
@@ -21,6 +24,7 @@ import Maybe.Extra
 import Misc exposing (userInfo)
 import Routing exposing (Route, routeName, routeToString)
 import Theme exposing (defaultTheme)
+import Time
 import TokenValue
 import Tuple3
 import Types exposing (..)
@@ -40,13 +44,13 @@ view model =
     { title = "Dashboard - Foundry"
     , body =
         viewPage model
-            |> render model
+            |> renderModals model
             |> List.singleton
     }
 
 
-render : Model -> Element Msg -> Html Msg
-render model =
+renderModals : Model -> Element Msg -> Html Msg
+renderModals model =
     modals model
         |> map inFront
         |> (++)
