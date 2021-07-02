@@ -1,14 +1,18 @@
 module View.Stats exposing (view)
 
+import BigInt
 import Chain
 import Config
 import Element exposing (Element, alignRight, alignTop, centerX, column, el, fill, height, image, newTabLink, padding, paddingEach, px, row, spaceEvenly, spacing, spacingXY, text, width)
+import Element.Border
 import Element.Font
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Misc exposing ( combineTreasuryBalance, calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
+import Helpers.Time as TimeHelpers
+import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, combineTreasuryBalance, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
 import Theme
+import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (Chain(..), Model, Msg)
 import View.Common exposing (..)
@@ -18,14 +22,6 @@ import Wallet
 view : Model -> Element Msg
 view model =
     let
-        mainEl =
-            case model.dProfile of
-                Desktop ->
-                    Element.row
-
-                Mobile ->
-                    column
-
         chain =
             model.wallet
                 |> Wallet.userInfo
@@ -34,13 +30,57 @@ view model =
                         userInfo.chain
                     )
     in
-    mainEl
-        [ padding 20
+    Element.column
+        [ centerX
+        , padding 20
         , spacing 25
-        , centerX
         ]
-        [ statsEl model
-        , viewAddresses chain model.dProfile
+        [ Element.el [ centerX ] (weeksRemainingEl model.now)
+        , (case model.dProfile of
+            Desktop ->
+                Element.row
+
+            Mobile ->
+                column
+          )
+            [ spacing 25
+            , centerX
+            ]
+            [ statsEl model
+            , viewAddresses chain model.dProfile
+            ]
+        ]
+
+
+weeksRemainingEl : Time.Posix -> Element Msg
+weeksRemainingEl now =
+    let
+        numWeeksStr =
+            TimeHelpers.sub Config.saleEndTime now
+                |> TimeHelpers.posixToSecondsBigInt
+                |> (\a ->
+                        BigInt.div a (BigInt.fromInt <| 60 * 60 * 24 * 7)
+                            |> BigInt.toString
+                   )
+    in
+    Element.column
+        [ Element.Font.color EH.white
+        , Element.spacing 5
+        , Element.padding 15
+        , Element.Border.width 1
+        , Element.Border.rounded 7
+        , Element.Border.color (Element.rgb 1 0 0)
+        ]
+        [ Element.el
+            [ Element.centerX
+            , Element.Font.size 50
+            , Element.Font.bold
+            ]
+          <|
+            Element.text <|
+                numWeeksStr
+                    ++ " WEEKS"
+        , Element.el [ Element.Font.size 24 ] <| Element.text "to Foundry Sovereignty"
         ]
 
 

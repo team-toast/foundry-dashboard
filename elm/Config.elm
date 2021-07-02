@@ -247,3 +247,9 @@ balancerPermafrostPool =
 derivedEthContractAddress : Address
 derivedEthContractAddress =
     Eth.Utils.unsafeToAddress "0x3b6282e75e0465eb5948edc5f0397f9e9688cf59"
+
+
+saleEndTime : Time.Posix
+saleEndTime =
+    Time.millisToPosix
+        (1642968000 * 1000)
