@@ -260,7 +260,20 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             Element.none
 
         Just (Err validationError) ->
-            inputErrorEl dProfile (validationErrorToString validationError)
+            --inputErrorEl dProfile (validationErrorToString validationError)--
+            depositRedeemInfoEl
+                dProfile
+                tokenName
+                userDEthInfo
+                |> el
+                    [ width fill
+                    , paddingEach
+                        { top = 0
+                        , left = responsiveVal dProfile 20 10
+                        , right = responsiveVal dProfile 20 10
+                        , bottom = 0
+                        }
+                    ]
 
         Just (Ok _) ->
             depositRedeemInfoEl
@@ -307,39 +320,47 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
             if tokenName == "ETH" then
                 [ depositRedeemInfoItemEl
                     textFontSize
+                    "ETH Amount Entered"
+                    userDEthInfo.actualCollateralAdded
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Protocol Fee"
+                    userDEthInfo.depositFee.protocolFee
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Automation Fee"
+                    userDEthInfo.depositFee.automationFee
+                , depositRedeemInfoItemEl
+                    textFontSize
                     "Actual ETH Added"
                     userDEthInfo.actualCollateralAdded
                 , depositRedeemInfoItemEl
                     textFontSize
-                    "Deposit Protocol Fee"
-                    userDEthInfo.depositFee.protocolFee
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Deposit Automation Fee"
-                    userDEthInfo.depositFee.automationFee
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "dETH Received"
+                    "dEth Issued"
                     userDEthInfo.tokensIssued
                 ]
 
             else
                 [ depositRedeemInfoItemEl
                     textFontSize
-                    "Total ETH Received"
+                    "dEth Amount Entered"
                     userDEthInfo.collateralReturned
                 , depositRedeemInfoItemEl
                     textFontSize
-                    "Total ETH Redeemable"
+                    "Automation Fee"
+                    userDEthInfo.redeemFee.automationFee
+                , depositRedeemInfoItemEl
+                    textFontSize
+                    "Collateral Redeemed"
                     userDEthInfo.totalCollateralRedeemed
                 , depositRedeemInfoItemEl
                     textFontSize
-                    "Withdrawal Protocol Fee"
+                    "Protocol Fee"
                     userDEthInfo.redeemFee.protocolFee
                 , depositRedeemInfoItemEl
                     textFontSize
-                    "Withdrawal Automation Fee"
-                    userDEthInfo.redeemFee.automationFee
+                    "Collateral Returned"
+                    userDEthInfo.collateralReturned
                 ]
     in
     elems
@@ -543,3 +564,10 @@ msgInsteadOfButton dProfile textToDisplay color =
             , Font.italic
             , Font.color color
             ]
+
+inputEntered : String -> Maybe TokenValue
+inputEntered input =
+    if String.trim input == ""  then
+        Nothing
+    else
+        TokenValue.fromString input
