@@ -76,7 +76,7 @@ view model =
 
 titleEl : DisplayProfile -> Element Msg
 titleEl dProfile =
-    [ text "\"Prepare to have your face ripped off by the Dragon.\" - dETH" ]
+    [ text "\"Ride the Dragon.\" - dEth" ]
         |> paragraph
             [ responsiveVal
                 dProfile
@@ -121,7 +121,7 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                 Just userDerivedEthInfo ->
                     [ investOrWithdrawEl
                         dProfile
-                        "ETH -> dETH"
+                        "ETH -> dEth"
                         "Deposit"
                         depositAmount
                         "ETH"
@@ -129,10 +129,10 @@ mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEth
                         userDerivedEthInfo
                     , investOrWithdrawEl
                         dProfile
-                        "dETH -> ETH"
+                        "dEth -> ETH"
                         "Redeem"
                         withdrawalAmount
-                        "dETH"
+                        "dEth"
                         Types.WithdrawalAmountChanged
                         userDerivedEthInfo
                     ]
