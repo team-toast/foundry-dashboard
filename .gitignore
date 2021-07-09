@@ -5,3 +5,6 @@ node_modules/
 **/build/**
 org/
 smart-contracts/artifacts/
+.DS_Store
+*.envrc*
+

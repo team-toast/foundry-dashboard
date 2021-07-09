@@ -264,6 +264,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             depositRedeemInfoEl
                 dProfile
                 tokenName
+                inputAmount
                 userDEthInfo
                 |> el
                     [ width fill
@@ -279,6 +280,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             depositRedeemInfoEl
                 dProfile
                 tokenName
+                inputAmount
                 userDEthInfo
                 |> el
                     [ width fill
@@ -309,9 +311,12 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             )
 
 
-depositRedeemInfoEl : DisplayProfile -> String -> UserDerivedEthInfo -> Element Msg
-depositRedeemInfoEl dProfile tokenName userDEthInfo =
+depositRedeemInfoEl : DisplayProfile -> String -> String -> UserDerivedEthInfo -> Element Msg
+depositRedeemInfoEl dProfile tokenName amountEntered userDEthInfo =
     let
+        enteredAmount =
+            amountToTokenValue <| TokenValue.fromString amountEntered
+
         textFontSize =
             responsiveVal dProfile 16 10
                 |> Font.size
@@ -321,7 +326,7 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
                 [ depositRedeemInfoItemEl
                     textFontSize
                     "ETH Amount Entered"
-                    userDEthInfo.actualCollateralAdded
+                    enteredAmount
                 , depositRedeemInfoItemEl
                     textFontSize
                     "Protocol Fee"
@@ -344,7 +349,7 @@ depositRedeemInfoEl dProfile tokenName userDEthInfo =
                 [ depositRedeemInfoItemEl
                     textFontSize
                     "dEth Amount Entered"
-                    userDEthInfo.collateralReturned
+                    enteredAmount
                 , depositRedeemInfoItemEl
                     textFontSize
                     "Automation Fee"
@@ -565,9 +570,12 @@ msgInsteadOfButton dProfile textToDisplay color =
             , Font.color color
             ]
 
-inputEntered : String -> Maybe TokenValue
-inputEntered input =
-    if String.trim input == ""  then
-        Nothing
-    else
-        TokenValue.fromString input
+
+amountToTokenValue : Maybe TokenValue -> TokenValue
+amountToTokenValue maybeAmount =
+    case maybeAmount of
+        Just amount ->
+            amount
+
+        Nothing ->
+            TokenValue.zero
