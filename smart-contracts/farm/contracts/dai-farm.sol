@@ -638,6 +638,18 @@ contract EthereumStakingRewardsScript is StakingRewards {
     {}
 }
 
+contract EthereumUnifiedStakingRewardsScript is StakingRewards {
+    constructor()
+        public
+        StakingRewards(
+            0xF7396C708Ad9127B6684b7fd690083158d2ebdE5, // _owner = TeamToastMultsig
+            0x6B175474E89094C44Da98b954EedeAC495271d0F, // _rewardsToken = DAI
+            0x04a1f9f9fE8910A27972E15d5Da3Bf79075fEfbb, // _stakingToken = FRY-DAI-dEth Balancer liquidity,
+            30 days
+        ) // _duration = 30 days
+    {}
+}
+
 contract BSCStakingRewardsScript is StakingRewards {
     constructor()
         public
@@ -671,6 +683,86 @@ contract IUniswap {
             uint112 _reserve1,
             uint32 _blockTimestampLast
         );
+}
+
+contract QueryBalancerDAIPoolScript 
+{
+    using SafeMath for uint256;
+
+    constructor() public {}
+
+    // assumes a Balancer XYZ_ETH pair, where XYZ is reserve0
+    function getData(
+        StakingRewards _rewards,
+        // --- Leaving these here so that the contract interface need not change ---
+        uint _rewardsRefReserve,
+        IUniswap _pricePair,
+        uint _pricePairRefReserve,
+        // -- end of comment ---
+        address _staker
+    )
+        public
+        view
+        returns (
+            uint _availableBalance,
+            uint _stakedBalance,
+            uint _allowedBalance,
+            uint _earned,
+            uint _totalStakedValue,
+            uint _APY,
+            uint _rewardRate,
+            uint _timestamp // rewards per second
+        )
+    {
+        _availableBalance = _rewards.stakingToken().balanceOf(_staker);
+        _stakedBalance = _rewards.balanceOf(_staker);
+        _allowedBalance = _rewards
+            .stakingToken()
+            .allowance(_staker,address(_rewards));
+        _earned = _rewards.earned(_staker);
+        _rewardRate = _rewards.rewardRate();
+        _timestamp = now;
+            
+        _totalStakedValue = getStakedValue(_rewards);
+
+        _APY = _totalStakedValue == 0 ? 
+            0 :
+            _rewardRate
+                .mul(365 days)
+                .mul(10**18)
+                .div(_totalStakedValue); /* */
+
+        _rewardRate = _rewards.totalSupply() == 0 ?
+            0 :
+            _rewardRate
+                .mul(_stakedBalance)
+                .div(_rewards.totalSupply());
+    }
+    
+    function getStakedValue(StakingRewards _rewards)
+        public
+        view
+        returns (uint _totalStakedValue)
+    {
+        // goal:
+        // 1. return the amount of DAI staked via the pool multiplied by 3
+        // logic:
+        // *get the DAI in the pool
+        // *get the pool tokens staked
+        // *mul DAI in pool by % of pool tokens staked mul by 3
+
+        uint daiInPool = 
+            IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F)
+            .balanceOf(address(_rewards.rewardsToken));
+        _totalStakedValue = 
+            IERC20(address(_rewards.rewardsToken))
+            .totalSupply()
+            .mul(10**18) // 10^18 for precision
+            .div(_rewards.totalSupply())
+            .mul(daiInPool)
+            .mul(3) // because the DAI is one 3rd of the pool 
+            .div(10**18); // remove the excessive 10^18 precision
+    }
 }
 
 contract QueryScript {
