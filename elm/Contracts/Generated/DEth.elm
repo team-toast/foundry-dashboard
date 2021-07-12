@@ -1,24 +1,22 @@
 module Contracts.Generated.DEth exposing
     ( Approval
-    , AutomationSettingsChanged
     , CalculateIssuanceAmount
     , CalculateRedemptionValue
+    , Execute
     , GetCollateral
     , Issued
     , LogNote
     , LogSetAuthority
     , LogSetOwner
     , Redeemed
+    , SettingsChanged
     , Transfer
     , allowance
     , approvalDecoder
     , approvalEvent
     , approve
     , authority
-    , automate
     , automationFeePerc
-    , automationSettingsChangedDecoder
-    , automationSettingsChangedEvent
     , balanceOf
     , cache
     , calculateIssuanceAmount
@@ -27,9 +25,12 @@ module Contracts.Generated.DEth exposing
     , calculateRedemptionValueDecoder
     , cdpId
     , changeGulper
+    , changeSettings
     , decimals
     , decreaseAllowance
     , ethGemJoin
+    , execute
+    , executeDecoder
     , getCollateral
     , getCollateralDecoder
     , getCollateralPriceRAY
@@ -60,7 +61,9 @@ module Contracts.Generated.DEth exposing
     , setAuthority
     , setCache
     , setOwner
-    , squanderMyEthForWorthlessBeans
+    , settingsChangedDecoder
+    , settingsChangedEvent
+    , squanderMyEthForWorthlessBeansAndAgreeToTerms
     , symbol
     , totalSupply
     , transfer
@@ -132,23 +135,6 @@ authority contractAddress =
     , data = Just <| E.functionCall "bf7e214f" []
     , nonce = Nothing
     , decoder = toElmDecoder D.address
-    }
-
-
-
--- automate(uint256,uint256,uint256,uint256,uint256,uint256) function
-
-
-automate : Address -> BigInt -> BigInt -> BigInt -> BigInt -> BigInt -> BigInt -> Call ()
-automate contractAddress repaymentRatio_ targetRatio_ boostRatio_ minRedemptionRatio_ automationFeePerc_ riskLimit_ =
-    { to = Just contractAddress
-    , from = Nothing
-    , gas = Nothing
-    , gasPrice = Nothing
-    , value = Nothing
-    , data = Just <| E.functionCall "4fc9f583" [ E.uint repaymentRatio_, E.uint targetRatio_, E.uint boostRatio_, E.uint minRedemptionRatio_, E.uint automationFeePerc_, E.uint riskLimit_ ]
-    , nonce = Nothing
-    , decoder = Decode.succeed ()
     }
 
 
@@ -310,6 +296,23 @@ changeGulper contractAddress newGulper_ =
 
 
 
+-- changeSettings(uint256,uint256,uint256) function
+
+
+changeSettings : Address -> BigInt -> BigInt -> BigInt -> Call ()
+changeSettings contractAddress minRedemptionRatio_ automationFeePerc_ riskLimit_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "a626c089" [ E.uint minRedemptionRatio_, E.uint automationFeePerc_, E.uint riskLimit_ ]
+    , nonce = Nothing
+    , decoder = Decode.succeed ()
+    }
+
+
+
 -- decimals() function
 
 
@@ -358,6 +361,37 @@ ethGemJoin contractAddress =
     , nonce = Nothing
     , decoder = toElmDecoder D.address
     }
+
+
+
+-- execute(bytes,bytes) function
+
+
+type alias Execute =
+    { target : Address
+    , response : Hex
+    }
+
+
+execute : Address -> Hex -> Hex -> Call Execute
+execute contractAddress code_ data_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "1f6a1eb9" [ E.bytes code_, E.bytes data_ ]
+    , nonce = Nothing
+    , decoder = executeDecoder
+    }
+
+
+executeDecoder : Decoder Execute
+executeDecoder =
+    abiDecode Execute
+        |> andMap D.address
+        |> andMap (D.staticBytes 32)
+        |> toElmDecoder
 
 
 
@@ -704,17 +738,17 @@ setOwner contractAddress owner__ =
 
 
 
--- squanderMyEthForWorthlessBeans(address) function
+-- squanderMyEthForWorthlessBeansAndAgreeToTerms(address) function
 
 
-squanderMyEthForWorthlessBeans : Address -> Address -> Call ()
-squanderMyEthForWorthlessBeans contractAddress receiver_ =
+squanderMyEthForWorthlessBeansAndAgreeToTerms : Address -> Address -> Call ()
+squanderMyEthForWorthlessBeansAndAgreeToTerms contractAddress receiver_ =
     { to = Just contractAddress
     , from = Nothing
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| E.functionCall "026a9f93" [ E.address receiver_ ]
+    , data = Just <| E.functionCall "10861ac4" [ E.address receiver_ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
     }
@@ -818,40 +852,6 @@ approvalDecoder =
         |> custom (topic 1 D.address)
         |> custom (topic 2 D.address)
         |> custom (data 0 D.uint)
-
-
-
--- AutomationSettingsChanged(uint256,uint256,uint256,uint256,uint256,uint256) event
-
-
-type alias AutomationSettingsChanged =
-    { repaymentRatio : BigInt
-    , targetRatio : BigInt
-    , boostRatio : BigInt
-    , minRedemptionRatio : BigInt
-    , automationFeePerc : BigInt
-    , riskLimit : BigInt
-    }
-
-
-automationSettingsChangedEvent : Address -> LogFilter
-automationSettingsChangedEvent contractAddress =
-    { fromBlock = LatestBlock
-    , toBlock = LatestBlock
-    , address = contractAddress
-    , topics = [ Just <| U.unsafeToHex "dbc6a9294fc89b84dee26ae1c98c64cca3db89fe1f6ef50027780e094f9d53d7" ]
-    }
-
-
-automationSettingsChangedDecoder : Decoder AutomationSettingsChanged
-automationSettingsChangedDecoder =
-    Decode.succeed AutomationSettingsChanged
-        |> custom (data 0 D.uint)
-        |> custom (data 1 D.uint)
-        |> custom (data 2 D.uint)
-        |> custom (data 3 D.uint)
-        |> custom (data 4 D.uint)
-        |> custom (data 5 D.uint)
 
 
 
@@ -1016,6 +1016,34 @@ redeemedDecoder =
         |> custom (data 4 D.uint)
         |> custom (data 5 D.uint)
         |> custom (data 6 D.uint)
+
+
+
+-- SettingsChanged(uint256,uint256,uint256) event
+
+
+type alias SettingsChanged =
+    { minRedemptionRatio : BigInt
+    , automationFeePerc : BigInt
+    , riskLimit : BigInt
+    }
+
+
+settingsChangedEvent : Address -> LogFilter
+settingsChangedEvent contractAddress =
+    { fromBlock = LatestBlock
+    , toBlock = LatestBlock
+    , address = contractAddress
+    , topics = [ Just <| U.unsafeToHex "22456d468d73d3b914cf66a6630106f3187cdc17d8a99235d058f40d47f172c9" ]
+    }
+
+
+settingsChangedDecoder : Decoder SettingsChanged
+settingsChangedDecoder =
+    Decode.succeed SettingsChanged
+        |> custom (data 0 D.uint)
+        |> custom (data 1 D.uint)
+        |> custom (data 2 D.uint)
 
 
 

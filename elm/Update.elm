@@ -7,7 +7,7 @@ import Browser
 import Browser.Navigation
 import Chain exposing (whenJust)
 import Config
-import Contracts.Generated.DEth as Death
+import Contracts.DEthWrapper as Deth
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingRewardsContract
 import Dict
@@ -18,6 +18,7 @@ import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Utils
 import GTag exposing (GTagData, gTagOut)
+import Helpers.Eth as EthHelpers
 import Helpers.Tuple exposing (tuple3MapSecond, tuple3Second, tuple3ToList)
 import Json.Decode
 import List.Extra
@@ -1276,18 +1277,11 @@ update msg model =
                 Just uInfo ->
                     [ let
                         txParams =
-                            Death.squanderMyEthForWorthlessBeans
+                            Deth.deposit
                                 Config.derivedEthContractAddress
                                 uInfo.address
-                                |> (\call ->
-                                        { call
-                                            | from = Just uInfo.address
-                                            , value =
-                                                TokenValue.getEvmValue amount
-                                                    |> Just
-                                        }
-                                   )
-                                |> Eth.toSend
+                                amount
+                                |> EthHelpers.addFrom uInfo.address
                                 |> Eth.encodeSend
                       in
                       Ports.txSend txParams
@@ -1317,14 +1311,11 @@ update msg model =
                 Just uInfo ->
                     let
                         txParams =
-                            Death.redeem
+                            Deth.redeem
                                 Config.derivedEthContractAddress
                                 uInfo.address
-                                (TokenValue.getEvmValue amount)
-                                |> (\call ->
-                                        { call | from = Just uInfo.address }
-                                   )
-                                |> Eth.toSend
+                                amount
+                                |> EthHelpers.addFrom uInfo.address
                                 |> Eth.encodeSend
                     in
                     Ports.txSend txParams

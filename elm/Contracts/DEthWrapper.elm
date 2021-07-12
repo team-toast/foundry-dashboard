@@ -1,6 +1,6 @@
 module Contracts.DEthWrapper exposing (..)
 
-import Contracts.Generated.DEth as Death
+import Contracts.Generated.DEth as Deth
 import Contracts.Generated.ERC20 as ERC20
 import Eth
 import Eth.Types as Eth exposing (Address)
@@ -11,7 +11,7 @@ import TokenValue exposing (TokenValue)
 
 deposit : Address -> Address -> TokenValue -> Eth.Send
 deposit contract sender amount =
-    Death.squanderMyEthForWorthlessBeans
+    Deth.squanderMyEthForWorthlessBeansAndAgreeToTerms
         contract
         sender
         |> (\call ->
@@ -26,24 +26,24 @@ deposit contract sender amount =
 
 redeem : Address -> Address -> TokenValue -> Eth.Send
 redeem contract receiver amount =
-    Death.redeem
+    Deth.redeem
         contract
         receiver
         (TokenValue.getEvmValue amount)
         |> Eth.toSend
 
 
-getIssuanceDetail : Address -> String -> TokenValue -> Task Http.Error Death.CalculateIssuanceAmount
+getIssuanceDetail : Address -> String -> TokenValue -> Task Http.Error Deth.CalculateIssuanceAmount
 getIssuanceDetail contract httpProvider amount =
-    Death.calculateIssuanceAmount
+    Deth.calculateIssuanceAmount
         contract
         (TokenValue.getEvmValue amount)
         |> Eth.call httpProvider
 
 
-getRedeemable : Address -> String -> TokenValue -> Task Http.Error Death.CalculateRedemptionValue
+getRedeemable : Address -> String -> TokenValue -> Task Http.Error Deth.CalculateRedemptionValue
 getRedeemable contract httpProvider amount =
-    Death.calculateRedemptionValue
+    Deth.calculateRedemptionValue
         contract
         (TokenValue.getEvmValue amount)
         |> Eth.call httpProvider

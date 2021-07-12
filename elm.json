@@ -2,7 +2,7 @@
     "type": "application",
     "source-directories": [
         "elm",
-        "elm-submodules/helpers",
+        "elm-submodules/helpers/src",
         "elm-submodules/tokenvalue",
         "elm-submodules/element-helpers",
         "elm-submodules/gtags"
