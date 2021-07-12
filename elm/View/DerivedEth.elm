@@ -2,7 +2,7 @@ module View.DerivedEth exposing (view)
 
 import BigInt
 import Chain
-import Element exposing (Attribute, Color, Element, alignRight, alignTop, centerX, column, el, fill, height, maximum, minimum, padding, paddingEach, paragraph, px, row, spacing, text, width)
+import Element exposing (Attribute, Color, Element, alignRight, alignTop, alpha,centerX, column, el, fill, height, htmlAttribute, maximum, minimum, padding, paddingEach, paragraph, px, row,rgb,rgba, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Font as Font
@@ -16,10 +16,11 @@ import Types exposing (Chain(..), InputValidationError, JurisdictionCheckStatus,
 import View.Common exposing (..)
 import Wallet
 import Html.Attributes
-import Element exposing (htmlAttribute)
-import Element exposing (alpha)
-import Element exposing (rgb)
-import Element exposing (rgba)
+import Element exposing (mouseOver)
+import Element exposing (inFront)
+import Element exposing (transparent)
+import Element exposing (none)
+import Element exposing (above)
 
 
 view : Model -> Element Msg
@@ -392,7 +393,7 @@ depositRedeemInfoItemEl textFontSize rowLabel rowValue =
         |> el
             [ textFontSize ]
     , rowValue
-        |> TokenValue.toFloatString (Just 4)
+        |> tokenValueToFixedPrecisionFloatString(4)
         |> text
         |> el
             [ textFontSize
@@ -557,6 +558,7 @@ buttonStateEl dProfile  buttonLabel msg amountResult   =
     in
 
     case amountResult of
+
         Nothing ->
             buttonEl
             dProfile
@@ -565,27 +567,29 @@ buttonStateEl dProfile  buttonLabel msg amountResult   =
             msg
         Just (Err validationError) ->
             case validationError of
-
                 Types.InputGreaterThan ->
-                    buttonEl
-                    dProfile
-                    buttonErrorStyle
-                    buttonLabel
-                    msg
+                    el [ tooltip above (buttonTooltip "You don't have that much")]
+                       (buttonEl
+                       dProfile
+                       buttonErrorStyle
+                       buttonLabel
+                       msg )
 
                 Types.InputLessThan ->
-                    buttonEl
+                    el [ tooltip above (buttonTooltip "Need a positive number")]
+                    (buttonEl
                     dProfile
                     buttonErrorStyle
                     buttonLabel
-                    msg
+                    msg)
 
                 Types.InputInvalid ->
-                    buttonEl
+                    el [ tooltip above ( buttonTooltip "Can't interpret that number!")]
+                    (buttonEl
                     dProfile
                     buttonErrorStyle
                     buttonLabel
-                    msg
+                    msg)
         Just (Ok _) ->
             buttonEl
             dProfile
@@ -654,4 +658,45 @@ buttonTooltip str =
             { offset = ( 0, 3 ), blur = 6, size = 0, color = rgba 0 0 0 0.32 }
         ]
         (text str)
+
+tooltip : (Element msg -> Attribute msg) -> Element Never -> Attribute msg
+tooltip usher tooltip_ =
+    inFront <|
+        el
+            [ width fill
+            , height fill
+            , transparent True
+            , mouseOver [ transparent False ]
+            , (usher << Element.map never) <|
+                el [ htmlAttribute (Html.Attributes.style "pointerEvents" "none") ]
+                    tooltip_
+            ]
+            none
+
+tokenValueToFixedPrecisionFloatString : Int -> TokenValue -> String
+tokenValueToFixedPrecisionFloatString requiredDecimals tokens =
+    let
+        possiblyTooShortString =
+            TokenValue.toFloatString (Just requiredDecimals) tokens
+
+        maybePointIndex =
+            String.indexes "." possiblyTooShortString
+                |> List.head
+    in
+    case maybePointIndex of
+        Just pointIndex ->
+            let
+                existingDecimals =
+                    String.length possiblyTooShortString - (pointIndex + 1)
+
+                extraNeededDecimals =
+                    requiredDecimals - existingDecimals
+            in
+            possiblyTooShortString ++ String.repeat extraNeededDecimals "0"
+
+        Nothing ->
+            possiblyTooShortString ++ "." ++ String.repeat requiredDecimals "0"
+
+
+
 
