@@ -15,6 +15,11 @@ import TokenValue exposing (TokenValue)
 import Types exposing (Chain(..), InputValidationError, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
 import View.Common exposing (..)
 import Wallet
+import Html.Attributes
+import Element exposing (htmlAttribute)
+import Element exposing (alpha)
+import Element exposing (rgb)
+import Element exposing (rgba)
 
 
 view : Model -> Element Msg
@@ -230,15 +235,16 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             inputAmount
             userBalance
             msg
-        , buttonEl
+        , buttonStateEl
             dProfile
-            []
             buttonText
             (msgAmountResult
                 |> Maybe.map Result.toMaybe
                 |> Maybe.Extra.join
                 |> Maybe.map clickedMsg
             )
+            msgAmountResult
+
         ]
             |> row
                 [ centerX
@@ -529,9 +535,65 @@ buttonEl dProfile attributes buttonLabel msg =
              , centerX
              , Font.size (responsiveVal dProfile 18 12)
              ]
-                ++ Theme.childContainerBackgroundAttributes
                 ++ attributes
             )
+buttonStateEl:
+    DisplayProfile
+    -> String
+    -> Maybe Msg
+    -> Maybe (Result InputValidationError TokenValue)
+    -> Element Msg
+buttonStateEl dProfile  buttonLabel msg amountResult   =
+    let
+        buttonErrorStyle =
+            [
+             htmlAttribute <| Html.Attributes.style "cursor" "not-allowed"
+            , Element.Background.color red
+            , alpha 0.5
+            ]
+        buttonNormalStyle =
+              Theme.childContainerBackgroundAttributes
+
+    in
+
+    case amountResult of
+        Nothing ->
+            buttonEl
+            dProfile
+            buttonNormalStyle
+            buttonLabel
+            msg
+        Just (Err validationError) ->
+            case validationError of
+
+                Types.InputGreaterThan ->
+                    buttonEl
+                    dProfile
+                    buttonErrorStyle
+                    buttonLabel
+                    msg
+
+                Types.InputLessThan ->
+                    buttonEl
+                    dProfile
+                    buttonErrorStyle
+                    buttonLabel
+                    msg
+
+                Types.InputInvalid ->
+                    buttonEl
+                    dProfile
+                    buttonErrorStyle
+                    buttonLabel
+                    msg
+        Just (Ok _) ->
+            buttonEl
+            dProfile
+            buttonNormalStyle
+            buttonLabel
+            msg
+
+
 
 
 validateInput : String -> TokenValue -> Maybe (Result InputValidationError TokenValue)
@@ -579,3 +641,17 @@ amountToTokenValue maybeAmount =
 
         Nothing ->
             TokenValue.zero
+
+buttonTooltip : String -> Element msg
+buttonTooltip str =
+    el
+        [ Element.Background.color (rgb 0 0 0)
+        , Font.color (rgb 1 1 1)
+        , padding 4
+        , Element.Border.rounded 5
+        , Font.size 14
+        , Element.Border.shadow
+            { offset = ( 0, 3 ), blur = 6, size = 0, color = rgba 0 0 0 0.32 }
+        ]
+        (text str)
+
