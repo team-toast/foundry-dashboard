@@ -158,16 +158,6 @@ bodyEl model =
             apyElement
                 dProfile
                 model.apy
-
-        networkAndSwitch =
-            case Wallet.userInfo model.wallet of
-                Nothing ->
-                    Element.none
-
-                Just _ ->
-                    currentNetworkAndSwitchEl
-                        dProfile
-                        model.wallet
     in
     mainEl
         ([ centerX
@@ -182,8 +172,7 @@ bodyEl model =
         (case dProfile of
             EH.Desktop ->
                 [ balancesEl
-                , [ networkAndSwitch
-                  , apyEl
+                , [ apyEl
                   ]
                     |> column
                         [ width fill
@@ -194,8 +183,7 @@ bodyEl model =
                 ]
 
             EH.Mobile ->
-                [ [ [ networkAndSwitch
-                    , apyEl
+                [ [ [ apyEl
                     ]
                         |> row
                             [ width fill
@@ -207,49 +195,6 @@ bodyEl model =
                 , balancesEl
                 ]
         )
-
-
-currentNetworkAndSwitchEl : DisplayProfile -> Wallet -> Element Msg
-currentNetworkAndSwitchEl dProfile wallet =
-    let
-        chain =
-            wallet
-                |> Wallet.getChainDefaultEth
-
-        farmText =
-            (case chain of
-                Eth ->
-                    "Farming on Mainnet"
-
-                BSC ->
-                    "Farming on BSC"
-
-                _ ->
-                    "Not supported"
-            )
-                |> text
-                |> el
-                    [ Font.color white
-                    , Font.size <| responsiveVal dProfile 20 14
-                    ]
-    in
-    [ farmText
-    ]
-        |> column
-            (Theme.mainContainerBackgroundAttributes
-                ++ Theme.mainContainerBorderAttributes
-                ++ [ spacing 5
-                   , padding 5
-                   , alignTop
-                   ]
-                ++ (case dProfile of
-                        Desktop ->
-                            [ alignRight ]
-
-                        Mobile ->
-                            []
-                   )
-            )
 
 
 balancesElement :
