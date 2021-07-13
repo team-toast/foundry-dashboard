@@ -40,7 +40,7 @@ view model =
         Eth ->
             [ titleEl dProfile "Farming for Fryers!"
             , subTitleEl dProfile model.now model.farmingPeriodEnds
-            , farmVideoEl dProfile
+            -- , farmVideoEl dProfile
             , if model.chainSwitchInProgress then
                 loadingText |> text |> el [ Font.color almostWhite ]
 
