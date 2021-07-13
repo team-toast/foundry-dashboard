@@ -232,33 +232,8 @@ currentNetworkAndSwitchEl dProfile wallet =
                     [ Font.color white
                     , Font.size <| responsiveVal dProfile 20 14
                     ]
-
-        switchButton =
-            case chain of
-                Eth ->
-                    { onPress =
-                        BSCImport
-                            |> Just
-                    , label =
-                        "Switch to BSC"
-                            |> text
-                    }
-                        |> Input.button
-                            (Theme.childContainerBackgroundAttributes
-                                ++ Theme.childContainerBorderAttributes
-                                ++ [ responsiveVal dProfile 5 5
-                                        |> padding
-                                   , Font.color almostWhite
-                                   , Font.size <| responsiveVal dProfile 18 12
-                                   , centerX
-                                   ]
-                            )
-
-                _ ->
-                    Element.none
     in
     [ farmText
-    , switchButton
     ]
         |> column
             (Theme.mainContainerBackgroundAttributes

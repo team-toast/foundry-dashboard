@@ -159,7 +159,6 @@ type Msg
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
     | Navigate Route
-    | BSCImport
     | WalletResponse (Result WalletConnectErr UserInfo)
     | ChainSwitchResponse (Result TxErr ())
     | TxSendResponse (Result TxErr TxHash)

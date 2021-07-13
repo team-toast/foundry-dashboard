@@ -1544,35 +1544,33 @@ update msg model =
             , Cmd.none
             )
 
-        BSCImport ->
-            ensureUserInfo
-                (\userInfo ->
-                    let
-                        address =
-                            userInfo.address
-                                |> Eth.Utils.addressToString
-
-                        gtagCmd =
-                            GTagData
-                                "bsc import clicked"
-                                Nothing
-                                (address
-                                    |> Just
-                                )
-                                Nothing
-                                |> gTagOut
-                    in
-                    ( { model
-                        | chainSwitchInProgress = True
-                        , userStakingInfo = Nothing
-                      }
-                    , [ Ports.bscImport ()
-                      , gtagCmd
-                      ]
-                        |> Cmd.batch
-                    )
-                )
-
+        -- BSCImport ->
+        --     ensureUserInfo
+        --         (\userInfo ->
+        --             let
+        --                 address =
+        --                     userInfo.address
+        --                         |> Eth.Utils.addressToString
+        --                 gtagCmd =
+        --                     GTagData
+        --                         "bsc import clicked"
+        --                         Nothing
+        --                         (address
+        --                             |> Just
+        --                         )
+        --                         Nothing
+        --                         |> gTagOut
+        --             in
+        --             ( { model
+        --                 | chainSwitchInProgress = True
+        --                 , userStakingInfo = Nothing
+        --               }
+        --             , [ Ports.bscImport ()
+        --               , gtagCmd
+        --               ]
+        --                 |> Cmd.batch
+        --             )
+        --         )
         WalletResponse res ->
             res
                 |> unpack
