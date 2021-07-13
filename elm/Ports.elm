@@ -7,9 +7,6 @@ import Json.Decode exposing (Value)
 -- OUT
 
 
-port bscImport : () -> Cmd msg
-
-
 port connectToWeb3 : () -> Cmd msg
 
 
