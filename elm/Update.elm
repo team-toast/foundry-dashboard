@@ -755,6 +755,24 @@ update msg model =
             , Cmd.none
             )
 
+        DoExitFromOldFarm ->
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        txParams =
+                            StakingRewardsContract.exit
+                                Config.oldStakingContractAddress
+                                |> (\call ->
+                                        { call | from = Just userInfo.address }
+                                   )
+                                |> Eth.toSend
+                                |> Eth.encodeSend
+                    in
+                    ( model
+                    , Ports.txSend txParams
+                    )
+                )
+
         DoExit ->
             ensureUserInfo
                 (\userInfo ->
@@ -880,21 +898,24 @@ update msg model =
                     )
                 )
 
-        StakingInfoFetched fetchResult ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.getChainDefaultEth
-            in
+        OldStakingBalanceFetched fetchResult ->
             case fetchResult of
                 Err httpErr ->
-                    ( --     if chain == Eth || chain == BSC then
-                      --     model
-                      --         |> (web3FetchError "staking info" httpErr
-                      --                 |> addUserNotice
-                      --            )
-                      --   else
-                      model
+                    ( model
+                    , Cmd.none
+                    )
+
+                Ok balance ->
+                    ( { model
+                        | oldUserStakingBalance = Just balance
+                      }
+                    , Cmd.none
+                    )
+
+        StakingInfoFetched fetchResult ->
+            case fetchResult of
+                Err httpErr ->
+                    ( model
                     , Cmd.none
                     )
 
@@ -914,13 +935,7 @@ update msg model =
             in
             case fetchResult of
                 Err httpErr ->
-                    ( --     if chain == Eth || chain == BSC then
-                      --     model
-                      --         |> (web3FetchError "apy" httpErr
-                      --                 |> addUserNotice
-                      --            )
-                      --   else
-                      model
+                    ( model
                     , Cmd.none
                     )
 

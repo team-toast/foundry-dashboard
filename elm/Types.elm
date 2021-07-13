@@ -84,6 +84,7 @@ type alias Model =
     , fryBalances : AddressDict (Maybe TokenValue)
     , mouseoverState : MouseoverState
     , userStakingInfo : Maybe UserStakingInfo
+    , oldUserStakingBalance : Maybe TokenValue
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , config : Config
@@ -151,11 +152,13 @@ type Msg
     | DoUnlock
     | DoDeposit TokenValue
     | DoClaimRewards
+    | DoExitFromOldFarm
     | DoExit
     | StartWithdraw TokenValue
     | DoWithdraw TokenValue
     | DepositOrWithdrawSigned DepositOrWithdraw TokenValue (Result String TxHash)
     | StakingInfoFetched (Result Http.Error ( UserStakingInfo, Float ))
+    | OldStakingBalanceFetched (Result Http.Error TokenValue)
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
     | Navigate Route

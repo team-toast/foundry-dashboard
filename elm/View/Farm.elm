@@ -136,22 +136,18 @@ bodyEl model =
                 EH.Mobile ->
                     column
 
-        chain =
-            model.wallet
-                |> Wallet.getChainDefaultEth
-
         isFarmingActive =
             calcTimeLeft model.now model.farmingPeriodEnds /= 0
 
         balancesEl =
             balancesElement
-                chain
                 dProfile
                 model.jurisdictionCheckStatus
                 model.now
                 isFarmingActive
                 model.wallet
                 model.userStakingInfo
+                model.oldUserStakingBalance
                 model.depositWithdrawUXModel
 
         apyEl =
@@ -198,16 +194,16 @@ bodyEl model =
 
 
 balancesElement :
-    Chain
-    -> DisplayProfile
+    DisplayProfile
     -> JurisdictionCheckStatus
     -> Time.Posix
     -> Bool
     -> Wallet
     -> Maybe UserStakingInfo
+    -> Maybe TokenValue
     -> DepositOrWithdrawUXModel
     -> Element Msg
-balancesElement chain dProfile jurisdictionCheckStatus now isFarmingActive wallet maybeUserStakingInfo depositWithdrawUXModel =
+balancesElement dProfile jurisdictionCheckStatus now isFarmingActive wallet maybeUserStakingInfo maybeOldUserStakingBalance depositWithdrawUXModel =
     case userInfo wallet of
         Nothing ->
             View.Common.web3ConnectButton
@@ -228,13 +224,14 @@ balancesElement chain dProfile jurisdictionCheckStatus now isFarmingActive walle
                             ]
 
                 Just userStakingInfo ->
-                    [ maybeGetLiquidityMessageElement
-                        chain
+                    [ maybeExitOldFarmElement
+                        dProfile
+                        maybeOldUserStakingBalance
+                    , maybeGetLiquidityMessageElement
                         dProfile
                         userStakingInfo
                     , unstakedRow
                         dProfile
-                        chain
                         now
                         isFarmingActive
                         jurisdictionCheckStatus
@@ -242,7 +239,6 @@ balancesElement chain dProfile jurisdictionCheckStatus now isFarmingActive walle
                         depositWithdrawUXModel
                     , stakedRow
                         dProfile
-                        chain
                         userStakingInfo
                         depositWithdrawUXModel
                     , rewardsRow
@@ -314,8 +310,33 @@ apyElement dProfile maybeApy =
             )
 
 
-maybeGetLiquidityMessageElement : Chain -> DisplayProfile -> UserStakingInfo -> Element Msg
-maybeGetLiquidityMessageElement chain dProfile stakingInfo =
+maybeExitOldFarmElement : DisplayProfile -> Maybe TokenValue -> Element Msg
+maybeExitOldFarmElement dProfile maybeOldStakingBalance =
+    let
+        hasOldStakingBalance =
+            maybeOldStakingBalance
+                |> Maybe.withDefault TokenValue.zero
+                |> TokenValue.isZero
+                |> not
+    in
+    if hasOldStakingBalance then
+        Input.button
+            [ centerX
+            , Font.size <| responsiveVal dProfile 20 15
+            , Background.color <| Element.rgb 1 0 0
+            , padding 10
+            , Border.rounded 10
+            ]
+            { onPress = Just DoExitFromOldFarm
+            , label = Element.text "Exit from old farm"
+            }
+
+    else
+        Element.none
+
+
+maybeGetLiquidityMessageElement : DisplayProfile -> UserStakingInfo -> Element Msg
+maybeGetLiquidityMessageElement dProfile stakingInfo =
     if
         TokenValue.isZero stakingInfo.staked
             && TokenValue.isZero stakingInfo.unstaked
@@ -343,14 +364,13 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
 
 unstakedRow :
     DisplayProfile
-    -> Chain
     -> Time.Posix
     -> Bool
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-unstakedRow dProfile chain now isFarmingActive jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
+unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -367,7 +387,6 @@ unstakedRow dProfile chain now isFarmingActive jurisdictionCheckStatus userStaki
             "Unstaked Balance"
         , unstakedRowUX
             dProfile
-            chain
             now
             isFarmingActive
             jurisdictionCheckStatus
@@ -378,14 +397,13 @@ unstakedRow dProfile chain now isFarmingActive jurisdictionCheckStatus userStaki
 
 unstakedRowUX :
     DisplayProfile
-    -> Chain
     -> Time.Posix
     -> Bool
     -> JurisdictionCheckStatus
     -> UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-unstakedRowUX dProfile chain now isFarmingActive jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
+unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
     let
         rowStyles =
             let
@@ -412,31 +430,27 @@ unstakedRowUX dProfile chain now isFarmingActive jurisdictionCheckStatus staking
                 Just depositAmountUX ->
                     activeDepositUXButtons
                         dProfile
-                        chain
                         depositAmountUX
                         stakingInfo.unstaked
 
                 Nothing ->
                     inactiveUnstakedRowButtons
                         dProfile
-                        chain
                         stakingInfo
 
           else
             inactiveUnstakedRowButtons
                 dProfile
-                chain
                 stakingInfo
         ]
 
 
 stakedRow :
     DisplayProfile
-    -> Chain
     -> UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-stakedRow dProfile chain stakingInfo depositOrWithdrawUXModel =
+stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
     let
         maybeWithdrawAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -453,7 +467,6 @@ stakedRow dProfile chain stakingInfo depositOrWithdrawUXModel =
             "Currently Staking"
         , stakedRowUX
             dProfile
-            chain
             stakingInfo
             maybeWithdrawAmountUXModel
         ]
@@ -461,11 +474,10 @@ stakedRow dProfile chain stakingInfo depositOrWithdrawUXModel =
 
 stakedRowUX :
     DisplayProfile
-    -> Chain
     -> UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-stakedRowUX dProfile chain stakingInfo maybeWithdrawAmountUXModel =
+stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
     let
         rowStyles =
             let
@@ -493,33 +505,28 @@ stakedRowUX dProfile chain stakingInfo maybeWithdrawAmountUXModel =
             Just withdrawAmountUX ->
                 activeWithdrawUXButtons
                     dProfile
-                    chain
                     withdrawAmountUX
                     stakingInfo.staked
 
             Nothing ->
                 stakedRowUXButtons
                     dProfile
-                    chain
                     stakingInfo.staked
         ]
 
 
 stakedRowUXButtons :
     DisplayProfile
-    -> Chain
     -> TokenValue
     -> Element Msg
-stakedRowUXButtons dProfile chain staked =
+stakedRowUXButtons dProfile staked =
     buttonsRow
         dProfile
         [ maybeStartWithdrawButton
             dProfile
-            chain
             staked
         , maybeExitButton
             dProfile
-            chain
             staked
         ]
 
@@ -660,11 +667,10 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
 
 activeWithdrawUXButtons :
     DisplayProfile
-    -> Chain
     -> AmountUXModel
     -> TokenValue
     -> Element Msg
-activeWithdrawUXButtons dProfile chain amountUXModel stakedBalance =
+activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
     let
         withdrawButton =
             case validateInput amountUXModel.amountInput stakedBalance of
@@ -695,11 +701,10 @@ activeWithdrawUXButtons dProfile chain amountUXModel stakedBalance =
 
 activeDepositUXButtons :
     DisplayProfile
-    -> Chain
     -> AmountUXModel
     -> TokenValue
     -> Element Msg
-activeDepositUXButtons dProfile chain amountUXModel unstakedBalance =
+activeDepositUXButtons dProfile amountUXModel unstakedBalance =
     let
         depositButton =
             case validateInput amountUXModel.amountInput unstakedBalance of
@@ -740,10 +745,9 @@ buttonsRow dProfile =
 
 maybeStartWithdrawButton :
     DisplayProfile
-    -> Chain
     -> TokenValue
     -> Element Msg
-maybeStartWithdrawButton dProfile chain currentBalance =
+maybeStartWithdrawButton dProfile currentBalance =
     if TokenValue.isZero currentBalance then
         Element.none
 
@@ -756,32 +760,28 @@ maybeStartWithdrawButton dProfile chain currentBalance =
 
 maybeExitButton :
     DisplayProfile
-    -> Chain
     -> TokenValue
     -> Element Msg
-maybeExitButton dProfile chain stakedAmount =
+maybeExitButton dProfile stakedAmount =
     if TokenValue.isZero stakedAmount then
         Element.none
 
     else
         exitButton
             dProfile
-            chain
 
 
 inactiveUnstakedRowButtons :
     DisplayProfile
-    -> Chain
     -> UserStakingInfo
     -> Element Msg
-inactiveUnstakedRowButtons dProfile chain stakingInfo =
+inactiveUnstakedRowButtons dProfile stakingInfo =
     if TokenValue.isZero stakingInfo.unstaked then
         Element.none
 
     else if TokenValue.isZero stakingInfo.allowance then
         unlockButton
             dProfile
-            chain
 
     else
         makeDepositButton
@@ -830,9 +830,8 @@ commonImageAttributes dProfile =
 
 unlockButton :
     DisplayProfile
-    -> Chain
     -> Element Msg
-unlockButton dProfile chain =
+unlockButton dProfile =
     Images.unlock
         |> Images.toElement
             (commonImageAttributes dProfile)
@@ -885,9 +884,8 @@ makeWithdrawButton dProfile maybeHoverText maybeOnClick =
 
 exitButton :
     DisplayProfile
-    -> Chain
     -> Element Msg
-exitButton dProfile chain =
+exitButton dProfile =
     el
         (actionButtonStyles
             dProfile

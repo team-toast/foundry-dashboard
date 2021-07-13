@@ -6,7 +6,7 @@ import Browser.Navigation
 import Chain
 import Config
 import Contracts.BucketSale.Wrappers exposing (getTotalValueEnteredForBucket)
-import Contracts.DEthWrapper as Death
+import Contracts.DEthWrapper as Deth
 import Contracts.ERC20Wrapper as ERC20
 import Contracts.FryBalanceFetch
 import Contracts.Generated.StakingRewards as StakingRewardsContract
@@ -109,6 +109,7 @@ emptyModel key now basePath cookieConsent =
     , fryBalances = AddressDict.empty
     , mouseoverState = Types.None
     , userStakingInfo = Nothing
+    , oldUserStakingBalance = Nothing
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
     , config = emptyConfig
@@ -483,7 +484,10 @@ fetchStakingInfoOrApyCmd : Wallet -> Cmd Msg
 fetchStakingInfoOrApyCmd wallet =
     case userInfo wallet of
         Just uInfo ->
-            fetchUserStakingInfoCmd uInfo.address
+            Cmd.batch
+                [ fetchUserStakingInfoCmd uInfo.address
+                , fetchOldStakingBalance uInfo.address
+                ]
 
         Nothing ->
             fetchApyCmd
@@ -494,6 +498,13 @@ fetchUserStakingInfoCmd userAddress =
     StakingContract.getUserStakingInfo
         userAddress
         Types.StakingInfoFetched
+
+
+fetchOldStakingBalance : Address -> Cmd Msg
+fetchOldStakingBalance userAddress =
+    StakingContract.getUserOldStakingBalance
+        userAddress
+        Types.OldStakingBalanceFetched
 
 
 fetchApyCmd : Cmd Msg
@@ -923,7 +934,7 @@ fetchIssuanceDetail chain depositAmount =
             Cmd.none
 
         Just amount ->
-            Death.getIssuanceDetail
+            Deth.getIssuanceDetail
                 Config.derivedEthContractAddress
                 (Config.httpProviderUrl chain)
                 amount
@@ -932,7 +943,7 @@ fetchIssuanceDetail chain depositAmount =
 
 fetchDethPositionInfo : TokenValue -> Cmd Msg
 fetchDethPositionInfo amount =
-    Death.getRedeemable
+    Deth.getRedeemable
         Config.derivedEthContractAddress
         Config.ethereumProviderUrl
         amount
@@ -951,7 +962,7 @@ doDepositChainCmd sender amount =
                 |> Just
         }
     , send =
-        Death.deposit
+        Deth.deposit
             Config.derivedEthContractAddress
             sender
             amount
@@ -971,7 +982,7 @@ doWithdrawChainCmd receiver amount =
                 |> Just
         }
     , send =
-        Death.redeem
+        Deth.redeem
             Config.derivedEthContractAddress
             receiver
             amount
@@ -1118,6 +1129,7 @@ refreshCmds wallet withdrawalAmountInput maybeCurrentBucketId =
                 Just userAddress ->
                     [ fetchDerivedEthBalance userAddress
                     , fetchEthBalance userAddress
+                    , fetchOldStakingBalance userAddress
                     , Maybe.map fetchDethPositionInfo
                         (TokenValue.fromString withdrawalAmountInput)
                         |> Maybe.withDefault Cmd.none
