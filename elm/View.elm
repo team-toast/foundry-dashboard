@@ -754,12 +754,14 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                     UserTx.StakingDeposit amount ->
                         "Deposit "
                             ++ TokenValue.toConciseString amount
-                            ++ " ETHFRY"
+                            ++ " "
+                            ++ Farm.liquidityDescription
 
                     UserTx.StakingWithdraw amount ->
                         "Withdraw "
                             ++ TokenValue.toConciseString amount
-                            ++ " ETHFRY"
+                            ++ " "
+                            ++ Farm.liquidityDescription
 
                     UserTx.StakingClaim ->
                         "Claim FRY Rewards"

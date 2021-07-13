@@ -461,7 +461,7 @@ unstakedRowUX dProfile chain now isFarmingActive jurisdictionCheckStatus staking
             Theme.almostWhite
             stakingInfo.unstaked
             maybeDepositAmountUXModel
-            (getLiquidityDescription chain)
+            liquidityDescription
         , if isFarmingActive then
             case maybeDepositAmountUXModel of
                 Just depositAmountUX ->
@@ -543,7 +543,7 @@ stakedRowUX dProfile chain stakingInfo maybeWithdrawAmountUXModel =
             Theme.almostWhite
             stakingInfo.staked
             maybeWithdrawAmountUXModel
-            (getLiquidityDescription chain)
+            liquidityDescription
         , case maybeWithdrawAmountUXModel of
             Just withdrawAmountUX ->
                 activeWithdrawUXButtons
@@ -730,7 +730,7 @@ activeWithdrawUXButtons dProfile chain amountUXModel stakedBalance =
                             "Withdraw "
                                 ++ TokenValue.toConciseString amount
                                 ++ " "
-                                ++ getLiquidityDescription chain
+                                ++ liquidityDescription
                         )
                         (Just <| Types.DoWithdraw amount)
 
@@ -765,7 +765,7 @@ activeDepositUXButtons dProfile chain amountUXModel unstakedBalance =
                             "Deposit "
                                 ++ TokenValue.toConciseString amount
                                 ++ " "
-                                ++ getLiquidityDescription chain
+                                ++ liquidityDescription
                         )
                         (Just <| Types.DoDeposit amount)
 
@@ -805,7 +805,7 @@ maybeStartWithdrawButton dProfile chain currentBalance =
     else
         makeWithdrawButton
             dProfile
-            (Just <| "Withdraw " ++ getLiquidityDescription chain)
+            (Just <| "Withdraw " ++ liquidityDescription)
             (Just <| Types.StartWithdraw currentBalance)
 
 
@@ -841,7 +841,7 @@ inactiveUnstakedRowButtons dProfile chain stakingInfo =
     else
         makeDepositButton
             dProfile
-            (Just <| "Deposit " ++ getLiquidityDescription chain)
+            (Just <| "Deposit " ++ liquidityDescription)
             (Just <| Types.StartDeposit stakingInfo.unstaked)
 
 
@@ -894,7 +894,7 @@ unlockButton dProfile chain =
         |> el
             (actionButtonStyles
                 dProfile
-                (Just <| "Approve " ++ getLiquidityDescription chain ++ " for Deposit")
+                (Just <| "Approve " ++ liquidityDescription ++ " for Deposit")
                 (Just Types.DoUnlock)
             )
 
@@ -946,7 +946,7 @@ exitButton dProfile chain =
     el
         (actionButtonStyles
             dProfile
-            (Just <| "Exit with all assets (DAI and " ++ getLiquidityDescription chain ++ ")")
+            (Just <| "Exit with all assets (DAI and " ++ liquidityDescription ++ ")")
             (Just Types.DoExit)
         )
     <|
@@ -1033,14 +1033,6 @@ msgInsteadOfButton dProfile textToDisplay color =
             ]
 
 
-getLiquidityDescription : Chain -> String
-getLiquidityDescription chain =
-    case chain of
-        Eth ->
-            "ETHFRY"
-
-        BSC ->
-            "BNBFRY"
-
-        _ ->
-            "ERROR"
+liquidityDescription : String
+liquidityDescription =
+    "BPT"
