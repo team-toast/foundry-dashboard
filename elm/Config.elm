@@ -42,7 +42,7 @@ mainnetHttpProviderUrl chain =
             "https://bsc-dataseed1.binance.org/"
 
         XDai ->
-            Debug.todo "xDai provider url"
+            "https://xdai-archive.blockscout.com"
 
 
 testModeHttpProviderUrl : String
@@ -138,30 +138,22 @@ oldStakingContractAddress =
 
 stakingContractAddress : Address
 stakingContractAddress =
-    Eth.Utils.unsafeToAddress <|
-        Debug.todo "New staking contract address?"
+    Eth.Utils.unsafeToAddress "0x773617551B0A6455B366a3D706629725E34AF684"
 
 
 stakingLiquidityContractAddress : Address
 stakingLiquidityContractAddress =
-    Eth.Utils.unsafeToAddress <|
-        Debug.todo "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
+    Eth.Utils.unsafeToAddress "0x04a1f9f9fe8910a27972e15d5da3bf79075fefbb"
 
 
 stakingScriptsAddress : Address
 stakingScriptsAddress =
-    Eth.Utils.unsafeToAddress <|
-        Debug.todo "0x929378d7E8D9df3aE96835bac4DaD7dfc5741beA"
-
-
-stakingPricePairAddress : Address
-stakingPricePairAddress =
-    Debug.todo "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"
+    Eth.Utils.unsafeToAddress "0xffcfcd407556b00eb17992ef9b5e926d7faaa6c3"
 
 
 liquidityPoolUrl : String
 liquidityPoolUrl =
-    Debug.todo "https://app.uniswap.org/#/add/v2/0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69/ETH"
+    "https://pools.balancer.exchange/#/pool/0x04a1f9f9fe8910a27972e15d5da3bf79075fefbb/shares"
 
 
 forbiddenJurisdictionCodes : Set String

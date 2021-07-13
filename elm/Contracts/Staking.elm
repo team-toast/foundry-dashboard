@@ -92,7 +92,6 @@ getUserStakingInfo userAddress msgConstructor =
         (StakingScripts.getData
             Config.stakingScriptsAddress
             Config.stakingContractAddress
-            Config.stakingPricePairAddress
             userAddress
         )
         |> Task.map unpackBindingStruct
@@ -119,7 +118,6 @@ getApy msgConstructor =
         (StakingScripts.getData
             Config.stakingScriptsAddress
             Config.stakingContractAddress
-            Config.stakingPricePairAddress
             EthHelpers.zeroAddress
         )
         |> Task.map unpackBindingStruct

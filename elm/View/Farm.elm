@@ -388,11 +388,7 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
                 { url = Config.liquidityPoolUrl
                 , label =
                     text <|
-                        "Obtain "
-                            ++ getLiquidityDescription chain
-                            ++ " Liquidity"
-                }
-            , text " to continue."
+                        "Obtain liquidity tokens to continue."
             ]
 
     else

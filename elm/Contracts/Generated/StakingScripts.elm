@@ -2,11 +2,12 @@ module Contracts.Generated.StakingScripts exposing
     ( GetData
     , getData
     , getDataDecoder
+    , getStakedValue
     )
 
-import BigInt exposing (BigInt)
 import Eth.Abi.Decode as D exposing (abiDecode, andMap, data, toElmDecoder, topic)
 import Eth.Abi.Encode as E exposing (Encoding(..), abiEncode)
+import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
@@ -20,7 +21,7 @@ import Json.Decode.Pipeline exposing (custom)
    Compatible with elm-ethereum v4.0.0
 
 -}
--- getData(address,address,address) function
+-- getData(address,address) function
 
 
 type alias GetData =
@@ -35,14 +36,14 @@ type alias GetData =
     }
 
 
-getData : Address -> Address -> Address -> Address -> Call GetData
-getData contractAddress rewards_ pricePair_ staker_ =
+getData : Address -> Address -> Address -> Call GetData
+getData contractAddress rewards_ staker_ =
     { to = Just contractAddress
     , from = Nothing
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| E.functionCall "55d18e86" [ E.address rewards_, E.address pricePair_, E.address staker_ ]
+    , data = Just <| E.functionCall "b4909307" [ E.address rewards_, E.address staker_ ]
     , nonce = Nothing
     , decoder = getDataDecoder
     }
@@ -60,3 +61,21 @@ getDataDecoder =
         |> andMap D.uint
         |> andMap D.uint
         |> toElmDecoder
+
+
+-- getStakedValue(address) function
+
+
+getStakedValue : Address -> Address -> Call BigInt
+getStakedValue contractAddress rewards_ =
+    { to = Just contractAddress
+    , from = Nothing
+    , gas = Nothing
+    , gasPrice = Nothing
+    , value = Nothing
+    , data = Just <| E.functionCall "c7cd806e" [ E.address rewards_ ]
+    , nonce = Nothing
+    , decoder = toElmDecoder D.uint
+    }
+
+
