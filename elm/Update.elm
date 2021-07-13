@@ -218,8 +218,8 @@ update msg model =
                         Just userAddress ->
                             [ fetchDerivedEthBalance userAddress
                             , fetchEthBalance userAddress
-                      ]
-                        |> Cmd.batch
+                            ]
+                                |> Cmd.batch
 
                         Nothing ->
                             Cmd.none
