@@ -389,6 +389,7 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
                 , label =
                     text <|
                         "Obtain liquidity tokens to continue."
+                }
             ]
 
     else
