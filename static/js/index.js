@@ -3,7 +3,6 @@ var locationCheck = require('./dualLocationCheck.js');
 require('@metamask/legacy-web3');
 const {
     requestAccounts,
-    bscImport,
     handleWalletEvents,
     getWallet,
     sendTransaction,
@@ -23,11 +22,6 @@ window.addEventListener('load', function () {
 
     app.ports.log.subscribe((x) => console.log(x));
 
-    app.ports.bscImport.subscribe((_) =>
-        bscImport()
-            .then(app.ports.chainSwitchResponse.send)
-            .catch(app.ports.chainSwitchResponse.send)
-    );
 
 
     app.ports.connectToWeb3.subscribe(() =>

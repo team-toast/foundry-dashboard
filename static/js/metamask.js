@@ -29,24 +29,24 @@ const xDaiImport = () =>
   });
 
 // https://docs.metamask.io/guide/rpc-api.html#wallet-addethereumchain
-const bscImport = () =>
-  window.ethereum.request({
-    method: "wallet_addEthereumChain",
-    params: [
-      // https://docs.binance.org/smart-chain/wallet/metamask.html
-      {
-        chainId: "0x38",
-        chainName: "BSC Mainnet",
-        rpcUrls: ["https://bsc-dataseed1.binance.org/"],
-        blockExplorerUrls: ["https://bscscan.com/"],
-        nativeCurrency: {
-          name: "BNB",
-          symbol: "BNB",
-          decimals: 18,
-        },
-      },
-    ],
-  });
+// const bscImport = () =>
+//   window.ethereum.request({
+//     method: "wallet_addEthereumChain",
+//     params: [
+//       // https://docs.binance.org/smart-chain/wallet/metamask.html
+//       {
+//         chainId: "0x38",
+//         chainName: "BSC Mainnet",
+//         rpcUrls: ["https://bsc-dataseed1.binance.org/"],
+//         blockExplorerUrls: ["https://bscscan.com/"],
+//         nativeCurrency: {
+//           name: "BNB",
+//           symbol: "BNB",
+//           decimals: 18,
+//         },
+//       },
+//     ],
+//   });
 
 const getBalance = (address) =>
   window.ethereum.request({
@@ -112,6 +112,5 @@ module.exports = {
   requestAccounts,
   handleWalletEvents,
   xDaiImport,
-  sendTransaction,
-  bscImport,
+  sendTransaction
 };
