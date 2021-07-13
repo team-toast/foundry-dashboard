@@ -5,7 +5,7 @@ import Array exposing (Array)
 import BigInt
 import Browser
 import Browser.Navigation
-import Chain exposing (whenJust)
+import Chain
 import Config
 import Contracts.DEthWrapper as Deth
 import Contracts.Generated.ERC20 as ERC20
@@ -158,42 +158,12 @@ update msg model =
                     )
 
         Tick i ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
             ( { model
                 | now = i
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , [ fetchTotalValueEnteredCmd model.currentBucketId
-              , fetchEthPrice
-              , fetchDaiPrice
-              , fetchFryPrice
-              , fetchTeamTokenBalance (Config.fryContractAddress <| chain) Config.teamToastAddress1 0
-              , fetchTeamTokenBalance (Config.fryContractAddress <| chain) Config.teamToastAddress2 1
-              , fetchTeamTokenBalance (Config.fryContractAddress <| chain) Config.teamToastAddress3 2
-              , fetchPermaFrostLockedTokenBalance
-              , fetchPermaFrostTotalSupply
-              , fetchBalancerPoolFryBalance
-              , fetchTreasuryBalances
-              , model.wallet
-                    |> (fetchDerivedEthBalance <|
-                            chain
-                       )
-              , model.wallet
-                    |> (fetchEthBalance <| chain)
-              , model.withDrawalAmount
-                    |> TokenValue.fromString
-                    |> (fetchDethPositionInfo <| chain)
-              , fetchFarmEndTime chain
-              ]
+            , refreshCmds model.wallet model.withdrawalAmountInput model.currentBucketId
                 |> Cmd.batch
             )
 
@@ -216,11 +186,7 @@ update msg model =
                     let
                         chain =
                             model.wallet
-                                |> Wallet.userInfo
-                                |> Chain.whenJust
-                                    (\userInfo ->
-                                        userInfo.chain
-                                    )
+                                |> Wallet.getChainDefaultEth
 
                         newWallet =
                             case walletSentry.account of
@@ -248,10 +214,15 @@ update msg model =
                     ( { model
                         | wallet = newWallet
                       }
-                    , [ fetchDerivedEthBalance chain newWallet
-                      , fetchEthBalance chain newWallet
+                    , case model.wallet |> Wallet.userInfo |> Maybe.map .address of
+                        Just userAddress ->
+                            [ fetchDerivedEthBalance userAddress
+                            , fetchEthBalance userAddress
                       ]
                         |> Cmd.batch
+
+                        Nothing ->
+                            Cmd.none
                     )
 
                 Err errStr ->
@@ -756,8 +727,8 @@ update msg model =
                     let
                         txParams =
                             ERC20.approve
-                                (Config.stakingLiquidityContractAddress userInfo.chain)
-                                (Config.stakingContractAddress userInfo.chain)
+                                Config.stakingLiquidityContractAddress
+                                Config.stakingContractAddress
                                 (TokenValue.maxTokenValue |> TokenValue.getEvmValue)
                                 |> (\call ->
                                         { call | from = Just userInfo.address }
@@ -790,7 +761,7 @@ update msg model =
                     let
                         txParams =
                             StakingRewardsContract.exit
-                                (Config.stakingContractAddress userInfo.chain)
+                                Config.stakingContractAddress
                                 |> (\call ->
                                         { call | from = Just userInfo.address }
                                    )
@@ -808,7 +779,7 @@ update msg model =
                     let
                         txParams =
                             StakingRewardsContract.getReward
-                                (Config.stakingContractAddress userInfo.chain)
+                                Config.stakingContractAddress
                                 |> (\call ->
                                         { call | from = Just userInfo.address }
                                    )
@@ -826,7 +797,7 @@ update msg model =
                     let
                         txParams =
                             StakingRewardsContract.stake
-                                (Config.stakingContractAddress userInfo.chain)
+                                Config.stakingContractAddress
                                 (TokenValue.getEvmValue amount)
                                 |> (\call ->
                                         { call | from = Just userInfo.address }
@@ -858,7 +829,7 @@ update msg model =
                     let
                         txParams =
                             StakingRewardsContract.withdraw
-                                (Config.stakingContractAddress userInfo.chain)
+                                Config.stakingContractAddress
                                 (TokenValue.getEvmValue amount)
                                 |> (\call ->
                                         { call | from = Just userInfo.address }
@@ -902,8 +873,8 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     ( model
-                    , [ fetchStakingInfoOrApyCmd userInfo.chain model.wallet
-                      , fetchApyCmd userInfo.chain
+                    , [ fetchStakingInfoOrApyCmd model.wallet
+                      , fetchApyCmd
                       ]
                         |> Cmd.batch
                     )
@@ -913,11 +884,7 @@ update msg model =
             let
                 chain =
                     model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userinfo ->
-                                userinfo.chain
-                            )
+                        |> Wallet.getChainDefaultEth
             in
             case fetchResult of
                 Err httpErr ->
@@ -943,11 +910,7 @@ update msg model =
             let
                 chain =
                     model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userinfo ->
-                                userinfo.chain
-                            )
+                        |> Wallet.getChainDefaultEth
             in
             case fetchResult of
                 Err httpErr ->
@@ -975,7 +938,7 @@ update msg model =
                     ( model
                     , Cmd.batch
                         [ refreshPollVotesCmd model Nothing
-                        , fetchFryBalancesCmd userInfo.chain (model.fryBalances |> AddressDict.keys)
+                        , fetchFryBalancesCmd (model.fryBalances |> AddressDict.keys)
                         ]
                     )
                 )
@@ -1086,11 +1049,7 @@ update msg model =
                             let
                                 chain =
                                     model.wallet
-                                        |> Wallet.userInfo
-                                        |> Chain.whenJust
-                                            (\userInfo ->
-                                                userInfo.chain
-                                            )
+                                        |> Wallet.getChainDefaultEth
                             in
                             newBalancesDict
                                 |> AddressDict.filter
@@ -1098,7 +1057,7 @@ update msg model =
                                         maybeBalance == Nothing
                                     )
                                 |> AddressDict.keys
-                                |> fetchFryBalancesCmd chain
+                                |> fetchFryBalancesCmd
 
                         tempModel =
                             case maybeUserNotice of
@@ -1219,11 +1178,7 @@ update msg model =
                     let
                         chain =
                             model.wallet
-                                |> Wallet.userInfo
-                                |> Chain.whenJust
-                                    (\userinfo ->
-                                        userinfo.chain
-                                    )
+                                |> Wallet.getChainDefaultEth
                     in
                     ( case chain of
                         Eth ->
@@ -1256,15 +1211,14 @@ update msg model =
                     )
                 )
 
-        WithdrawalAmountChanged amount ->
+        WithdrawalAmountChanged amountInput ->
             ensureUserInfo
                 (\userInfo ->
                     ( { model
-                        | withDrawalAmount = amount
+                        | withdrawalAmountInput = amountInput
                       }
-                    , amount
-                        |> TokenValue.fromString
-                        |> (fetchDethPositionInfo <| userInfo.chain)
+                    , Maybe.map fetchDethPositionInfo (TokenValue.fromString amountInput)
+                        |> Maybe.withDefault Cmd.none
                     )
                 )
 
@@ -1468,7 +1422,7 @@ update msg model =
                                     val
                     in
                     ( { model
-                        | withDrawalAmount = ""
+                        | withdrawalAmountInput = ""
                       }
                     , [ gTagOut <|
                             GTagData
@@ -1491,35 +1445,17 @@ update msg model =
                     )
 
         FetchUserEthBalance ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
             ( model
-            , model.wallet
-                |> fetchEthBalance chain
+            , Maybe.map fetchEthBalance
+                (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+                |> Maybe.withDefault Cmd.none
             )
 
         FetchUserDerivedEthBalance ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
-            in
             ( model
-            , model.wallet
-                |> (chain
-                        |> fetchDerivedEthBalance
-                   )
+            , Maybe.map fetchDerivedEthBalance
+                (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+                |> Maybe.withDefault Cmd.none
             )
 
         DerivedEthIssuanceDetailFetched fetchResult ->
@@ -1692,7 +1628,7 @@ update msg model =
                             , gtagHistory = gtagHistory
                           }
                         , [ walletConnectedGtagCmd
-                          , fetchStakingInfoOrApyCmd info.chain model.wallet
+                          , fetchStakingInfoOrApyCmd model.wallet
                           ]
                             |> Cmd.batch
                         )
@@ -1788,14 +1724,10 @@ update msg model =
             let
                 chain =
                     model.wallet
-                        |> Wallet.userInfo
-                        |> Chain.whenJust
-                            (\userInfo ->
-                                userInfo.chain
-                            )
+                        |> Wallet.getChainDefaultEth
             in
             ( model
-            , fetchFarmEndTime chain
+            , fetchFarmEndTime
             )
 
         FarmingPeriodEndFetched fetchResult ->

@@ -1,7 +1,7 @@
 module View.Farm exposing (..)
 
 import BigInt
-import Chain exposing (whenJust)
+import Chain
 import Config
 import Css exposing (verticalAlign)
 import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, minimum, padding, paddingEach, px, rgba, row, spacing, text, width)
@@ -34,11 +34,7 @@ view model =
 
         chain =
             model.wallet
-                |> Wallet.userInfo
-                |> whenJust
-                    (\userInfo ->
-                        userInfo.chain
-                    )
+                |> Wallet.getChainDefaultEth
     in
     (case chain of
         Eth ->
@@ -142,11 +138,7 @@ bodyEl model =
 
         chain =
             model.wallet
-                |> Wallet.userInfo
-                |> whenJust
-                    (\userInfo ->
-                        userInfo.chain
-                    )
+                |> Wallet.getChainDefaultEth
 
         isFarmingActive =
             calcTimeLeft model.now model.farmingPeriodEnds /= 0
@@ -222,11 +214,7 @@ currentNetworkAndSwitchEl dProfile wallet =
     let
         chain =
             wallet
-                |> Wallet.userInfo
-                |> whenJust
-                    (\userInfo ->
-                        userInfo.chain
-                    )
+                |> Wallet.getChainDefaultEth
 
         farmText =
             (case chain of
@@ -422,7 +410,7 @@ maybeGetLiquidityMessageElement chain dProfile stakingInfo =
             ]
             [ Element.newTabLink
                 [ Font.color Theme.blue ]
-                { url = Config.urlToLiquidityPool chain
+                { url = Config.liquidityPoolUrl
                 , label =
                     text <|
                         "Obtain "
@@ -512,13 +500,13 @@ unstakedRowUX dProfile chain now isFarmingActive jurisdictionCheckStatus staking
                         stakingInfo.unstaked
 
                 Nothing ->
-                    inactiveUnstackedRowButtons
+                    inactiveUnstakedRowButtons
                         dProfile
                         chain
                         stakingInfo
 
           else
-            inactiveUnstackedRowButtons
+            inactiveUnstakedRowButtons
                 dProfile
                 chain
                 stakingInfo
@@ -864,12 +852,12 @@ maybeExitButton dProfile chain stakedAmount =
             chain
 
 
-inactiveUnstackedRowButtons :
+inactiveUnstakedRowButtons :
     DisplayProfile
     -> Chain
     -> UserStakingInfo
     -> Element Msg
-inactiveUnstackedRowButtons dProfile chain stakingInfo =
+inactiveUnstakedRowButtons dProfile chain stakingInfo =
     if TokenValue.isZero stakingInfo.unstaked then
         Element.none
 

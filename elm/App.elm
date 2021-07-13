@@ -3,7 +3,7 @@ module App exposing (main)
 import Browser.Events
 import Browser.Hash as Hash
 import Browser.Navigation
-import Chain exposing (whenJust)
+import Chain
 import Config
 import ElementHelpers exposing (screenWidthToDisplayProfile)
 import Eth.Sentry.Event
@@ -105,11 +105,7 @@ init flags url key =
 
                     chain =
                         model.wallet
-                            |> Wallet.userInfo
-                            |> whenJust
-                                (\userInfo ->
-                                    userInfo.chain
-                                )
+                            |> Wallet.getChainDefaultEth
                 in
                 ( { model
                     | config = config
@@ -126,33 +122,17 @@ init flags url key =
                                     }
                                )
                   }
-                , [ fetchEthPrice
-                  , fetchDaiPrice
-                  , fetchFryPrice
-                  , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress1 0
-                  , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress2 1
-                  , fetchTeamTokenBalance (Config.fryContractAddress chain) Config.teamToastAddress3 2
-                  , fetchPermaFrostLockedTokenBalance
-                  , fetchPermaFrostTotalSupply
-                  , fetchBalancerPoolFryBalance
-                  , fetchTreasuryBalances
-                  , fetchAllPollsCmd
-                  , model.wallet
-                        |> fetchDerivedEthBalance chain
-                  , model.wallet
-                        |> fetchEthBalance chain
-                  , fetchApyCmd chain
-                  , model.withDrawalAmount
-                        |> TokenValue.fromString
-                        |> fetchDethPositionInfo chain
-                  , if route == Routing.Home then
-                        Browser.Navigation.pushUrl
-                            model.navKey
-                            (Routing.routeToString model.basePath Routing.Stats)
+                , (Misc.refreshCmds wallet "" Nothing
+                    ++ [ fetchAllPollsCmd
+                       , if route == Routing.Home then
+                            Browser.Navigation.pushUrl
+                                model.navKey
+                                (Routing.routeToString model.basePath Routing.Stats)
 
-                    else
-                        Cmd.none
-                  ]
+                         else
+                            Cmd.none
+                       ]
+                  )
                     |> Cmd.batch
                 )
             )

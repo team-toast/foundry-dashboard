@@ -3,7 +3,7 @@ module Misc exposing (..)
 import AddressDict
 import Array exposing (Array, fromList)
 import Browser.Navigation
-import Chain exposing (whenJust)
+import Chain
 import Config
 import Contracts.BucketSale.Wrappers exposing (getTotalValueEnteredForBucket)
 import Contracts.DEthWrapper as Death
@@ -12,9 +12,9 @@ import Contracts.FryBalanceFetch
 import Contracts.Generated.StakingRewards as StakingRewardsContract
 import Contracts.Staking as StakingContract
 import Contracts.UniSwapGraph.Object exposing (..)
-import Contracts.UniSwapGraph.Object.Bundle as Bundle
-import Contracts.UniSwapGraph.Object.Token as Token
-import Contracts.UniSwapGraph.Query as Query
+import Contracts.UniSwapGraph.Object.Bundle as UniswapGraphBundle
+import Contracts.UniSwapGraph.Object.Token as UniswapGraphToken
+import Contracts.UniSwapGraph.Query as UniswapGraphQuery
 import Contracts.UniSwapGraph.Scalar exposing (Id(..))
 import Contracts.UniSwapGraph.ScalarCodecs exposing (..)
 import Dict exposing (Dict)
@@ -102,7 +102,7 @@ emptyModel key now basePath cookieConsent =
     , userDerivedEthInfo = Nothing
     , jurisdictionCheckStatus = Types.WaitingForClick
     , depositAmount = ""
-    , withDrawalAmount = ""
+    , withdrawalAmountInput = ""
     , polls = Nothing
     , maybeValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses = Dict.empty
@@ -126,7 +126,7 @@ loadingText =
 resultBundle : SelectionSet PriceValue Contracts.UniSwapGraph.Object.Bundle
 resultBundle =
     SelectionSet.map PriceValue
-        (Bundle.ethPrice
+        (UniswapGraphBundle.ethPrice
             |> SelectionSet.map
                 (\(Contracts.UniSwapGraph.Scalar.BigDecimal dec) ->
                     String.toFloat dec
@@ -138,7 +138,7 @@ resultBundle =
 resultToken : SelectionSet PriceValue Contracts.UniSwapGraph.Object.Token
 resultToken =
     SelectionSet.map PriceValue
-        (Token.derivedETH
+        (UniswapGraphToken.derivedETH
             |> SelectionSet.map
                 (\(Contracts.UniSwapGraph.Scalar.BigDecimal dec) ->
                     String.toFloat dec
@@ -149,18 +149,18 @@ resultToken =
 
 fetchEthPrice : Cmd Msg
 fetchEthPrice =
-    Query.bundle identity { id = Id "1" } resultBundle
+    UniswapGraphQuery.bundle identity { id = Id "1" } resultBundle
         |> Graphql.Http.queryRequest Config.uniswapGraphQL
         |> Graphql.Http.send Types.FetchedEthPrice
 
 
 fetchDaiPrice : Cmd Msg
 fetchDaiPrice =
-    Query.token identity
+    UniswapGraphQuery.token identity
         { id =
             Id <|
                 Eth.Utils.addressToString <|
-                    Config.daiContractAddress Eth
+                    Config.ethereumDaiContractAddress
         }
         resultToken
         |> Graphql.Http.queryRequest Config.uniswapGraphQL
@@ -169,11 +169,11 @@ fetchDaiPrice =
 
 fetchFryPrice : Cmd Msg
 fetchFryPrice =
-    Query.token identity
+    UniswapGraphQuery.token identity
         { id =
             Id <|
                 Eth.Utils.addressToString <|
-                    Config.fryContractAddress Eth
+                    Config.ethereumFryContractAddress
         }
         resultToken
         |> Graphql.Http.queryRequest Config.uniswapGraphQL
@@ -210,7 +210,7 @@ fetchBalancerPoolFryBalance : Cmd Msg
 fetchBalancerPoolFryBalance =
     ERC20.getBalanceCmd
         Eth
-        (Config.fryContractAddress Eth)
+        Config.ethereumFryContractAddress
         Config.balancerPermafrostPool
         Types.FetchedBalancerFryBalance
 
@@ -222,7 +222,7 @@ fetchTreasuryBalances =
             (\id addr ->
                 ERC20.getBalanceCmd
                     Eth
-                    (Config.daiContractAddress Eth)
+                    Config.ethereumDaiContractAddress
                     addr
                     (Types.FetchedTreasuryBalance id)
             )
@@ -384,19 +384,14 @@ maybeFloatMultiply val1 val2 =
             Nothing
 
 
-fetchTotalValueEnteredCmd : Maybe Int -> Cmd Msg
+fetchTotalValueEnteredCmd : Int -> Cmd Msg
 fetchTotalValueEnteredCmd bucketId =
-    case bucketId of
-        Just id ->
-            getTotalValueEnteredForBucket
-                Eth
-                id
-                (Just id
-                    |> Types.BucketValueEnteredFetched
-                )
-
-        _ ->
-            Cmd.none
+    getTotalValueEnteredForBucket
+        Eth
+        bucketId
+        (Just bucketId
+            |> Types.BucketValueEnteredFetched
+        )
 
 
 calcPermaFrostedTokens : Maybe TokenValue -> Maybe TokenValue -> Maybe TokenValue -> Maybe TokenValue
@@ -484,82 +479,80 @@ calcPermafrostedTokensValue nrTokens tokenEthPrice ethUsdPrice =
 --             Nothing
 
 
-fetchStakingInfoOrApyCmd : Chain -> Wallet -> Cmd Msg
-fetchStakingInfoOrApyCmd chain wallet =
+fetchStakingInfoOrApyCmd : Wallet -> Cmd Msg
+fetchStakingInfoOrApyCmd wallet =
     case userInfo wallet of
         Just uInfo ->
-            fetchUserStakingInfoCmd chain uInfo.address
+            fetchUserStakingInfoCmd uInfo.address
 
         Nothing ->
-            fetchApyCmd chain
+            fetchApyCmd
 
 
-fetchUserStakingInfoCmd : Chain -> Address -> Cmd Msg
-fetchUserStakingInfoCmd chain userAddress =
+fetchUserStakingInfoCmd : Address -> Cmd Msg
+fetchUserStakingInfoCmd userAddress =
     StakingContract.getUserStakingInfo
-        chain
         userAddress
         Types.StakingInfoFetched
 
 
-fetchApyCmd : Chain -> Cmd Msg
-fetchApyCmd chain =
+fetchApyCmd : Cmd Msg
+fetchApyCmd =
     StakingContract.getApy
-        chain
         Types.ApyFetched
 
 
-doApproveChainCmdFarm : Chain -> UserTx.Initiator Msg
-doApproveChainCmdFarm chain =
+doApproveChainCmdFarm : UserTx.Initiator Msg
+doApproveChainCmdFarm =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.approveLiquidityToken chain
+    , send = StakingContract.approveLiquidityToken
     , txInfo = UserTx.StakingApprove
     }
 
 
-doDepositChainCmdFarm : Chain -> TokenValue -> UserTx.Initiator Msg
-doDepositChainCmdFarm chain amount =
+doDepositChainCmdFarm : TokenValue -> UserTx.Initiator Msg
+doDepositChainCmdFarm amount =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Just <| Types.DepositOrWithdrawSigned Types.Deposit amount
         }
-    , send = StakingContract.stake chain amount
+    , send = StakingContract.stake amount
     , txInfo = UserTx.StakingDeposit amount
     }
 
 
-doWithdrawChainCmdFarm : Chain -> TokenValue -> UserTx.Initiator Msg
-doWithdrawChainCmdFarm chain amount =
+doWithdrawChainCmdFarm : TokenValue -> UserTx.Initiator Msg
+doWithdrawChainCmdFarm amount =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Just <| Types.DepositOrWithdrawSigned Types.Withdraw amount
         }
-    , send = StakingContract.withdraw chain amount
+    , send = StakingContract.withdraw amount
     , txInfo = UserTx.StakingWithdraw amount
     }
 
 
-doExitChainCmdFarm : Chain -> UserTx.Initiator Msg
-doExitChainCmdFarm chain =
+doExitChainCmdFarm : UserTx.Initiator Msg
+doExitChainCmdFarm =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.exit chain
+    , send = StakingContract.exit
     , txInfo = UserTx.StakingExit
     }
 
 
-doClaimRewardsFarm : Chain -> UserTx.Initiator Msg
-doClaimRewardsFarm chain =
+doClaimRewardsFarm : UserTx.Initiator Msg
+doClaimRewardsFarm =
     { notifiers =
         { onMine = Just <| always Types.RefetchStakingInfoOrApy
         , onSign = Nothing
         }
-    , send = StakingContract.claimRewards chain
+    , send = StakingContract.claimRewards
     , txInfo = UserTx.StakingClaim
     }
 
@@ -805,10 +798,9 @@ validateSigResultDecoder =
         )
 
 
-fetchFryBalancesCmd : Chain -> List Address -> Cmd Msg
-fetchFryBalancesCmd chain addresses =
+fetchFryBalancesCmd : List Address -> Cmd Msg
+fetchFryBalancesCmd addresses =
     Contracts.FryBalanceFetch.fetch
-        chain
         addresses
         Types.FryBalancesFetched
 
@@ -842,47 +834,33 @@ sendSignedResponseCmd signedResponse =
 
 refreshPollVotesCmd : Model -> Maybe Int -> Cmd Msg
 refreshPollVotesCmd model maybePollId =
-    let
-        chain =
-            model.wallet
-                |> Wallet.userInfo
-                |> whenJust
-                    (\userinfo ->
-                        userinfo.chain
-                    )
-    in
-    case chain of
-        Eth ->
-            case model.route of
-                Sentiment ->
-                    let
-                        url =
-                            Url.Builder.custom
-                                (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
-                                [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
-                                (case maybePollId of
-                                    Just pollId ->
-                                        [ Url.Builder.int "FromPollId" pollId
-                                        , Url.Builder.int "Count" 1
-                                        ]
+    case model.route of
+        Sentiment ->
+            let
+                url =
+                    Url.Builder.custom
+                        (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
+                        [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
+                        (case maybePollId of
+                            Just pollId ->
+                                [ Url.Builder.int "FromPollId" pollId
+                                , Url.Builder.int "Count" 1
+                                ]
 
-                                    Nothing ->
-                                        [ Url.Builder.int "FromPollId" 0
-                                        , Url.Builder.int "Count" 0
-                                        ]
-                                )
-                                Nothing
-                    in
-                    Http.get
-                        { url = url
-                        , expect =
-                            Http.expectJson
-                                Types.SignedResponsesFetched
-                                signedResponsesDictFromServerDecoder
-                        }
-
-                _ ->
-                    Cmd.none
+                            Nothing ->
+                                [ Url.Builder.int "FromPollId" 0
+                                , Url.Builder.int "Count" 0
+                                ]
+                        )
+                        Nothing
+            in
+            Http.get
+                { url = url
+                , expect =
+                    Http.expectJson
+                        Types.SignedResponsesFetched
+                        signedResponsesDictFromServerDecoder
+                }
 
         _ ->
             Cmd.none
@@ -921,31 +899,21 @@ encodeSignedResponseForServer signedResponse =
         ]
 
 
-fetchEthBalance : Chain -> Wallet -> Cmd Msg
-fetchEthBalance chain wallet =
-    case userInfo wallet of
-        Nothing ->
-            Cmd.none
-
-        Just uInfo ->
-            ERC20.getEthBalance
-                chain
-                uInfo.address
-                Types.UserEthBalanceFetched
+fetchEthBalance : Address -> Cmd Msg
+fetchEthBalance address =
+    ERC20.getEthBalance
+        Eth
+        address
+        Types.UserEthBalanceFetched
 
 
-fetchDerivedEthBalance : Chain -> Wallet -> Cmd Msg
-fetchDerivedEthBalance chain wallet =
-    case userInfo wallet of
-        Nothing ->
-            Cmd.none
-
-        Just uInfo ->
-            ERC20.getBalanceCmd
-                chain
-                Config.derivedEthContractAddress
-                uInfo.address
-                Types.UserDerivedEthBalanceFetched
+fetchDerivedEthBalance : Address -> Cmd Msg
+fetchDerivedEthBalance address =
+    ERC20.getBalanceCmd
+        Eth
+        Config.derivedEthContractAddress
+        address
+        Types.UserDerivedEthBalanceFetched
 
 
 fetchIssuanceDetail : Chain -> String -> Cmd Msg
@@ -962,18 +930,13 @@ fetchIssuanceDetail chain depositAmount =
                 |> Task.attempt Types.DerivedEthIssuanceDetailFetched
 
 
-fetchDethPositionInfo : Chain -> Maybe TokenValue -> Cmd Msg
-fetchDethPositionInfo chain amount =
-    case amount of
-        Nothing ->
-            Cmd.none
-
-        Just dEthVal ->
-            Death.getRedeemable
-                Config.derivedEthContractAddress
-                (Config.httpProviderUrl chain)
-                dEthVal
-                |> Task.attempt Types.DerivedEthRedeemableFetched
+fetchDethPositionInfo : TokenValue -> Cmd Msg
+fetchDethPositionInfo amount =
+    Death.getRedeemable
+        Config.derivedEthContractAddress
+        Config.ethereumProviderUrl
+        amount
+        |> Task.attempt Types.DerivedEthRedeemableFetched
 
 
 doDepositChainCmd : Address -> TokenValue -> UserTx.Initiator Msg
@@ -1131,12 +1094,12 @@ emptyAddress =
     Eth.Utils.unsafeToAddress ""
 
 
-fetchFarmEndTime : Chain -> Cmd Msg
-fetchFarmEndTime chain =
+fetchFarmEndTime : Cmd Msg
+fetchFarmEndTime =
     Eth.call
-        (Config.httpProviderUrl chain)
+        Config.ethereumProviderUrl
         (StakingRewardsContract.periodFinish
-            (Config.stakingContractAddress chain)
+            Config.stakingContractAddress
         )
         |> Task.attempt Types.FarmingPeriodEndFetched
 
@@ -1145,3 +1108,37 @@ combineTreasuryBalance : ComposedTreasuryBalance -> Maybe TokenValue
 combineTreasuryBalance =
     Maybe.Extra.combine
         >> Maybe.map (List.foldl TokenValue.add TokenValue.zero)
+
+
+refreshCmds : Wallet -> String -> Maybe Int -> List (Cmd Msg)
+refreshCmds wallet withdrawalAmountInput maybeCurrentBucketId =
+    let
+        possiblyWalletCmds =
+            case wallet |> Wallet.userInfo |> Maybe.map .address of
+                Just userAddress ->
+                    [ fetchDerivedEthBalance userAddress
+                    , fetchEthBalance userAddress
+                    , Maybe.map fetchDethPositionInfo
+                        (TokenValue.fromString withdrawalAmountInput)
+                        |> Maybe.withDefault Cmd.none
+                    ]
+
+                Nothing ->
+                    []
+    in
+    possiblyWalletCmds
+        ++ [ Maybe.map fetchTotalValueEnteredCmd maybeCurrentBucketId
+                |> Maybe.withDefault Cmd.none
+           , fetchEthPrice
+           , fetchDaiPrice
+           , fetchFryPrice
+           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress1 0
+           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress2 1
+           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress3 2
+           , fetchPermaFrostLockedTokenBalance
+           , fetchPermaFrostTotalSupply
+           , fetchBalancerPoolFryBalance
+           , fetchTreasuryBalances
+           , fetchFarmEndTime
+           , fetchApyCmd
+           ]

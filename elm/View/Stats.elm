@@ -24,11 +24,7 @@ view model =
     let
         chain =
             model.wallet
-                |> Wallet.userInfo
-                |> Chain.whenJust
-                    (\userInfo ->
-                        userInfo.chain
-                    )
+                |> Wallet.getChainDefaultEth
     in
     Element.column
         [ centerX
@@ -94,7 +90,7 @@ viewAddresses chain dProfile =
             [ Element.Font.size 30
             , Element.Font.color EH.white
             ]
-    , viewAddressAndLabel dProfile chain "FRY token" (Config.fryContractAddress chain)
+    , viewAddressAndLabel dProfile chain "FRY token" Config.ethereumFryContractAddress
     , case chain of
         Eth ->
             viewAddressAndLabel dProfile chain "Treasury" Config.mainTreasuryAddress

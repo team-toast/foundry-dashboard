@@ -77,7 +77,7 @@ type alias Model =
     , userDerivedEthInfo : Maybe UserDerivedEthInfo
     , jurisdictionCheckStatus : JurisdictionCheckStatus
     , depositAmount : String
-    , withDrawalAmount : String
+    , withdrawalAmountInput : String
     , polls : Maybe (List Poll)
     , maybeValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses : ValidatedResponseTracker

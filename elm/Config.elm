@@ -18,6 +18,11 @@ displayProfileBreakpoint =
     1150
 
 
+ethereumProviderUrl : String
+ethereumProviderUrl =
+    "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+
+
 httpProviderUrl : Chain -> String
 httpProviderUrl chain =
     mainnetHttpProviderUrl chain
@@ -31,13 +36,13 @@ mainnetHttpProviderUrl chain =
                 testModeHttpProviderUrl
 
             else
-                "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+                ethereumProviderUrl
 
         BSC ->
             "https://bsc-dataseed1.binance.org/"
 
         XDai ->
-            testModeHttpProviderUrl
+            Debug.todo "xDai provider url"
 
 
 testModeHttpProviderUrl : String
@@ -45,22 +50,26 @@ testModeHttpProviderUrl =
     "http://localhost:8545"
 
 
-daiContractAddress : Chain -> Address
+ethereumDaiContractAddress : Address
+ethereumDaiContractAddress =
+    Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+
+
+daiContractAddress : Chain -> Maybe Address
 daiContractAddress chain =
-    Eth.Utils.unsafeToAddress <|
-        case chain of
-            Eth ->
-                if testMode then
-                    "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
+    case chain of
+        Eth ->
+            if testMode then
+                Just <| Eth.Utils.unsafeToAddress "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
 
-                else
-                    "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+            else
+                Just ethereumDaiContractAddress
 
-            BSC ->
-                "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3"
+        BSC ->
+            Just <| Eth.Utils.unsafeToAddress "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3"
 
-            XDai ->
-                ""
+        XDai ->
+            Nothing
 
 
 erc20BalanceFetchBatchContractAddress : Address
@@ -68,18 +77,22 @@ erc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
 
 
-fryContractAddress : Chain -> Address
-fryContractAddress chain =
-    Eth.Utils.unsafeToAddress <|
-        case chain of
-            Eth ->
-                "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
+ethereumFryContractAddress : Address
+ethereumFryContractAddress =
+    Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
 
-            BSC ->
-                "0xc04e039ae8587e71f8024b36d630f841cc2106cc"
 
-            XDai ->
-                ""
+fryContractAddressForChain : Chain -> Maybe Address
+fryContractAddressForChain chain =
+    case chain of
+        Eth ->
+            Just ethereumFryContractAddress
+
+        BSC ->
+            Just <| Eth.Utils.unsafeToAddress "0xc04e039ae8587e71f8024b36d630f841cc2106cc"
+
+        XDai ->
+            Nothing
 
 
 blockExplorerUrl : Chain -> String
@@ -91,8 +104,8 @@ blockExplorerUrl chain =
         BSC ->
             "https://bscscan.com/address/"
 
-        _ ->
-            ""
+        XDai ->
+            "https://blockscout.com/xdai/mainnet/"
 
 
 teamToastMultiSigAddress : Address
@@ -118,75 +131,37 @@ bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
 
 
-stakingContractAddress : Chain -> Address
-stakingContractAddress chain =
+oldStakingContractAddress : Address
+oldStakingContractAddress =
+    Eth.Utils.unsafeToAddress "0xa2a4ef5722b198a139dd93b1d420769261808fd1"
+
+
+stakingContractAddress : Address
+stakingContractAddress =
     Eth.Utils.unsafeToAddress <|
-        case chain of
-            Eth ->
-                "0xa2a4ef5722b198a139dd93b1d420769261808fd1"
-
-            BSC ->
-                "0xC13aa70E9437349834B1B093f8C5922fdEF6496B"
-
-            XDai ->
-                ""
+        Debug.todo "New staking contract address?"
 
 
-stakingLiquidityContractAddress : Chain -> Address
-stakingLiquidityContractAddress chain =
+stakingLiquidityContractAddress : Address
+stakingLiquidityContractAddress =
     Eth.Utils.unsafeToAddress <|
-        case chain of
-            Eth ->
-                "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
-
-            BSC ->
-                "0xe71c65eb18fab7c8dd99598973fd8fa18570fb01"
-
-            XDai ->
-                ""
+        Debug.todo "0xcD1d5fF929E2B69BBD351CF31057E9a70eC76291"
 
 
-stakingScriptsAddress : Chain -> Address
-stakingScriptsAddress chain =
+stakingScriptsAddress : Address
+stakingScriptsAddress =
     Eth.Utils.unsafeToAddress <|
-        case chain of
-            Eth ->
-                "0x929378d7E8D9df3aE96835bac4DaD7dfc5741beA"
-
-            BSC ->
-                "0x6cefd06178B924b550F28bD9B9546338337d3B31"
-
-            XDai ->
-                ""
+        Debug.todo "0x929378d7E8D9df3aE96835bac4DaD7dfc5741beA"
 
 
-stakingPricePairAddress : Chain -> Address
-stakingPricePairAddress chain =
-    Eth.Utils.unsafeToAddress <|
-        case chain of
-            Eth ->
-                -- DAI/WETH
-                "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"
-
-            BSC ->
-                -- BUSD/BNB
-                "0x1b96b92314c44b159149f7e0303511fb2fc4774f"
-
-            XDai ->
-                ""
+stakingPricePairAddress : Address
+stakingPricePairAddress =
+    Debug.todo "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"
 
 
-urlToLiquidityPool : Chain -> String
-urlToLiquidityPool chain =
-    case chain of
-        Eth ->
-            "https://app.uniswap.org/#/add/v2/0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69/ETH"
-
-        BSC ->
-            "https://exchange.pancakeswap.finance/#/add/BNB/0xc04e039aE8587e71f8024b36d630f841cc2106CC"
-
-        XDai ->
-            ""
+liquidityPoolUrl : String
+liquidityPoolUrl =
+    Debug.todo "https://app.uniswap.org/#/add/v2/0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69/ETH"
 
 
 forbiddenJurisdictionCodes : Set String

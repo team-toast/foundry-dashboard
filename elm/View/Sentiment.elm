@@ -37,11 +37,7 @@ view model =
 
         chain =
             model.wallet
-                |> Wallet.userInfo
-                |> Chain.whenJust
-                    (\userinfo ->
-                        userinfo.chain
-                    )
+                |> Wallet.getChainDefaultEth
     in
     Element.el
         [ responsiveVal

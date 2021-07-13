@@ -1,4 +1,4 @@
-module Wallet exposing (balanceDecoder, chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder)
+module Wallet exposing (balanceDecoder, chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder, getChainDefaultEth)
 
 import Chain
 import Eth.Decode
@@ -133,3 +133,10 @@ isActive walletState =
 
         _ ->
             False
+
+
+getChainDefaultEth : Wallet -> Types.Chain
+getChainDefaultEth =
+    userInfo
+        >> Maybe.map .chain
+        >> Maybe.withDefault Types.Eth

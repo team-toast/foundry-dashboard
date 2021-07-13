@@ -31,11 +31,7 @@ view model =
 
         chain =
             model.wallet
-                |> Wallet.userInfo
-                |> Chain.whenJust
-                    (\userinfo ->
-                        userinfo.chain
-                    )
+                |> Wallet.getChainDefaultEth
     in
     [ titleEl dProfile
     , case chain of
@@ -43,7 +39,7 @@ view model =
             mainEl
                 dProfile
                 model.depositAmount
-                model.withDrawalAmount
+                model.withdrawalAmountInput
                 (userInfo model.wallet)
                 model.userDerivedEthInfo
 
