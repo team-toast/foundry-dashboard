@@ -321,10 +321,10 @@ maybeExitOldFarmElement dProfile maybeOldStakingBalance =
     in
     if hasOldStakingBalance then
         Input.button
-            [ centerX
-            , Font.size <| responsiveVal dProfile 20 15
+            [ Font.size <| responsiveVal dProfile 20 15
+            , Font.color white
             , Background.color <| Element.rgb 1 0 0
-            , padding 10
+            , padding 15
             , Border.rounded 10
             ]
             { onPress = Just DoExitFromOldFarm
