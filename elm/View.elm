@@ -324,10 +324,9 @@ navigationButtons model =
     , navigationButton
         Routing.Stats
         model
-
-    --, navigationButton
-    --Routing.DerivedEth
-    --model
+    , navigationButton
+        Routing.DerivedEth
+        model
     ]
         |> row
             ([ responsiveVal model.dProfile 20 10
