@@ -2,25 +2,30 @@ module View.DerivedEth exposing (view)
 
 import BigInt
 import Chain
-import Element exposing (Attribute, Color, Element, alignRight, alignTop, alpha,centerX, column, el, fill, height, htmlAttribute, maximum, minimum, padding, paddingEach, paragraph, px, row,rgb,rgba, spacing, text, width)
+import Element exposing (Attribute, Color, Element, above, alignRight, alignTop, alpha, centerX, column, el, fill, height, htmlAttribute, inFront, maximum, minimum, mouseOver, none, padding, paddingEach, paragraph, px, rgb, rgba, row, spacing, text, transparent, width)
 import Element.Background
 import Element.Border
 import Element.Font as Font
 import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
+import Html.Attributes
 import Maybe.Extra
-import Misc exposing (userInfo)
+import Misc exposing (derivedEthUserInfo, userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), InputValidationError, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo)
+import Types exposing (Chain(..), DEthDepositInfo, DEthUserInfo, DEthWithdrawInfo, InputValidationError, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo, Wallet(..))
 import View.Common exposing (..)
 import Wallet
-import Html.Attributes
-import Element exposing (mouseOver)
-import Element exposing (inFront)
-import Element exposing (transparent)
-import Element exposing (none)
-import Element exposing (above)
+
+
+type DepositOrRedeemInfo
+    = Deposit (Maybe DEthDepositInfo)
+    | Withdraw (Maybe DEthWithdrawInfo)
+
+
+type TokenName
+    = ETh String
+    | DEth String
 
 
 view : Model -> Element Msg
@@ -28,6 +33,9 @@ view model =
     let
         dProfile =
             model.dProfile
+
+        walletState =
+            model.wallet
 
         chain =
             model.wallet
@@ -38,10 +46,12 @@ view model =
         Eth ->
             mainEl
                 dProfile
+                walletState
                 model.depositAmount
                 model.withdrawalAmountInput
-                (userInfo model.wallet)
-                model.userDerivedEthInfo
+                model.dEthUserInfo
+                model.dEthDepositInfo
+                model.dEthWithdrawInfo
 
         _ ->
             "dETH currently only available on mainnet."
@@ -95,50 +105,42 @@ titleEl dProfile =
             ]
 
 
-mainEl : DisplayProfile -> String -> String -> Maybe UserInfo -> Maybe UserDerivedEthInfo -> Element Msg
-mainEl dProfile depositAmount withdrawalAmount maybeUserInfo maybeUserDerivedEthInfo =
-    (case maybeUserInfo of
-        Nothing ->
-            [ web3ConnectButton
-                dProfile
-                ([]
-                    ++ (case dProfile of
-                            Desktop ->
-                                []
+mainEl : DisplayProfile -> Wallet -> String -> String -> Maybe DEthUserInfo -> Maybe DEthDepositInfo -> Maybe DEthWithdrawInfo -> Element Msg
+mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthInfo maybeDEthDepositInfo maybeDEthWithdrawInfo =
+    let
+        ethSymbol =
+            ETh "ETH"
 
-                            Mobile ->
-                                [ Font.size 10
-                                , Element.padding 5
-                                ]
-                       )
-                )
-                (EH.Action Types.ConnectToWeb3)
-            ]
+        dEThSymbol =
+            DEth "dEth"
 
-        Just userInfo ->
-            case maybeUserDerivedEthInfo of
-                Nothing ->
-                    [ text "Loading user info..." ]
+        dEthDepositInfoType =
+            Deposit maybeDEthDepositInfo
 
-                Just userDerivedEthInfo ->
-                    [ investOrWithdrawEl
-                        dProfile
-                        "ETH -> dEth"
-                        "Deposit"
-                        depositAmount
-                        "ETH"
-                        Types.DepositAmountChanged
-                        userDerivedEthInfo
-                    , investOrWithdrawEl
-                        dProfile
-                        "dEth -> ETH"
-                        "Redeem"
-                        withdrawalAmount
-                        "dEth"
-                        Types.WithdrawalAmountChanged
-                        userDerivedEthInfo
-                    ]
-    )
+        dEthWithdrawInfoType =
+            Withdraw maybeDEthWithdrawInfo
+    in
+    [ investOrWithdrawEl
+        dProfile
+        walletState
+        "ETH -> dEth"
+        "Deposit"
+        depositAmount
+        dEthDepositInfoType
+        maybeUserDerivedEthInfo
+        ethSymbol
+        Types.DepositAmountChanged
+    , investOrWithdrawEl
+        dProfile
+        walletState
+        "dEth -> ETH"
+        "Redeem"
+        withdrawalAmount
+        dEthWithdrawInfoType
+        maybeUserDerivedEthInfo
+        dEThSymbol
+        Types.WithdrawalAmountChanged
+    ]
         |> responsiveVal dProfile
             row
             column
@@ -171,14 +173,16 @@ inputErrorEl dProfile errStr =
 
 investOrWithdrawEl :
     DisplayProfile
+    -> Wallet
     -> String
     -> String
     -> String
-    -> String
+    -> DepositOrRedeemInfo
+    -> Maybe DEthUserInfo
+    -> TokenName
     -> (String -> Msg)
-    -> UserDerivedEthInfo
     -> Element Msg
-investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEthInfo =
+investOrWithdrawEl dProfile walletState heading buttonText inputAmount depositOrRedeemInfo maybeDethUserInfo tokenName msg =
     let
         textFontSize =
             Font.size (responsiveVal dProfile 22 16)
@@ -187,24 +191,35 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             Font.size (responsiveVal dProfile 28 18)
 
         ( amountChangedMsg, clickedMsg ) =
-            if tokenName == "ETH" then
-                ( Types.DepositAmountChanged, Types.DepositClicked )
+            case depositOrRedeemInfo of
+                Deposit _ ->
+                    ( Types.DepositAmountChanged, Types.DepositClicked )
 
-            else
-                ( Types.WithdrawalAmountChanged, Types.WithdrawClicked )
+                Withdraw _ ->
+                    ( Types.WithdrawalAmountChanged, Types.WithdrawClicked )
 
         msgAmountResult =
-            validateInput inputAmount userBalance
+            maybeUserBalance
+                |> Maybe.andThen (validateInput inputAmount)
 
-        userBalance =
-            if tokenName == "ETH" then
-                userDEthInfo.ethBalance
+        maybeUserBalance =
+            case depositOrRedeemInfo of
+                Deposit _ ->
+                    maybeDethUserInfo |> Maybe.map .ethBalance
 
-            else
-                userDEthInfo.dEthBalance
+                Withdraw _ ->
+                    maybeDethUserInfo |> Maybe.map .dEthBalance
 
         blockHeightMin =
             responsiveVal dProfile 280 220
+
+        tokenStringName =
+            case tokenName of
+                ETh tokenString ->
+                    tokenString
+
+                DEth tokenString ->
+                    tokenString
     in
     [ text heading
         |> el
@@ -212,25 +227,35 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             , Font.semiBold
             , centerX
             ]
-    , text
-        (tokenName
-            ++ " balance: "
-            ++ (userBalance
-                    |> TokenValue.toFloatString (Just 4)
-               )
-        )
-        |> el
-            [ textFontSize
-            , centerX
-            ]
-    , [ percentageButtonsEl
-            dProfile
-            amountChangedMsg
-            userBalance
+    , case maybeUserBalance of
+        Nothing ->
+            Element.none
+
+        Just userBalance ->
+            text
+                (tokenStringName
+                    ++ " balance: "
+                    ++ (userBalance
+                            |> TokenValue.toFloatString (Just 4)
+                       )
+                )
+                |> el
+                    [ textFontSize
+                    , centerX
+                    ]
+    , [ case maybeUserBalance of
+            Nothing ->
+                Element.none
+
+            Just userBalance ->
+                percentageButtonsEl
+                    dProfile
+                    amountChangedMsg
+                    userBalance
       , [ inputEl
             dProfile
             inputAmount
-            userBalance
+            maybeUserBalance
             msg
         , buttonStateEl
             dProfile
@@ -241,7 +266,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
                 |> Maybe.map clickedMsg
             )
             msgAmountResult
-
+            walletState
         ]
             |> row
                 [ centerX
@@ -266,9 +291,8 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             --inputErrorEl dProfile (validationErrorToString validationError)--
             depositRedeemInfoEl
                 dProfile
-                tokenName
                 inputAmount
-                userDEthInfo
+                depositOrRedeemInfo
                 |> el
                     [ width fill
                     , paddingEach
@@ -282,9 +306,8 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
         Just (Ok _) ->
             depositRedeemInfoEl
                 dProfile
-                tokenName
                 inputAmount
-                userDEthInfo
+                depositOrRedeemInfo
                 |> el
                     [ width fill
                     , paddingEach
@@ -314,62 +337,116 @@ investOrWithdrawEl dProfile heading buttonText inputAmount tokenName msg userDEt
             )
 
 
-depositRedeemInfoEl : DisplayProfile -> String -> String -> UserDerivedEthInfo -> Element Msg
-depositRedeemInfoEl dProfile tokenName amountEntered userDEthInfo =
+depositRedeemInfoEl : DisplayProfile -> String -> DepositOrRedeemInfo -> Element Msg
+depositRedeemInfoEl dProfile amountEntered depositOrRedeemInfo =
     let
         enteredAmount =
-            amountToTokenValue <| TokenValue.fromString amountEntered
+            Maybe.withDefault TokenValue.zero <| TokenValue.fromString amountEntered
 
         textFontSize =
             responsiveVal dProfile 16 10
                 |> Font.size
 
-        elems =
-            if tokenName == "ETH" then
-                [ depositRedeemInfoItemEl
-                    textFontSize
-                    "ETH Amount Entered"
-                    enteredAmount
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Protocol Fee"
-                    userDEthInfo.depositFee.protocolFee
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Automation Fee"
-                    userDEthInfo.depositFee.automationFee
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Actual ETH Added"
-                    userDEthInfo.actualCollateralAdded
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "dEth Issued"
-                    userDEthInfo.tokensIssued
-                ]
+        zeroTokenValue =
+            TokenValue.zero
 
-            else
-                [ depositRedeemInfoItemEl
-                    textFontSize
-                    "dEth Amount Entered"
-                    enteredAmount
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Automation Fee"
-                    userDEthInfo.redeemFee.automationFee
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Collateral Redeemed"
-                    userDEthInfo.totalCollateralRedeemed
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Protocol Fee"
-                    userDEthInfo.redeemFee.protocolFee
-                , depositRedeemInfoItemEl
-                    textFontSize
-                    "Collateral Returned"
-                    userDEthInfo.collateralReturned
-                ]
+        elems =
+            case depositOrRedeemInfo of
+                Deposit maybeDEthDepositInfo ->
+                    case maybeDEthDepositInfo of
+                        Just dEthDepositInfo ->
+                            [ depositRedeemInfoItemEl
+                                textFontSize
+                                "ETH Amount Entered"
+                                enteredAmount
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Protocol Fee"
+                                dEthDepositInfo.depositFee.protocolFee
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Automation Fee"
+                                dEthDepositInfo.depositFee.automationFee
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Actual ETH Added"
+                                dEthDepositInfo.actualCollateralAdded
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "dEth Issued"
+                                dEthDepositInfo.tokensIssued
+                            ]
+
+                        Nothing ->
+                            [ depositRedeemInfoItemEl
+                                textFontSize
+                                "ETH Amount Entered"
+                                enteredAmount
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Protocol Fee"
+                                zeroTokenValue
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Automation Fee"
+                                zeroTokenValue
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Actual ETH Added"
+                                zeroTokenValue
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "dEth Issued"
+                                zeroTokenValue
+                            ]
+
+                Withdraw maybeDEthWithdrawInfo ->
+                    case maybeDEthWithdrawInfo of
+                        Just dEthWithdrawInfo ->
+                            [ depositRedeemInfoItemEl
+                                textFontSize
+                                "dEth Amount Entered"
+                                enteredAmount
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Automation Fee"
+                                dEthWithdrawInfo.redeemFee.automationFee
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Collateral Redeemed"
+                                dEthWithdrawInfo.totalCollateralRedeemed
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Protocol Fee"
+                                dEthWithdrawInfo.redeemFee.protocolFee
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Collateral Returned"
+                                dEthWithdrawInfo.collateralReturned
+                            ]
+
+                        Nothing ->
+                            [ depositRedeemInfoItemEl
+                                textFontSize
+                                "dEth Amount Entered"
+                                enteredAmount
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Automation Fee"
+                                zeroTokenValue
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Collateral Redeemed"
+                                zeroTokenValue
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Protocol Fee"
+                                zeroTokenValue
+                            , depositRedeemInfoItemEl
+                                textFontSize
+                                "Collateral Returned"
+                                zeroTokenValue
+                            ]
     in
     elems
         |> column
@@ -389,7 +466,7 @@ depositRedeemInfoItemEl textFontSize rowLabel rowValue =
         |> el
             [ textFontSize ]
     , rowValue
-        |> tokenValueToFixedPrecisionFloatString(4)
+        |> tokenValueToFixedPrecisionFloatString 4
         |> text
         |> el
             [ textFontSize
@@ -459,10 +536,10 @@ percentageButtonsEl dProfile buttonMsg userBalance =
 inputEl :
     DisplayProfile
     -> String
-    -> TokenValue
+    -> Maybe TokenValue
     -> (String -> Msg)
     -> Element Msg
-inputEl dProfile inputAmount userBalance msg =
+inputEl dProfile inputAmount maybeUserBalance msg =
     let
         amountElWidth =
             responsiveVal
@@ -477,7 +554,8 @@ inputEl dProfile inputAmount userBalance msg =
                 23
 
         inputValidateResult =
-            validateInput inputAmount userBalance
+            maybeUserBalance
+                |> Maybe.andThen (validateInput inputAmount)
 
         inputStyles =
             [ px amountElWidth
@@ -534,66 +612,104 @@ buttonEl dProfile attributes buttonLabel msg =
              ]
                 ++ attributes
             )
-buttonStateEl:
+
+
+buttonStateEl :
     DisplayProfile
     -> String
     -> Maybe Msg
     -> Maybe (Result InputValidationError TokenValue)
+    -> Wallet
     -> Element Msg
-buttonStateEl dProfile  buttonLabel msg amountResult   =
+buttonStateEl dProfile buttonLabel msg amountResult walletState =
     let
         buttonErrorStyle =
-            [
-             htmlAttribute <| Html.Attributes.style "cursor" "not-allowed"
+            [ htmlAttribute <| Html.Attributes.style "cursor" "not-allowed"
             , Element.Background.color red
             , alpha 0.5
             ]
+
+        buttonLoadingStyle =
+            [ htmlAttribute <| Html.Attributes.style "cursor" "not-allowed"
+            , Element.Background.color green
+            , alpha 0.5
+            ]
+
         buttonNormalStyle =
-              Theme.childContainerBackgroundAttributes
-
+            Theme.childContainerBackgroundAttributes
     in
-
     case amountResult of
-
         Nothing ->
-            buttonEl
-            dProfile
-            buttonNormalStyle
-            buttonLabel
-            msg
+            case walletState of
+                NoneDetected ->
+                    el [ tooltip above (buttonTooltip "Connect Wallet!") ]
+                        (buttonEl
+                            dProfile
+                            buttonErrorStyle
+                            buttonLabel
+                            msg
+                        )
+
+                NetworkReady ->
+                    el [ tooltip above (buttonTooltip "Connect Wallet!") ]
+                        (buttonEl
+                            dProfile
+                            buttonErrorStyle
+                            buttonLabel
+                            msg
+                        )
+
+                Connecting ->
+                    el [ tooltip above (buttonTooltip "Connecting Wallet!") ]
+                        (buttonEl
+                            dProfile
+                            buttonLoadingStyle
+                            buttonLabel
+                            msg
+                        )
+
+                Active _ ->
+                    buttonEl
+                        dProfile
+                        buttonNormalStyle
+                        buttonLabel
+                        msg
+
         Just (Err validationError) ->
             case validationError of
                 Types.InputGreaterThan ->
-                    el [ tooltip above (buttonTooltip "You don't have that much")]
-                       (buttonEl
-                       dProfile
-                       buttonErrorStyle
-                       buttonLabel
-                       msg )
+                    el [ tooltip above (buttonTooltip "You don't have that much") ]
+                        (buttonEl
+                            dProfile
+                            buttonErrorStyle
+                            buttonLabel
+                            msg
+                        )
 
                 Types.InputLessThan ->
-                    el [ tooltip above (buttonTooltip "Need a positive number")]
-                    (buttonEl
-                    dProfile
-                    buttonErrorStyle
-                    buttonLabel
-                    msg)
+                    el [ tooltip above (buttonTooltip "Need a positive number") ]
+                        (buttonEl
+                            dProfile
+                            buttonErrorStyle
+                            buttonLabel
+                            msg
+                        )
 
                 Types.InputInvalid ->
-                    el [ tooltip above ( buttonTooltip "Can't interpret that number!")]
-                    (buttonEl
-                    dProfile
-                    buttonErrorStyle
-                    buttonLabel
-                    msg)
+                    el [ tooltip above (buttonTooltip "Can't interpret that number!") ]
+                        (buttonEl
+                            dProfile
+                            buttonErrorStyle
+                            buttonLabel
+                            msg
+                        )
+
         Just (Ok _) ->
             buttonEl
-            dProfile
-            buttonNormalStyle
-            buttonLabel
-            msg
-
-
+                dProfile
+                buttonNormalStyle
+                buttonLabel
+                msg
 
 
 validateInput : String -> TokenValue -> Maybe (Result InputValidationError TokenValue)
@@ -633,15 +749,6 @@ msgInsteadOfButton dProfile textToDisplay color =
             ]
 
 
-amountToTokenValue : Maybe TokenValue -> TokenValue
-amountToTokenValue maybeAmount =
-    case maybeAmount of
-        Just amount ->
-            amount
-
-        Nothing ->
-            TokenValue.zero
-
 buttonTooltip : String -> Element msg
 buttonTooltip str =
     el
@@ -654,6 +761,7 @@ buttonTooltip str =
             { offset = ( 0, 3 ), blur = 6, size = 0, color = rgba 0 0 0 0.32 }
         ]
         (text str)
+
 
 tooltip : (Element msg -> Attribute msg) -> Element Never -> Attribute msg
 tooltip usher tooltip_ =
@@ -668,6 +776,7 @@ tooltip usher tooltip_ =
                     tooltip_
             ]
             none
+
 
 tokenValueToFixedPrecisionFloatString : Int -> TokenValue -> String
 tokenValueToFixedPrecisionFloatString requiredDecimals tokens =
@@ -692,7 +801,3 @@ tokenValueToFixedPrecisionFloatString requiredDecimals tokens =
 
         Nothing ->
             possiblyTooShortString ++ "." ++ String.repeat requiredDecimals "0"
-
-
-
-

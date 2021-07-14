@@ -75,6 +75,9 @@ type alias Model =
     , permaFrostBalanceLocked : Maybe TokenValue
     , composedTreasuryBalance : ComposedTreasuryBalance
     , userDerivedEthInfo : Maybe UserDerivedEthInfo
+    , dEthUserInfo : Maybe DEthUserInfo
+    , dEthDepositInfo : Maybe DEthDepositInfo
+    , dEthWithdrawInfo : Maybe DEthWithdrawInfo
     , jurisdictionCheckStatus : JurisdictionCheckStatus
     , depositAmount : String
     , withdrawalAmountInput : String
@@ -201,15 +204,30 @@ type alias UserStakingInfo =
 
 
 type alias UserDerivedEthInfo =
+    { dEthUserInfo : DEthUserInfo
+    , dEthDepositInfo : DEthDepositInfo
+    , dEthWithdrawInfo : DEthWithdrawInfo
+    }
+
+
+type alias DEthUserInfo =
     { ethBalance : TokenValue
     , dEthBalance : TokenValue
-    , totalCollateralRedeemed : TokenValue
-    , redeemFee : FeePair
-    , collateralReturned : TokenValue
     , dEthAllowance : TokenValue
-    , actualCollateralAdded : TokenValue
+    }
+
+
+type alias DEthDepositInfo =
+    { actualCollateralAdded : TokenValue
     , depositFee : FeePair
     , tokensIssued : TokenValue
+    }
+
+
+type alias DEthWithdrawInfo =
+    { totalCollateralRedeemed : TokenValue
+    , redeemFee : FeePair
+    , collateralReturned : TokenValue
     }
 
 

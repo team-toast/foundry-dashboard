@@ -1299,10 +1299,10 @@ update msg model =
 
                 Ok tokenValue ->
                     ( { model
-                        | userDerivedEthInfo =
-                            (case model.userDerivedEthInfo of
+                        | dEthUserInfo =
+                            (case model.dEthUserInfo of
                                 Nothing ->
-                                    { derivedEthInfoInit
+                                    { derivedEthUserInfo
                                         | ethBalance = tokenValue
                                     }
 
@@ -1325,10 +1325,10 @@ update msg model =
 
                 Ok tokenValue ->
                     ( { model
-                        | userDerivedEthInfo =
-                            (case model.userDerivedEthInfo of
+                        | dEthUserInfo =
+                            (case model.dEthUserInfo of
                                 Nothing ->
-                                    { derivedEthInfoInit
+                                    { derivedEthUserInfo
                                         | dEthBalance = tokenValue
                                     }
 
@@ -1357,10 +1357,10 @@ update msg model =
                             }
                     in
                     ( { model
-                        | userDerivedEthInfo =
-                            (case model.userDerivedEthInfo of
+                        | dEthWithdrawInfo =
+                            (case model.dEthWithdrawInfo of
                                 Nothing ->
-                                    { derivedEthInfoInit
+                                    { derivedEthWithdrawInfo
                                         | totalCollateralRedeemed = TokenValue.tokenValue data.collateralRedeemed
                                         , redeemFee = redeemFee
                                         , collateralReturned = TokenValue.tokenValue data.collateralReturned
@@ -1488,10 +1488,10 @@ update msg model =
                             }
                     in
                     ( { model
-                        | userDerivedEthInfo =
-                            (case model.userDerivedEthInfo of
+                        | dEthDepositInfo =
+                            (case model.dEthDepositInfo of
                                 Nothing ->
-                                    { derivedEthInfoInit
+                                    { derivedEthDepositInfo
                                         | actualCollateralAdded = TokenValue.tokenValue data.actualCollateralAdded
                                         , depositFee = depositFee
                                         , tokensIssued = TokenValue.tokenValue data.tokensIssued
