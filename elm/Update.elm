@@ -1475,8 +1475,11 @@ update msg model =
 
         DerivedEthIssuanceDetailFetched fetchResult ->
             case fetchResult of
-                Err _ ->
+                Err err ->
                     ( model
+                        |> (addUserNotice <|
+                                UN.web3FetchError "DerivedEthIssuanceDetail" err
+                           )
                     , Cmd.none
                     )
 
