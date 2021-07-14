@@ -47,7 +47,7 @@ view model =
             mainEl
                 dProfile
                 walletState
-                model.depositAmount
+                model.depositAmountInput
                 model.withdrawalAmountInput
                 model.dEthUserInfo
                 model.dEthDepositInfo
@@ -284,9 +284,6 @@ investOrWithdrawEl dProfile walletState heading buttonText inputAmount depositOr
                 }
             ]
     , case msgAmountResult of
-        Nothing ->
-            Element.none
-
         Just (Err validationError) ->
             --inputErrorEl dProfile (validationErrorToString validationError)--
             depositRedeemInfoEl
@@ -303,7 +300,7 @@ investOrWithdrawEl dProfile walletState heading buttonText inputAmount depositOr
                         }
                     ]
 
-        Just (Ok _) ->
+        _ ->
             depositRedeemInfoEl
                 dProfile
                 inputAmount

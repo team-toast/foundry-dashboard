@@ -104,7 +104,7 @@ emptyModel key now basePath cookieConsent =
     , dEthDepositInfo = Nothing
     , dEthWithdrawInfo = Nothing
     , jurisdictionCheckStatus = Types.WaitingForClick
-    , depositAmount = ""
+    , depositAmountInput = ""
     , withdrawalAmountInput = ""
     , polls = Nothing
     , maybeValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
@@ -930,18 +930,13 @@ fetchDerivedEthBalance address =
         Types.UserDerivedEthBalanceFetched
 
 
-fetchIssuanceDetail : Chain -> String -> Cmd Msg
-fetchIssuanceDetail chain depositAmount =
-    case TokenValue.fromString depositAmount of
-        Nothing ->
-            Cmd.none
-
-        Just amount ->
-            Deth.getIssuanceDetail
-                Config.derivedEthContractAddress
-                (Config.httpProviderUrl chain)
-                amount
-                |> Task.attempt Types.DerivedEthIssuanceDetailFetched
+fetchIssuanceDetail : TokenValue -> Cmd Msg
+fetchIssuanceDetail depositAmount =
+    Deth.getIssuanceDetail
+        Config.derivedEthContractAddress
+        Config.ethereumProviderUrl
+        depositAmount
+        |> Task.attempt Types.DerivedEthIssuanceDetailFetched
 
 
 fetchDethPositionInfo : TokenValue -> Cmd Msg
@@ -1151,9 +1146,6 @@ refreshCmds wallet withdrawalAmountInput maybeCurrentBucketId =
                     [ fetchDerivedEthBalance userAddress
                     , fetchEthBalance userAddress
                     , fetchOldStakingBalance userAddress
-                    , Maybe.map fetchDethPositionInfo
-                        (TokenValue.fromString withdrawalAmountInput)
-                        |> Maybe.withDefault Cmd.none
                     ]
 
                 Nothing ->
@@ -1174,4 +1166,7 @@ refreshCmds wallet withdrawalAmountInput maybeCurrentBucketId =
            , fetchTreasuryBalances
            , fetchFarmEndTime
            , fetchApyCmd
+           , Maybe.map fetchDethPositionInfo
+                (TokenValue.fromString withdrawalAmountInput)
+                |> Maybe.withDefault Cmd.none
            ]

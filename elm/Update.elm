@@ -1214,28 +1214,23 @@ update msg model =
             , Cmd.none
             )
 
-        DepositAmountChanged amount ->
-            ensureUserInfo
-                (\userInfo ->
-                    ( { model
-                        | depositAmount = amount
-                      }
-                    , fetchIssuanceDetail
-                        userInfo.chain
-                        amount
-                    )
-                )
+        DepositAmountChanged amountInput ->
+            ( { model
+                | depositAmountInput = amountInput
+              }
+            , Maybe.map fetchIssuanceDetail
+                (TokenValue.fromString amountInput)
+                |> Maybe.withDefault Cmd.none
+            )
 
         WithdrawalAmountChanged amountInput ->
-            ensureUserInfo
-                (\userInfo ->
-                    ( { model
-                        | withdrawalAmountInput = amountInput
-                      }
-                    , Maybe.map fetchDethPositionInfo (TokenValue.fromString amountInput)
-                        |> Maybe.withDefault Cmd.none
-                    )
-                )
+            ( { model
+                | withdrawalAmountInput = amountInput
+              }
+            , Maybe.map fetchDethPositionInfo
+                (TokenValue.fromString amountInput)
+                |> Maybe.withDefault Cmd.none
+            )
 
         DepositClicked amount ->
             ( model
@@ -1388,7 +1383,7 @@ update msg model =
                 Ok txHash ->
                     let
                         tv =
-                            TokenValue.fromString model.depositAmount
+                            TokenValue.fromString model.depositAmountInput
 
                         amount =
                             case tv of
@@ -1399,7 +1394,7 @@ update msg model =
                                     val
                     in
                     ( { model
-                        | depositAmount = ""
+                        | depositAmountInput = ""
                       }
                     , [ gTagOut <|
                             GTagData
@@ -1426,7 +1421,7 @@ update msg model =
                 Ok txHash ->
                     let
                         tv =
-                            TokenValue.fromString model.depositAmount
+                            TokenValue.fromString model.depositAmountInput
 
                         amount =
                             case tv of

@@ -79,7 +79,7 @@ type alias Model =
     , dEthDepositInfo : Maybe DEthDepositInfo
     , dEthWithdrawInfo : Maybe DEthWithdrawInfo
     , jurisdictionCheckStatus : JurisdictionCheckStatus
-    , depositAmount : String
+    , depositAmountInput : String
     , withdrawalAmountInput : String
     , polls : Maybe (List Poll)
     , maybeValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
