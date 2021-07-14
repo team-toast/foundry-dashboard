@@ -100,6 +100,9 @@ emptyModel key now basePath cookieConsent =
             (List.length Config.treasuryAddresses)
             Nothing
     , userDerivedEthInfo = Nothing
+    , dEthUserInfo = Nothing
+    , dEthDepositInfo = Nothing
+    , dEthWithdrawInfo = Nothing
     , jurisdictionCheckStatus = Types.WaitingForClick
     , depositAmount = ""
     , withDrawalAmount = ""
@@ -1018,15 +1021,33 @@ doWithdrawChainCmd receiver amount =
 
 derivedEthInfoInit : UserDerivedEthInfo
 derivedEthInfoInit =
+    { dEthUserInfo = derivedEthUserInfo
+    , dEthDepositInfo = derivedEthDepositInfo
+    , dEthWithdrawInfo = derivedEthWithdrawInfo
+    }
+
+
+derivedEthUserInfo : DEthUserInfo
+derivedEthUserInfo =
     { ethBalance = TokenValue.zero
     , dEthBalance = TokenValue.zero
-    , totalCollateralRedeemed = TokenValue.zero
-    , redeemFee = Types.FeePair TokenValue.zero TokenValue.zero
-    , collateralReturned = TokenValue.zero
     , dEthAllowance = TokenValue.zero
-    , actualCollateralAdded = TokenValue.zero
+    }
+
+
+derivedEthDepositInfo : DEthDepositInfo
+derivedEthDepositInfo =
+    { actualCollateralAdded = TokenValue.zero
     , depositFee = Types.FeePair TokenValue.zero TokenValue.zero
     , tokensIssued = TokenValue.zero
+    }
+
+
+derivedEthWithdrawInfo : DEthWithdrawInfo
+derivedEthWithdrawInfo =
+    { totalCollateralRedeemed = TokenValue.zero
+    , redeemFee = Types.FeePair TokenValue.zero TokenValue.zero
+    , collateralReturned = TokenValue.zero
     }
 
 
