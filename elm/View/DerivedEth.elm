@@ -350,100 +350,50 @@ depositRedeemInfoEl dProfile amountEntered depositOrRedeemInfo =
         elems =
             case depositOrRedeemInfo of
                 Deposit maybeDEthDepositInfo ->
-                    case maybeDEthDepositInfo of
-                        Just dEthDepositInfo ->
-                            [ depositRedeemInfoItemEl
-                                textFontSize
-                                "ETH Amount Entered"
-                                enteredAmount
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Protocol Fee"
-                                dEthDepositInfo.depositFee.protocolFee
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Automation Fee"
-                                dEthDepositInfo.depositFee.automationFee
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Actual ETH Added"
-                                dEthDepositInfo.actualCollateralAdded
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "dEth Issued"
-                                dEthDepositInfo.tokensIssued
-                            ]
-
-                        Nothing ->
-                            [ depositRedeemInfoItemEl
-                                textFontSize
-                                "ETH Amount Entered"
-                                enteredAmount
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Protocol Fee"
-                                zeroTokenValue
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Automation Fee"
-                                zeroTokenValue
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Actual ETH Added"
-                                zeroTokenValue
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "dEth Issued"
-                                zeroTokenValue
-                            ]
+                    [ depositRedeemInfoItemEl
+                        textFontSize
+                        "ETH Amount Entered"
+                        (Just enteredAmount)
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "Protocol Fee"
+                        (maybeDEthDepositInfo |> Maybe.map (.depositFee >> .protocolFee))
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "Automation Fee"
+                        (maybeDEthDepositInfo |> Maybe.map (.depositFee >> .automationFee))
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "Actual ETH Added"
+                        (maybeDEthDepositInfo |> Maybe.map .actualCollateralAdded)
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "dEth Issued"
+                        (maybeDEthDepositInfo |> Maybe.map .tokensIssued)
+                    ]
 
                 Withdraw maybeDEthWithdrawInfo ->
-                    case maybeDEthWithdrawInfo of
-                        Just dEthWithdrawInfo ->
-                            [ depositRedeemInfoItemEl
-                                textFontSize
-                                "dEth Amount Entered"
-                                enteredAmount
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Automation Fee"
-                                dEthWithdrawInfo.redeemFee.automationFee
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Collateral Redeemed"
-                                dEthWithdrawInfo.totalCollateralRedeemed
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Protocol Fee"
-                                dEthWithdrawInfo.redeemFee.protocolFee
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Collateral Returned"
-                                dEthWithdrawInfo.collateralReturned
-                            ]
-
-                        Nothing ->
-                            [ depositRedeemInfoItemEl
-                                textFontSize
-                                "dEth Amount Entered"
-                                enteredAmount
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Automation Fee"
-                                zeroTokenValue
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Collateral Redeemed"
-                                zeroTokenValue
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Protocol Fee"
-                                zeroTokenValue
-                            , depositRedeemInfoItemEl
-                                textFontSize
-                                "Collateral Returned"
-                                zeroTokenValue
-                            ]
+                    [ depositRedeemInfoItemEl
+                        textFontSize
+                        "dEth Amount Entered"
+                        (Just enteredAmount)
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "Automation Fee"
+                        (maybeDEthWithdrawInfo |> Maybe.map (.redeemFee >> .automationFee))
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "Collateral Redeemed"
+                        (maybeDEthWithdrawInfo |> Maybe.map .totalCollateralRedeemed)
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "Protocol Fee"
+                        (maybeDEthWithdrawInfo |> Maybe.map (.redeemFee >> .protocolFee))
+                    , depositRedeemInfoItemEl
+                        textFontSize
+                        "Collateral Returned"
+                        (maybeDEthWithdrawInfo |> Maybe.map .collateralReturned)
+                    ]
     in
     elems
         |> column
@@ -456,19 +406,24 @@ depositRedeemInfoEl dProfile amountEntered depositOrRedeemInfo =
             )
 
 
-depositRedeemInfoItemEl : Attribute Msg -> String -> TokenValue -> Element Msg
-depositRedeemInfoItemEl textFontSize rowLabel rowValue =
+depositRedeemInfoItemEl : Attribute Msg -> String -> Maybe TokenValue -> Element Msg
+depositRedeemInfoItemEl textFontSize rowLabel maybeRowValue =
     [ text
         (rowLabel ++ ":")
         |> el
             [ textFontSize ]
-    , rowValue
-        |> tokenValueToFixedPrecisionFloatString 4
-        |> text
-        |> el
-            [ textFontSize
-            , alignRight
-            ]
+    , case maybeRowValue of
+        Just rowValue ->
+            rowValue
+                |> tokenValueToFixedPrecisionFloatString 4
+                |> text
+                |> el
+                    [ textFontSize
+                    , alignRight
+                    ]
+
+        Nothing ->
+            Element.none
     ]
         |> row
             [ width fill

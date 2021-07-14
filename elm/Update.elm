@@ -1217,6 +1217,7 @@ update msg model =
         DepositAmountChanged amountInput ->
             ( { model
                 | depositAmountInput = amountInput
+                , dEthDepositInfo = Nothing
               }
             , Maybe.map fetchIssuanceDetail
                 (TokenValue.fromString amountInput)
@@ -1226,6 +1227,7 @@ update msg model =
         WithdrawalAmountChanged amountInput ->
             ( { model
                 | withdrawalAmountInput = amountInput
+                , dEthWithdrawInfo = Nothing
               }
             , Maybe.map fetchDethPositionInfo
                 (TokenValue.fromString amountInput)
