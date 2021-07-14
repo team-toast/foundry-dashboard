@@ -113,19 +113,19 @@ mainEl dProfile depositAmount withdrawalAmount depositOrRedeemInfo maybeUserDeri
         dEThSymbol =
             DEth "dEth"
 
-        dEthDepositInfo =
-            case maybeDEthDepositInfo of
-                Just dEthDepositInfoPresent ->
-                    dEthDepositInfoPresent
+        -- dEthDepositInfo =
+        --     case maybeDEthDepositInfo of
+        --         Just dEthDepositInfoPresent ->
+        --             dEthDepositInfoPresent
 
-                Nothing ->
-                    Nothing
+        --         Nothing ->
+        --             Nothing
 
         dEthDepositInfoType =
-            Deposit dEthDepositInfo
+            Maybe.map Deposit maybeDEthDepositInfo
 
         dEthWithdrawInfoType =
-            Withdraw dEthWithdrawInfo
+            Maybe.map Withdraw maybeDEthWithdrawInfo
     in
     [ investOrWithdrawEl
         dProfile
@@ -181,12 +181,12 @@ investOrWithdrawEl :
     -> String
     -> String
     -> String
-    -> DepositOrRedeemInfo
+    -> Maybe DepositOrRedeemInfo
     -> Maybe DEthUserInfo
     -> TokenName
     -> (String -> Msg)
     -> Element Msg
-investOrWithdrawEl dProfile heading buttonText inputAmount depositOrRedeemInfo maybeDethUserInfo tokenName msg =
+investOrWithdrawEl dProfile heading buttonText inputAmount maybeDepositOrRedeemInfo maybeDethUserInfo tokenName msg =
     let
         textFontSize =
             Font.size (responsiveVal dProfile 22 16)
@@ -195,11 +195,11 @@ investOrWithdrawEl dProfile heading buttonText inputAmount depositOrRedeemInfo m
             Font.size (responsiveVal dProfile 28 18)
 
         ( amountChangedMsg, clickedMsg ) =
-            case depositOrRedeemInfo of
-                Deposit _ ->
+            case maybeDepositOrRedeemInfo of
+                Just (Deposit _) ->
                     ( Types.DepositAmountChanged, Types.DepositClicked )
 
-                Withdraw _ ->
+                Just (Withdraw _) ->
                     ( Types.WithdrawalAmountChanged, Types.WithdrawClicked )
 
         msgAmountResult =
@@ -207,11 +207,11 @@ investOrWithdrawEl dProfile heading buttonText inputAmount depositOrRedeemInfo m
                 |> Maybe.andThen (validateInput inputAmount)
 
         maybeUserBalance =
-            case depositOrRedeemInfo of
-                Deposit _ ->
+            case maybeDepositOrRedeemInfo of
+                Just (Deposit _) ->
                     maybeDethUserInfo |> Maybe.map .ethBalance
 
-                Withdraw _ ->
+                Just (Withdraw _) ->
                     maybeDethUserInfo |> Maybe.map .dEthBalance
 
         blockHeightMin =
@@ -295,7 +295,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount depositOrRedeemInfo m
             depositRedeemInfoEl
                 dProfile
                 inputAmount
-                depositOrRedeemInfo
+                maybeDepositOrRedeemInfo
                 |> el
                     [ width fill
                     , paddingEach
@@ -310,7 +310,7 @@ investOrWithdrawEl dProfile heading buttonText inputAmount depositOrRedeemInfo m
             depositRedeemInfoEl
                 dProfile
                 inputAmount
-                depositOrRedeemInfo
+                maybeDepositOrRedeemInfo
                 |> el
                     [ width fill
                     , paddingEach
