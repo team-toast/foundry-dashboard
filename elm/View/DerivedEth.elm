@@ -105,9 +105,9 @@ titleEl dProfile =
         ]
         [ html <|
             b []
-                [ Html.text "(Eth is money)"
+                [ Html.text "\"(Eth is money)"
                 , sup [] [ Html.text "2" ]
-                , Html.text "=dEth"
+                , Html.text "=dEth\""
                 ]
         ]
 
