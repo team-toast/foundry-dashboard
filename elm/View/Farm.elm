@@ -22,7 +22,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (AmountUXModel, Chain(..), DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
 import View.Attrs exposing (hover)
-import View.Common
+import View.Common exposing (web3ConnectButton)
 import View.Img
 import Wallet
 
@@ -141,16 +141,20 @@ bodyEl model =
         isFarmingActive =
             calcTimeLeft model.now model.farmingPeriodEnds /= 0
 
-        balancesEl =
-            balancesElement
-                dProfile
-                model.jurisdictionCheckStatus
-                model.now
-                isFarmingActive
-                model.wallet
-                model.userStakingInfo
-                model.oldUserStakingBalance
-                model.depositWithdrawUXModel
+        balancesOrConnectEl =
+            case model.wallet of
+                Types.Active _ ->
+                    balancesElement
+                        dProfile
+                        model.jurisdictionCheckStatus
+                        model.now
+                        isFarmingActive
+                        model.userStakingInfo
+                        model.oldUserStakingBalance
+                        model.depositWithdrawUXModel
+
+                _ ->
+                    web3ConnectButton dProfile [] <| EH.Action ConnectToWeb3
 
         apyEl =
             apyElement
@@ -169,7 +173,7 @@ bodyEl model =
         )
         (case dProfile of
             EH.Desktop ->
-                [ balancesEl
+                [ balancesOrConnectEl
                 , [ apyEl
                   ]
                     |> column
@@ -190,7 +194,7 @@ bodyEl model =
                   ]
                     |> column
                         []
-                , balancesEl
+                , balancesOrConnectEl
                 ]
         )
 
@@ -200,12 +204,11 @@ balancesElement :
     -> JurisdictionCheckStatus
     -> Time.Posix
     -> Bool
-    -> Wallet
     -> Maybe UserStakingInfo
     -> Maybe TokenValue
     -> DepositOrWithdrawUXModel
     -> Element Msg
-balancesElement dProfile jurisdictionCheckStatus now isFarmingActive wallet maybeUserStakingInfo maybeOldUserStakingBalance depositWithdrawUXModel =
+balancesElement dProfile jurisdictionCheckStatus now isFarmingActive maybeUserStakingInfo maybeOldUserStakingBalance depositWithdrawUXModel =
     [ maybeExitOldFarmElement
         dProfile
         maybeOldUserStakingBalance
@@ -354,7 +357,7 @@ maybeGetLiquidityMessageElement dProfile maybeStakingInfo =
                 , Border.rounded 5
                 ]
                 [ text <|
-                    "Connect Wallet to continue."
+                    "Loading Information..."
                 ]
 
 
@@ -553,7 +556,11 @@ rewardsRowUX :
 rewardsRowUX dProfile now maybeStakingInfo =
     let
         maybeAvailableRewards =
-            Maybe.map2 calcAvailableRewards maybeStakingInfo (Just now)
+            maybeStakingInfo
+                |> Maybe.map
+                    (\stakingInfo ->
+                        calcAvailableRewards stakingInfo now
+                    )
     in
     row
         (rowUXStyles
