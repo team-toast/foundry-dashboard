@@ -55,7 +55,7 @@ renderer =
                 { url = destination
                 , label =
                     Element.paragraph
-                        [ Element.Font.color (Element.rgb255 0 0 255)
+                        [ Element.Font.color (Element.rgb255 0 157 255)
                         ]
                         body
                 }

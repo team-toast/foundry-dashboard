@@ -88,7 +88,7 @@ view model =
 
 titleEl : DisplayProfile -> Element Msg
 titleEl dProfile =
-    [ text "\"Ride the Dragon.\" - dEth" ]
+    [ text "\"(Eth is money)^2.\" - dEth" ]
         |> paragraph
             [ responsiveVal
                 dProfile
