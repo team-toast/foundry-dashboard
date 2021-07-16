@@ -4,7 +4,7 @@ import BigInt
 import Chain
 import Config
 import Css exposing (verticalAlign)
-import Element exposing (Attribute, Element, alignRight, alignTop, centerX, centerY, column, el, fill, fillPortion, height, minimum, padding, paddingEach, px, rgba, row, spacing, text, width)
+import Element exposing (Attribute, Element, alignRight, alignTop, alpha, centerX, centerY, column, el, fill, fillPortion, height, htmlAttribute, minimum, noHover, padding, paddingEach, px, rgba, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -13,6 +13,7 @@ import Element.Input as Input
 import ElementHelpers as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import FormatFloat
 import Helpers.Time as TimeHelpers
+import Html.Attributes
 import Images
 import Maybe.Extra
 import Misc exposing (calcAvailableRewards, calcTimeLeft, loadingText, userInfo, validateInput)
@@ -40,6 +41,7 @@ view model =
         Eth ->
             [ titleEl dProfile "Farming for Fryers!"
             , subTitleEl dProfile model.now model.farmingPeriodEnds
+
             -- , farmVideoEl dProfile
             , if model.chainSwitchInProgress then
                 loadingText |> text |> el [ Font.color almostWhite ]
@@ -204,53 +206,33 @@ balancesElement :
     -> DepositOrWithdrawUXModel
     -> Element Msg
 balancesElement dProfile jurisdictionCheckStatus now isFarmingActive wallet maybeUserStakingInfo maybeOldUserStakingBalance depositWithdrawUXModel =
-    case userInfo wallet of
-        Nothing ->
-            View.Common.web3ConnectButton
-                dProfile
-                [ centerY
-                , centerX
-                ]
-                (EH.Action Types.ConnectToWeb3)
-
-        Just userInfo ->
-            case maybeUserStakingInfo of
-                Nothing ->
-                    text "Fetching info..."
-                        |> el
-                            [ Font.italic
-                            , centerY
-                            , Font.color EH.white
-                            ]
-
-                Just userStakingInfo ->
-                    [ maybeExitOldFarmElement
-                        dProfile
-                        maybeOldUserStakingBalance
-                    , maybeGetLiquidityMessageElement
-                        dProfile
-                        userStakingInfo
-                    , unstakedRow
-                        dProfile
-                        now
-                        isFarmingActive
-                        jurisdictionCheckStatus
-                        userStakingInfo
-                        depositWithdrawUXModel
-                    , stakedRow
-                        dProfile
-                        userStakingInfo
-                        depositWithdrawUXModel
-                    , rewardsRow
-                        dProfile
-                        now
-                        userStakingInfo
-                    ]
-                        |> column
-                            [ spacing <| responsiveVal dProfile 25 15
-                            , alignTop
-                            , height fill
-                            ]
+    [ maybeExitOldFarmElement
+        dProfile
+        maybeOldUserStakingBalance
+    , maybeGetLiquidityMessageElement
+        dProfile
+        maybeUserStakingInfo
+    , unstakedRow
+        dProfile
+        now
+        isFarmingActive
+        jurisdictionCheckStatus
+        maybeUserStakingInfo
+        depositWithdrawUXModel
+    , stakedRow
+        dProfile
+        maybeUserStakingInfo
+        depositWithdrawUXModel
+    , rewardsRow
+        dProfile
+        now
+        maybeUserStakingInfo
+    ]
+        |> column
+            [ spacing <| responsiveVal dProfile 25 15
+            , alignTop
+            , height fill
+            ]
 
 
 apyElement :
@@ -335,31 +317,45 @@ maybeExitOldFarmElement dProfile maybeOldStakingBalance =
         Element.none
 
 
-maybeGetLiquidityMessageElement : DisplayProfile -> UserStakingInfo -> Element Msg
-maybeGetLiquidityMessageElement dProfile stakingInfo =
-    if
-        TokenValue.isZero stakingInfo.staked
-            && TokenValue.isZero stakingInfo.unstaked
-            && TokenValue.isZero stakingInfo.claimableRewards
-    then
-        row
-            [ centerX
-            , Font.size <| responsiveVal dProfile 20 15
-            , Background.color <| rgba 1 1 1 0.9
-            , padding 10
-            , Border.rounded 5
-            ]
-            [ Element.newTabLink
-                [ Font.color Theme.blue ]
-                { url = Config.liquidityPoolUrl
-                , label =
-                    text <|
-                        "Obtain liquidity tokens to continue."
-                }
-            ]
+maybeGetLiquidityMessageElement : DisplayProfile -> Maybe UserStakingInfo -> Element Msg
+maybeGetLiquidityMessageElement dProfile maybeStakingInfo =
+    case maybeStakingInfo of
+        Just stakingInfo ->
+            if
+                TokenValue.isZero stakingInfo.staked
+                    && TokenValue.isZero stakingInfo.unstaked
+                    && TokenValue.isZero stakingInfo.claimableRewards
+            then
+                row
+                    [ centerX
+                    , Font.size <| responsiveVal dProfile 20 15
+                    , Background.color <| rgba 1 1 1 0.9
+                    , padding 10
+                    , Border.rounded 5
+                    ]
+                    [ Element.newTabLink
+                        [ Font.color Theme.blue ]
+                        { url = Config.liquidityPoolUrl
+                        , label =
+                            text <|
+                                "Obtain liquidity tokens to continue."
+                        }
+                    ]
 
-    else
-        Element.none
+            else
+                Element.none
+
+        Nothing ->
+            row
+                [ centerX
+                , Font.size <| responsiveVal dProfile 20 15
+                , Background.color <| rgba 1 1 1 0.9
+                , padding 10
+                , Border.rounded 5
+                ]
+                [ text <|
+                    "Connect Wallet to continue."
+                ]
 
 
 unstakedRow :
@@ -367,10 +363,10 @@ unstakedRow :
     -> Time.Posix
     -> Bool
     -> JurisdictionCheckStatus
-    -> UserStakingInfo
+    -> Maybe UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus userStakingInfo depositOrWithdrawUXModel =
+unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus maybeUserStakingInfo depositOrWithdrawUXModel =
     let
         maybeDepositAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -390,7 +386,7 @@ unstakedRow dProfile now isFarmingActive jurisdictionCheckStatus userStakingInfo
             now
             isFarmingActive
             jurisdictionCheckStatus
-            userStakingInfo
+            maybeUserStakingInfo
             maybeDepositAmountUXModel
         ]
 
@@ -400,10 +396,10 @@ unstakedRowUX :
     -> Time.Posix
     -> Bool
     -> JurisdictionCheckStatus
-    -> UserStakingInfo
+    -> Maybe UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo maybeDepositAmountUXModel =
+unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus maybeStakingInfo maybeDepositAmountUXModel =
     let
         rowStyles =
             let
@@ -422,7 +418,7 @@ unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo m
         [ balanceOutputOrInput
             dProfile
             Theme.almostWhite
-            stakingInfo.unstaked
+            (maybeStakingInfo |> Maybe.map .unstaked)
             maybeDepositAmountUXModel
             liquidityDescription
         , if isFarmingActive then
@@ -431,26 +427,26 @@ unstakedRowUX dProfile now isFarmingActive jurisdictionCheckStatus stakingInfo m
                     activeDepositUXButtons
                         dProfile
                         depositAmountUX
-                        stakingInfo.unstaked
+                        (maybeStakingInfo |> Maybe.map .unstaked)
 
                 Nothing ->
                     inactiveUnstakedRowButtons
                         dProfile
-                        stakingInfo
+                        maybeStakingInfo
 
           else
             inactiveUnstakedRowButtons
                 dProfile
-                stakingInfo
+                maybeStakingInfo
         ]
 
 
 stakedRow :
     DisplayProfile
-    -> UserStakingInfo
+    -> Maybe UserStakingInfo
     -> DepositOrWithdrawUXModel
     -> Element Msg
-stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
+stakedRow dProfile maybeStakingInfo depositOrWithdrawUXModel =
     let
         maybeWithdrawAmountUXModel =
             case depositOrWithdrawUXModel of
@@ -467,17 +463,17 @@ stakedRow dProfile stakingInfo depositOrWithdrawUXModel =
             "Currently Staking"
         , stakedRowUX
             dProfile
-            stakingInfo
+            maybeStakingInfo
             maybeWithdrawAmountUXModel
         ]
 
 
 stakedRowUX :
     DisplayProfile
-    -> UserStakingInfo
+    -> Maybe UserStakingInfo
     -> Maybe AmountUXModel
     -> Element Msg
-stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
+stakedRowUX dProfile maybeStakingInfo maybeWithdrawAmountUXModel =
     let
         rowStyles =
             let
@@ -498,7 +494,7 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
         [ balanceOutputOrInput
             dProfile
             Theme.almostWhite
-            stakingInfo.staked
+            (maybeStakingInfo |> Maybe.map .staked)
             maybeWithdrawAmountUXModel
             liquidityDescription
         , case maybeWithdrawAmountUXModel of
@@ -506,37 +502,37 @@ stakedRowUX dProfile stakingInfo maybeWithdrawAmountUXModel =
                 activeWithdrawUXButtons
                     dProfile
                     withdrawAmountUX
-                    stakingInfo.staked
+                    (maybeStakingInfo |> Maybe.map .staked)
 
             Nothing ->
                 stakedRowUXButtons
                     dProfile
-                    stakingInfo.staked
+                    (maybeStakingInfo |> Maybe.map .staked)
         ]
 
 
 stakedRowUXButtons :
     DisplayProfile
-    -> TokenValue
+    -> Maybe TokenValue
     -> Element Msg
-stakedRowUXButtons dProfile staked =
+stakedRowUXButtons dProfile maybeStaked =
     buttonsRow
         dProfile
         [ maybeStartWithdrawButton
             dProfile
-            staked
+            maybeStaked
         , maybeExitButton
             dProfile
-            staked
+            maybeStaked
         ]
 
 
 rewardsRow :
     DisplayProfile
     -> Time.Posix
-    -> UserStakingInfo
+    -> Maybe UserStakingInfo
     -> Element Msg
-rewardsRow dProfile now stakingInfo =
+rewardsRow dProfile now maybeStakingInfo =
     mainRow
         dProfile
         [ rowLabel
@@ -545,19 +541,19 @@ rewardsRow dProfile now stakingInfo =
         , rewardsRowUX
             dProfile
             now
-            stakingInfo
+            maybeStakingInfo
         ]
 
 
 rewardsRowUX :
     DisplayProfile
     -> Time.Posix
-    -> UserStakingInfo
+    -> Maybe UserStakingInfo
     -> Element Msg
-rewardsRowUX dProfile now stakingInfo =
+rewardsRowUX dProfile now maybeStakingInfo =
     let
-        availableRewards =
-            calcAvailableRewards stakingInfo now
+        maybeAvailableRewards =
+            Maybe.map2 calcAvailableRewards maybeStakingInfo (Just now)
     in
     row
         (rowUXStyles
@@ -567,15 +563,20 @@ rewardsRowUX dProfile now stakingInfo =
         [ balanceOutputOrInput
             dProfile
             Theme.almostWhite
-            availableRewards
+            maybeAvailableRewards
             Nothing
             "DAI"
-        , if TokenValue.isZero <| availableRewards then
-            Element.none
+        , case maybeAvailableRewards of
+            Just availableRewards ->
+                if TokenValue.isZero <| availableRewards then
+                    Element.none
 
-          else
-            claimRewardsButton
-                dProfile
+                else
+                    claimRewardsButton
+                        dProfile
+
+            Nothing ->
+                Element.none
         ]
 
 
@@ -603,11 +604,11 @@ rowUXStyles dProfile isInput =
 balanceOutputOrInput :
     DisplayProfile
     -> Element.Color
-    -> TokenValue
+    -> Maybe TokenValue
     -> Maybe AmountUXModel
     -> String
     -> Element Msg
-balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
+balanceOutputOrInput dProfile color maybeBalance maybeAmountUXModel tokenLabel =
     let
         amountElWidth =
             responsiveVal dProfile 150 75
@@ -622,6 +623,10 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
         [ case maybeAmountUXModel of
             Just amountUXModel ->
                 let
+                    amountResult =
+                        maybeBalance
+                            |> Maybe.andThen (validateInput amountUXModel.amountInput)
+
                     inputStyles =
                         [ width <| px amountElWidth
                         , Background.color <| rgba 1 1 1 0.3
@@ -629,7 +634,7 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                         , Border.width 0
                         , Font.color EH.white
                         ]
-                            ++ (if validateInput amountUXModel.amountInput balance == Nothing then
+                            ++ (if amountResult == Nothing then
                                     [ Border.width 2
                                     , Border.color <| Theme.darkRed
                                     ]
@@ -647,11 +652,16 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
                     }
 
             Nothing ->
-                el
-                    [ width <| px amountElWidth
-                    , Element.clip
-                    ]
-                    (balance |> TokenValue.toFloatString Nothing |> text)
+                case maybeBalance of
+                    Just balance ->
+                        el
+                            [ width <| px amountElWidth
+                            , Element.clip
+                            ]
+                            (balance |> TokenValue.toFloatString Nothing |> text)
+
+                    Nothing ->
+                        Element.none
         , el
             [ width <| responsiveVal dProfile (px 100) (fillPortion 1)
             , Font.color color
@@ -668,12 +678,16 @@ balanceOutputOrInput dProfile color balance maybeAmountUXModel tokenLabel =
 activeWithdrawUXButtons :
     DisplayProfile
     -> AmountUXModel
-    -> TokenValue
+    -> Maybe TokenValue
     -> Element Msg
-activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
+activeWithdrawUXButtons dProfile amountUXModel maybeStakedBalance =
     let
+        amountResult =
+            maybeStakedBalance
+                |> Maybe.andThen (validateInput amountUXModel.amountInput)
+
         withdrawButton =
-            case validateInput amountUXModel.amountInput stakedBalance of
+            case amountResult of
                 Just amount ->
                     makeWithdrawButton
                         dProfile
@@ -702,12 +716,16 @@ activeWithdrawUXButtons dProfile amountUXModel stakedBalance =
 activeDepositUXButtons :
     DisplayProfile
     -> AmountUXModel
-    -> TokenValue
+    -> Maybe TokenValue
     -> Element Msg
-activeDepositUXButtons dProfile amountUXModel unstakedBalance =
+activeDepositUXButtons dProfile amountUXModel maybeUnstakedBalance =
     let
+        amountResult =
+            maybeUnstakedBalance
+                |> Maybe.andThen (validateInput amountUXModel.amountInput)
+
         depositButton =
-            case validateInput amountUXModel.amountInput unstakedBalance of
+            case amountResult of
                 Just amount ->
                     makeDepositButton
                         dProfile
@@ -745,49 +763,64 @@ buttonsRow dProfile =
 
 maybeStartWithdrawButton :
     DisplayProfile
-    -> TokenValue
+    -> Maybe TokenValue
     -> Element Msg
-maybeStartWithdrawButton dProfile currentBalance =
-    if TokenValue.isZero currentBalance then
-        Element.none
+maybeStartWithdrawButton dProfile maybeCurrentBalance =
+    case maybeCurrentBalance of
+        Just currentBalance ->
+            if TokenValue.isZero currentBalance then
+                Element.none
 
-    else
-        makeWithdrawButton
-            dProfile
-            (Just <| "Withdraw " ++ liquidityDescription)
-            (Just <| Types.StartWithdraw currentBalance)
+            else
+                makeWithdrawButton
+                    dProfile
+                    (Just <| "Withdraw " ++ liquidityDescription)
+                    (Just <| Types.StartWithdraw currentBalance)
+
+        Nothing ->
+            Element.none
 
 
 maybeExitButton :
     DisplayProfile
-    -> TokenValue
+    -> Maybe TokenValue
     -> Element Msg
-maybeExitButton dProfile stakedAmount =
-    if TokenValue.isZero stakedAmount then
-        Element.none
+maybeExitButton dProfile maybeStakedAmount =
+    case maybeStakedAmount of
+        Just stakedAmount ->
+            if TokenValue.isZero stakedAmount then
+                Element.none
 
-    else
-        exitButton
-            dProfile
+            else
+                exitButton
+                    dProfile
+
+        Nothing ->
+            Element.none
 
 
 inactiveUnstakedRowButtons :
     DisplayProfile
-    -> UserStakingInfo
+    -> Maybe UserStakingInfo
     -> Element Msg
-inactiveUnstakedRowButtons dProfile stakingInfo =
-    if TokenValue.isZero stakingInfo.unstaked then
-        Element.none
+inactiveUnstakedRowButtons dProfile maybeStakingInfo =
+    case maybeStakingInfo of
+        Just stakingInfo ->
+            if TokenValue.isZero stakingInfo.unstaked then
+                Element.none
 
-    else if TokenValue.isZero stakingInfo.allowance then
-        unlockButton
-            dProfile
+            else if TokenValue.isZero stakingInfo.allowance then
+                unlockButton
+                    dProfile
 
-    else
-        makeDepositButton
-            dProfile
-            (Just <| "Deposit " ++ liquidityDescription)
-            (Just <| Types.StartDeposit stakingInfo.unstaked)
+            else
+                makeDepositButton
+                    dProfile
+                    (Just <| "Deposit " ++ liquidityDescription)
+                    (Just <| Types.StartDeposit stakingInfo.unstaked)
+
+        Nothing ->
+            Element.none
 
 
 mainRow :
