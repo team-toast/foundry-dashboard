@@ -346,7 +346,21 @@ maybeGetLiquidityMessageElement dProfile maybeStakingInfo =
                     ]
 
             else
-                Element.none
+                row
+                    [ centerX
+                    , Font.size <| responsiveVal dProfile 20 15
+                    , Background.color <| rgba 1 1 1 0.9
+                    , padding 10
+                    , Border.rounded 5
+                    ]
+                    [ Element.newTabLink
+                        [ Font.color Theme.blue ]
+                        { url = Config.liquidityPoolUrl
+                        , label =
+                            text <|
+                                "Buy/sell liquidity tokens here."
+                        }
+                    ]
 
         Nothing ->
             row
@@ -356,8 +370,13 @@ maybeGetLiquidityMessageElement dProfile maybeStakingInfo =
                 , padding 10
                 , Border.rounded 5
                 ]
-                [ text <|
-                    "Loading Information..."
+                [ Element.newTabLink
+                    [ Font.color Theme.blue ]
+                    { url = Config.liquidityPoolUrl
+                    , label =
+                        text <|
+                            "Obtain liquidity tokens to continue."
+                    }
                 ]
 
 
