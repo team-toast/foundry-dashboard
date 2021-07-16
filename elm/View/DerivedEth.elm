@@ -2,12 +2,13 @@ module View.DerivedEth exposing (view)
 
 import BigInt
 import Chain
-import Element exposing (Attribute, Color, Element, above, alignRight, alignTop, alpha, centerX, column, el, fill, height, htmlAttribute, inFront, maximum, minimum, mouseOver, none, padding, paddingEach, paragraph, px, rgb, rgba, row, spacing, text, transparent, width)
+import Element exposing (Attribute, Color, Element, above, alignRight, alignTop, alpha, centerX, column, el, fill, height, html, htmlAttribute, inFront, maximum, minimum, mouseOver, none, padding, paddingEach, paragraph, px, rgb, rgba, row, spacing, text, transparent, width)
 import Element.Background
 import Element.Border
 import Element.Font as Font
 import Element.Input
 import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
+import Html exposing (b, sup)
 import Html.Attributes
 import Maybe.Extra
 import Misc exposing (derivedEthUserInfo, userInfo)
@@ -88,21 +89,27 @@ view model =
 
 titleEl : DisplayProfile -> Element Msg
 titleEl dProfile =
-    [ text "\"(Eth is money)^2.\" - dEth" ]
-        |> paragraph
-            [ responsiveVal
-                dProfile
-                50
-                25
-                |> Font.size
-            , Font.color EH.white
-            , responsiveVal
-                dProfile
-                Font.bold
-                Font.semiBold
-            , centerX
-            , padding 20
-            ]
+    paragraph
+        [ responsiveVal
+            dProfile
+            50
+            25
+            |> Font.size
+        , Font.color EH.white
+        , responsiveVal
+            dProfile
+            Font.bold
+            Font.semiBold
+        , centerX
+        , padding 20
+        ]
+        [ html <|
+            b []
+                [ Html.text "\"(Eth is money)"
+                , sup [] [ Html.text "2" ]
+                , Html.text "=dEth\""
+                ]
+        ]
 
 
 mainEl : DisplayProfile -> Wallet -> String -> String -> Maybe DEthUserInfo -> Maybe DEthDepositInfo -> Maybe DEthWithdrawInfo -> Element Msg
