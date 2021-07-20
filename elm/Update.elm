@@ -1641,7 +1641,9 @@ update msg model =
                             , gtagHistory = gtagHistory
                           }
                         , [ walletConnectedGtagCmd
-                          , fetchStakingInfoOrApyCmd model.wallet
+                          , fetchStakingInfoOrApyCmd (Active info)
+                          , fetchDerivedEthBalance info.address
+                          , fetchEthBalance info.address
                           ]
                             |> Cmd.batch
                         )
