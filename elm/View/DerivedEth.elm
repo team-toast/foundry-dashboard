@@ -102,12 +102,13 @@ titleEl dProfile =
             Font.semiBold
         , centerX
         , padding 20
+        , width Element.shrink
         ]
         [ html <|
             b []
-                [ Html.text "\"(Eth is money)"
+                [ Html.text "(Eth is money)"
                 , sup [] [ Html.text "2" ]
-                , Html.text "=dEth\""
+                , Html.text " = dETH"
                 ]
         ]
 
@@ -119,7 +120,7 @@ mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthIn
             ETh "ETH"
 
         dEThSymbol =
-            DEth "dEth"
+            DEth "dETH"
 
         dEthDepositInfoType =
             Deposit maybeDEthDepositInfo
@@ -130,7 +131,7 @@ mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthIn
     [ investOrWithdrawEl
         dProfile
         walletState
-        "ETH -> dEth"
+        "ETH -> dETH"
         "Deposit"
         depositAmount
         dEthDepositInfoType
@@ -140,7 +141,7 @@ mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthIn
     , investOrWithdrawEl
         dProfile
         walletState
-        "dEth -> ETH"
+        "dETH -> ETH"
         "Redeem"
         withdrawalAmount
         dEthWithdrawInfoType
@@ -375,14 +376,14 @@ depositRedeemInfoEl dProfile amountEntered depositOrRedeemInfo =
                         (maybeDEthDepositInfo |> Maybe.map .actualCollateralAdded)
                     , depositRedeemInfoItemEl
                         textFontSize
-                        "dEth Issued"
+                        "dETH Issued"
                         (maybeDEthDepositInfo |> Maybe.map .tokensIssued)
                     ]
 
                 Withdraw maybeDEthWithdrawInfo ->
                     [ depositRedeemInfoItemEl
                         textFontSize
-                        "dEth Amount Entered"
+                        "dETH Amount Entered"
                         (Just enteredAmount)
                     , depositRedeemInfoItemEl
                         textFontSize

@@ -86,7 +86,7 @@ routeName route =
             "Farm"
 
         DerivedEth ->
-            "dEth"
+            "dETH"
 
         NotFound _ ->
             "o_O"
