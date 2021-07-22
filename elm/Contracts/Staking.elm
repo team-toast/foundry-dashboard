@@ -98,16 +98,21 @@ getUserStakingInfo userAddress msgConstructor =
         |> Task.attempt msgConstructor
 
 
-getUserOldStakingBalance : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
-getUserOldStakingBalance userAddress msgConstructor =
-    Eth.call
-        Config.ethereumProviderUrl
-        (StakingContract.balanceOf
-            Config.oldStakingContractAddress
-            userAddress
+getUserOldStakingBalances : Address -> (Address -> Result Http.Error TokenValue -> msg) -> Cmd msg
+getUserOldStakingBalances userAddress msgConstructor =
+    List.map
+        (\contractAddress ->
+            Eth.call
+                Config.ethereumProviderUrl
+                (StakingContract.balanceOf
+                    contractAddress
+                    userAddress
+                )
+                |> Task.map TokenValue.tokenValue
+                |> Task.attempt (msgConstructor contractAddress)
         )
-        |> Task.map TokenValue.tokenValue
-        |> Task.attempt msgConstructor
+        Config.oldStakingContractAddresses
+        |> Cmd.batch
 
 
 unpackBindingStruct : StakingScripts.GetData -> ( UserStakingInfo, Float )

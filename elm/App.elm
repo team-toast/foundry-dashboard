@@ -122,7 +122,7 @@ init flags url key =
                                     }
                                )
                   }
-                , (Misc.refreshCmds wallet "" Nothing
+                , (Misc.refreshCmds wallet True "" Nothing
                     ++ [ fetchAllPollsCmd
                        , if route == Routing.Home then
                             Browser.Navigation.pushUrl

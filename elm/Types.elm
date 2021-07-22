@@ -87,13 +87,14 @@ type alias Model =
     , fryBalances : AddressDict (Maybe TokenValue)
     , mouseoverState : MouseoverState
     , userStakingInfo : Maybe UserStakingInfo
-    , oldUserStakingBalance : Maybe TokenValue
+    , oldUserStakingBalances : List ( Address, Maybe TokenValue )
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , config : Config
     , chainSwitchInProgress : Bool
     , gtagHistory : GTag.GTagHistory
     , farmingPeriodEnds : Int
+    , initiatedOldFarmExit : Bool
     }
 
 
@@ -155,13 +156,13 @@ type Msg
     | DoUnlock
     | DoDeposit TokenValue
     | DoClaimRewards
-    | DoExitFromOldFarm
+    | DoExitFromOldFarms (List Address)
     | DoExit
     | StartWithdraw TokenValue
     | DoWithdraw TokenValue
     | DepositOrWithdrawSigned DepositOrWithdraw TokenValue (Result String TxHash)
     | StakingInfoFetched (Result Http.Error ( UserStakingInfo, Float ))
-    | OldStakingBalanceFetched (Result Http.Error TokenValue)
+    | OldStakingBalanceFetched Address (Result Http.Error TokenValue)
     | ApyFetched (Result Http.Error Float)
     | RefetchStakingInfoOrApy
     | Navigate Route

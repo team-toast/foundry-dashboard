@@ -11,6 +11,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import ElementHelpers as EH exposing (DisplayProfile(..), black, responsiveVal, white)
+import Eth.Types exposing (Address)
 import FormatFloat
 import Helpers.Time as TimeHelpers
 import Html.Attributes
@@ -150,7 +151,7 @@ bodyEl model =
                         model.now
                         isFarmingActive
                         model.userStakingInfo
-                        model.oldUserStakingBalance
+                        model.oldUserStakingBalances
                         model.depositWithdrawUXModel
 
                 _ ->
@@ -205,7 +206,7 @@ balancesElement :
     -> Time.Posix
     -> Bool
     -> Maybe UserStakingInfo
-    -> Maybe TokenValue
+    -> List ( Address, Maybe TokenValue )
     -> DepositOrWithdrawUXModel
     -> Element Msg
 balancesElement dProfile jurisdictionCheckStatus now isFarmingActive maybeUserStakingInfo maybeOldUserStakingBalance depositWithdrawUXModel =
@@ -295,16 +296,25 @@ apyElement dProfile maybeApy =
             )
 
 
-maybeExitOldFarmElement : DisplayProfile -> Maybe TokenValue -> Element Msg
-maybeExitOldFarmElement dProfile maybeOldStakingBalance =
+maybeExitOldFarmElement : DisplayProfile -> List ( Address, Maybe TokenValue ) -> Element Msg
+maybeExitOldFarmElement dProfile maybeOldStakingBalances =
     let
-        hasOldStakingBalance =
-            maybeOldStakingBalance
-                |> Maybe.withDefault TokenValue.zero
-                |> TokenValue.isZero
-                |> not
+        oldFarmAddressesToExit =
+            maybeOldStakingBalances
+                |> List.filterMap
+                    (\( address, maybeBalance ) ->
+                        case maybeBalance of
+                            Just _ ->
+                                Just address
+
+                            Nothing ->
+                                Nothing
+                    )
     in
-    if hasOldStakingBalance then
+    if List.isEmpty oldFarmAddressesToExit then
+        Element.none
+
+    else
         Input.button
             [ Font.size <| responsiveVal dProfile 20 15
             , Font.color white
@@ -312,12 +322,9 @@ maybeExitOldFarmElement dProfile maybeOldStakingBalance =
             , padding 15
             , Border.rounded 10
             ]
-            { onPress = Just DoExitFromOldFarm
-            , label = Element.text "Exit from old farm"
+            { onPress = Just (DoExitFromOldFarms oldFarmAddressesToExit)
+            , label = Element.text "Exit from old farm(s)"
             }
-
-    else
-        Element.none
 
 
 maybeGetLiquidityMessageElement : DisplayProfile -> Maybe UserStakingInfo -> Element Msg

@@ -163,7 +163,7 @@ update msg model =
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , refreshCmds model.wallet model.withdrawalAmountInput model.currentBucketId
+            , refreshCmds model.wallet model.initiatedOldFarmExit model.withdrawalAmountInput model.currentBucketId
                 |> Cmd.batch
             )
 
@@ -218,6 +218,7 @@ update msg model =
                         Just userAddress ->
                             [ fetchDerivedEthBalance userAddress
                             , fetchEthBalance userAddress
+                            , fetchOldStakingBalances userAddress
                             ]
                                 |> Cmd.batch
 
@@ -755,21 +756,32 @@ update msg model =
             , Cmd.none
             )
 
-        DoExitFromOldFarm ->
+        DoExitFromOldFarms contractAddresses ->
             ensureUserInfo
                 (\userInfo ->
                     let
-                        txParams =
-                            StakingRewardsContract.exit
-                                Config.oldStakingContractAddress
-                                |> (\call ->
-                                        { call | from = Just userInfo.address }
-                                   )
-                                |> Eth.toSend
-                                |> Eth.encodeSend
+                        cmd =
+                            contractAddresses
+                                |> List.map
+                                    (\contractAddress ->
+                                        let
+                                            txParams =
+                                                StakingRewardsContract.exit
+                                                    contractAddress
+                                                    |> (\call ->
+                                                            { call | from = Just userInfo.address }
+                                                       )
+                                                    |> Eth.toSend
+                                                    |> Eth.encodeSend
+                                        in
+                                        Ports.txSend txParams
+                                    )
+                                |> Cmd.batch
                     in
-                    ( model
-                    , Ports.txSend txParams
+                    ( { model
+                        | initiatedOldFarmExit = True
+                      }
+                    , cmd
                     )
                 )
 
@@ -898,7 +910,7 @@ update msg model =
                     )
                 )
 
-        OldStakingBalanceFetched fetchResult ->
+        OldStakingBalanceFetched contractAddress fetchResult ->
             case fetchResult of
                 Err httpErr ->
                     ( model
@@ -907,7 +919,11 @@ update msg model =
 
                 Ok balance ->
                     ( { model
-                        | oldUserStakingBalance = Just balance
+                        | oldUserStakingBalances =
+                            model.oldUserStakingBalances
+                                |> List.Extra.setIf
+                                    (Tuple.first >> (==) contractAddress)
+                                    ( contractAddress, Just balance )
                       }
                     , Cmd.none
                     )
@@ -1644,6 +1660,7 @@ update msg model =
                           , fetchStakingInfoOrApyCmd (Active info)
                           , fetchDerivedEthBalance info.address
                           , fetchEthBalance info.address
+                          , fetchOldStakingBalances info.address
                           ]
                             |> Cmd.batch
                         )

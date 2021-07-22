@@ -112,13 +112,16 @@ emptyModel key now basePath cookieConsent =
     , fryBalances = AddressDict.empty
     , mouseoverState = Types.None
     , userStakingInfo = Nothing
-    , oldUserStakingBalance = Nothing
+    , oldUserStakingBalances =
+        Config.oldStakingContractAddresses
+            |> List.map (\addr -> Tuple.pair addr Nothing)
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
     , config = emptyConfig
     , chainSwitchInProgress = False
     , gtagHistory = GTag.emptyGtagHistory
     , farmingPeriodEnds = 0
+    , initiatedOldFarmExit = False
     }
 
 
@@ -489,7 +492,6 @@ fetchStakingInfoOrApyCmd wallet =
         Just uInfo ->
             Cmd.batch
                 [ fetchUserStakingInfoCmd uInfo.address
-                , fetchOldStakingBalance uInfo.address
                 ]
 
         Nothing ->
@@ -503,9 +505,9 @@ fetchUserStakingInfoCmd userAddress =
         Types.StakingInfoFetched
 
 
-fetchOldStakingBalance : Address -> Cmd Msg
-fetchOldStakingBalance userAddress =
-    StakingContract.getUserOldStakingBalance
+fetchOldStakingBalances : Address -> Cmd Msg
+fetchOldStakingBalances userAddress =
+    StakingContract.getUserOldStakingBalances
         userAddress
         Types.OldStakingBalanceFetched
 
@@ -1137,15 +1139,19 @@ combineTreasuryBalance =
         >> Maybe.map (List.foldl TokenValue.add TokenValue.zero)
 
 
-refreshCmds : Wallet -> String -> Maybe Int -> List (Cmd Msg)
-refreshCmds wallet withdrawalAmountInput maybeCurrentBucketId =
+refreshCmds : Wallet -> Bool -> String -> Maybe Int -> List (Cmd Msg)
+refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucketId =
     let
         possiblyWalletCmds =
             case wallet |> Wallet.userInfo |> Maybe.map .address of
                 Just userAddress ->
                     [ fetchDerivedEthBalance userAddress
                     , fetchEthBalance userAddress
-                    , fetchOldStakingBalance userAddress
+                    , if fetchOldFarmBalances then
+                        fetchOldStakingBalances userAddress
+
+                      else
+                        Cmd.none
                     ]
 
                 Nothing ->

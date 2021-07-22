@@ -131,9 +131,11 @@ bucketSaleAddress =
     Eth.Utils.unsafeToAddress "0x30076fF7436aE82207b9c03AbdF7CB056310A95A"
 
 
-oldStakingContractAddress : Address
-oldStakingContractAddress =
-    Eth.Utils.unsafeToAddress "0xa2a4ef5722b198a139dd93b1d420769261808fd1"
+oldStakingContractAddresses : List Address
+oldStakingContractAddresses =
+    [ Eth.Utils.unsafeToAddress "0xa2a4ef5722b198a139dd93b1d420769261808fd1"
+    , Eth.Utils.unsafeToAddress "0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0"
+    ]
 
 
 stakingContractAddress : Address
