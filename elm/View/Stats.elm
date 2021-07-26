@@ -233,7 +233,7 @@ statsEl model =
         
         dethTVLString =
             model.dethTVL
-                |> Maybe.map (\tvl -> TokenValue.div tvl 100)
+                |> Maybe.map (\tvl -> TokenValue.div tvl 1000)
                 |> Maybe.map TokenValue.toConciseString
                 |> Maybe.map (\valStr -> "$" ++ valStr ++ "k")
                 |> Maybe.withDefault loadingText
