@@ -1,7 +1,5 @@
-module View.DerivedEth exposing (view)
+module View.Deth exposing (view)
 
-import BigInt
-import Chain
 import Element exposing (Attribute, Color, Element, above, alignRight, alignTop, alpha, centerX, column, el, fill, height, html, htmlAttribute, inFront, maximum, minimum, mouseOver, none, padding, paddingEach, paragraph, px, rgb, rgba, row, spacing, text, transparent, width)
 import Element.Background
 import Element.Border
@@ -22,11 +20,6 @@ import Wallet
 type DepositOrRedeemInfo
     = Deposit (Maybe DEthDepositInfo)
     | Withdraw (Maybe DEthWithdrawInfo)
-
-
-type TokenName
-    = ETh String
-    | DEth String
 
 
 view : Model -> Element Msg
@@ -116,12 +109,6 @@ titleEl dProfile =
 mainEl : DisplayProfile -> Wallet -> String -> String -> Maybe DEthUserInfo -> Maybe DEthDepositInfo -> Maybe DEthWithdrawInfo -> Element Msg
 mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthInfo maybeDEthDepositInfo maybeDEthWithdrawInfo =
     let
-        ethSymbol =
-            ETh "ETH"
-
-        dEThSymbol =
-            DEth "dETH"
-
         dEthDepositInfoType =
             Deposit maybeDEthDepositInfo
 
@@ -136,7 +123,6 @@ mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthIn
         depositAmount
         dEthDepositInfoType
         maybeUserDerivedEthInfo
-        ethSymbol
         Types.DepositAmountChanged
     , investOrWithdrawEl
         dProfile
@@ -146,7 +132,6 @@ mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthIn
         withdrawalAmount
         dEthWithdrawInfoType
         maybeUserDerivedEthInfo
-        dEThSymbol
         Types.WithdrawalAmountChanged
     ]
         |> responsiveVal dProfile
@@ -187,10 +172,9 @@ investOrWithdrawEl :
     -> String
     -> DepositOrRedeemInfo
     -> Maybe DEthUserInfo
-    -> TokenName
     -> (String -> Msg)
     -> Element Msg
-investOrWithdrawEl dProfile walletState heading buttonText inputAmount depositOrRedeemInfo maybeDethUserInfo tokenName msg =
+investOrWithdrawEl dProfile walletState heading buttonText inputAmount depositOrRedeemInfo maybeDethUserInfo msg =
     let
         textFontSize =
             Font.size (responsiveVal dProfile 22 16)
@@ -222,12 +206,12 @@ investOrWithdrawEl dProfile walletState heading buttonText inputAmount depositOr
             responsiveVal dProfile 280 220
 
         tokenStringName =
-            case tokenName of
-                ETh tokenString ->
-                    tokenString
+            case depositOrRedeemInfo of
+                Deposit _ ->
+                    "ETH"
 
-                DEth tokenString ->
-                    tokenString
+                Withdraw _ ->
+                    "dETH"
     in
     [ text heading
         |> el
