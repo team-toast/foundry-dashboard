@@ -32,7 +32,7 @@ import Update exposing (gotoRoute)
 import UserNotice as UN exposing (UserNotice)
 import UserTx
 import View.Common exposing (..)
-import View.DerivedEth as DerivedEth
+import View.Deth as DerivedEth
 import View.Farm as Farm
 import View.Home as Home
 import View.Sentiment as Sentiment
@@ -159,7 +159,7 @@ viewBody model =
         Routing.Sentiment ->
             Sentiment.view model
 
-        Routing.DerivedEth ->
+        Routing.Deth ->
             DerivedEth.view model
 
         Routing.Stats ->
@@ -325,7 +325,7 @@ navigationButtons model =
         Routing.Stats
         model
     , navigationButton
-        Routing.DerivedEth
+        Routing.Deth
         model
     ]
         |> row

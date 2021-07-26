@@ -173,6 +173,11 @@ type Msg
     | FarmingPeriodEndFetched (Result Http.Error BigInt)
 
 
+type DethMode
+    = DethDashboard
+    | DethStats
+
+
 type alias ComposedTreasuryBalance =
     List (Maybe TokenValue)
 

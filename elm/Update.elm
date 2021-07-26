@@ -87,9 +87,9 @@ update msg model =
                     , Cmd.none
                     )
 
-                Routing.DerivedEth ->
+                Routing.Deth ->
                     ( { model
-                        | route = Routing.DerivedEth
+                        | route = Routing.Deth
                       }
                     , Cmd.none
                     )
@@ -140,13 +140,13 @@ update msg model =
                         (Routing.routeToString model.basePath Routing.Farm)
                     )
 
-                Routing.DerivedEth ->
+                Routing.Deth ->
                     ( { model
-                        | route = Routing.DerivedEth
+                        | route = Routing.Deth
                       }
                     , Browser.Navigation.pushUrl
                         model.navKey
-                        (Routing.routeToString model.basePath Routing.DerivedEth)
+                        (Routing.routeToString model.basePath Routing.Deth)
                     )
 
                 Routing.NotFound err ->
@@ -1812,7 +1812,7 @@ gotoRoute route prevModel =
             , Cmd.none
             )
 
-        Routing.DerivedEth ->
+        Routing.Deth ->
             ( { prevModel
                 | route = route
               }
