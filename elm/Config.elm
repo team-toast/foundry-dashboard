@@ -218,7 +218,13 @@ derivedEthContractAddress =
     Eth.Utils.unsafeToAddress "0x51863Ec92BA14ede7B17fb2B053145C90E215A57"
 
 
+dethGulperAddress : Address
+dethGulperAddress =
+    Eth.Utils.unsafeToAddress "0x1192AF4C49b88C7d102b1779E6E7d9A503366C28"
+
+
 saleEndTime : Time.Posix
 saleEndTime =
     Time.millisToPosix
         (1642968000 * 1000)
+

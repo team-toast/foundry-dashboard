@@ -71,6 +71,7 @@ type alias Model =
     , permaFrostedTokens : Maybe TokenValue
     , teamTokenBalances : Array (Maybe TokenValue)
     , balancerFryBalance : Maybe TokenValue
+    , dethProfit : Maybe TokenValue
     , permaFrostTotalSupply : Maybe TokenValue
     , permaFrostBalanceLocked : Maybe TokenValue
     , composedTreasuryBalance : ComposedTreasuryBalance
@@ -171,6 +172,7 @@ type Msg
     | TxSendResponse (Result TxErr TxHash)
     | FetchFarmingPeriodEnd
     | FarmingPeriodEndFetched (Result Http.Error BigInt)
+    | DethProfitFetched (Result Http.Error TokenValue)
 
 
 type DethMode

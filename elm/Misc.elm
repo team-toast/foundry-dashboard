@@ -10,6 +10,7 @@ import Contracts.DEthWrapper as Deth
 import Contracts.ERC20Wrapper as ERC20
 import Contracts.FryBalanceFetch
 import Contracts.Generated.StakingRewards as StakingRewardsContract
+import Contracts.Gulper as Gulper
 import Contracts.Staking as StakingContract
 import Contracts.UniSwapGraph.Object exposing (..)
 import Contracts.UniSwapGraph.Object.Bundle as UniswapGraphBundle
@@ -93,6 +94,7 @@ emptyModel key now basePath cookieConsent =
     , permaFrostedTokens = Nothing
     , teamTokenBalances = Array.initialize 3 (always Nothing)
     , balancerFryBalance = Nothing
+    , dethProfit = Nothing
     , permaFrostTotalSupply = Nothing
     , permaFrostBalanceLocked = Nothing
     , composedTreasuryBalance =
@@ -932,6 +934,13 @@ fetchDerivedEthBalance address =
         Types.UserDerivedEthBalanceFetched
 
 
+fetchDethProfitCmd : Cmd Msg
+fetchDethProfitCmd =
+    Gulper.getTotalRaised
+        Config.dethGulperAddress
+        DethProfitFetched
+
+
 fetchIssuanceDetail : TokenValue -> Cmd Msg
 fetchIssuanceDetail depositAmount =
     Deth.getIssuanceDetail
@@ -1172,6 +1181,7 @@ refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucket
            , fetchTreasuryBalances
            , fetchFarmEndTime
            , fetchApyCmd
+           , fetchDethProfitCmd
            , Maybe.map fetchDethPositionInfo
                 (TokenValue.fromString withdrawalAmountInput)
                 |> Maybe.withDefault Cmd.none

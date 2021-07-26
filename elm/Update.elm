@@ -1486,6 +1486,20 @@ update msg model =
                 |> Maybe.withDefault Cmd.none
             )
 
+        DethProfitFetched fetchResult ->
+            case fetchResult of
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
+
+                Ok dethProfit ->
+                    ( { model
+                        | dethProfit = Just dethProfit
+                      }
+                    , Cmd.none
+                    )
+
         DerivedEthIssuanceDetailFetched fetchResult ->
             case fetchResult of
                 Err err ->

@@ -10,6 +10,7 @@ import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Time as TimeHelpers
+import List.Extra
 import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPermafrostedTokensValue, combineTreasuryBalance, getBucketRemainingTimeText, loadingText, maybeFloatMultiply)
 import Theme
 import Time
@@ -230,112 +231,108 @@ statsEl model =
                         |> tokenValueTextOrLoadingText
                    )
 
+        dethProfitEthString =
+            (model.dethProfit
+                |> tokenValueTextOrLoadingText
+            )
+                ++ " ETH"
+
+        maybeDethProfitConversionString =
+            Maybe.map2
+                (\dethProfit currentEthPriceUsd ->
+                    TokenValue.mulFloatWithWarning
+                        dethProfit
+                        currentEthPriceUsd
+                )
+                model.dethProfit
+                model.currentEthPriceUsd
+                |> Maybe.map (TokenValue.toFloatWithWarning >> floor >> String.fromInt)
+                |> Maybe.map
+                    (\numStr ->
+                        "~ $" ++ numStr
+                    )
+
         permafrostedTokens =
             model.permaFrostedTokens
                 |> tokenValueTextOrLoadingText
+
+        elementBlockList =
+            let
+                makeBlock title el =
+                    Element.column
+                        [ Element.spacing 10
+                        , Element.width <| Element.px 300
+                        ]
+                        [ statsHeading dProfile title
+                        , el
+                        ]
+            in
+            [ makeBlock "Funds"
+                ([ statsRowItem dProfile "Treasury" composedTreasuryBalance False
+                 , statsRowItem dProfile "Permafrost" permafrostDollars False
+                 ]
+                    |> statsRow
+                )
+            , makeBlock "Profit"
+                ([ statsRowItem dProfile "dETH" dethProfitEthString False
+                 , statsRowItem dProfile "" (maybeDethProfitConversionString |> Maybe.withDefault "") False
+                 ]
+                    |> statsRow
+                )
+            , makeBlock "Price"
+                ([ statsRowItem dProfile "Bucket" bucketPrice False
+                 , statsRowItem dProfile "UniSwap" uniswapPrice False
+                 ]
+                    |> statsRow
+                )
+            , makeBlock "Sale"
+                ([ statsRowItem dProfile "Bucket #" bucketNumber False
+                 , statsRowItem dProfile "Time Left" timeLeft False
+                 ]
+                    |> statsRow
+                )
+            , makeBlock "Market Cap"
+                ([ statsRowItem dProfile "Circulating" marketCap False
+                 , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap False
+                 ]
+                    |> statsRow
+                )
+            , makeBlock "Supply"
+                ([ statsRowItem dProfile "Circulating" circulatingSupply True
+                 , statsRowItem dProfile "Total" totalSupply True
+                 ]
+                    |> statsRow
+                )
+            ]
     in
     case dProfile of
         Mobile ->
-            [ "Price"
-                |> statsHeading dProfile
-            , [ statsRowItem dProfile "Bucket" bucketPrice False
-              , statsRowItem dProfile "UniSwap" uniswapPrice False
-              ]
-                |> statsRow
-            , "Supply"
-                |> statsHeading dProfile
-            , [ statsRowItem dProfile "Circulating" circulatingSupply True
-              , statsRowItem dProfile "Total" totalSupply True
-              ]
-                |> statsRow
-            , "Market Cap"
-                |> statsHeading dProfile
-            , [ statsRowItem dProfile "Circulating" marketCap False
-              , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap False
-              ]
-                |> statsRow
-            , "Sale"
-                |> statsHeading dProfile
-            , [ statsRowItem dProfile "Bucket #" bucketNumber False
-              , statsRowItem dProfile "Time Left" timeLeft False
-              ]
-                |> statsRow
-            , "Treasury"
-                |> statsHeading dProfile
-            , [ statsRowItem dProfile "Balance" composedTreasuryBalance False
-              ]
-                |> statsRow
-            , "Liquidity"
-                |> statsHeading dProfile
-            , [ statsRowItem dProfile "Permafrost" permafrostDollars False
-              ]
-                |> statsRow
-            ]
+            column
+                ([ width fill
+                 , Element.Font.color Theme.lightGray
+                 , padding 10
+                 , spacing 10
+                 ]
+                    ++ Theme.mainContainerBackgroundAttributes
+                    ++ Theme.mainContainerBorderAttributes
+                )
+                elementBlockList
+
+        Desktop ->
+            elementBlockList
+                |> List.Extra.greedyGroupsOf 2
+                |> List.map
+                    (row
+                        [ width fill
+                        , spacingXY 15 0
+                        ]
+                    )
                 |> column
-                    ([ width fill
+                    ([ width Element.fill
                      , Element.Font.color Theme.lightGray
                      , padding 10
                      , spacing 10
-                     ]
-                        ++ Theme.mainContainerBackgroundAttributes
-                        ++ Theme.mainContainerBorderAttributes
-                    )
-
-        Desktop ->
-            [ [ "Price"
-                    |> statsHeading dProfile
-              , [ statsRowItem dProfile "Bucket" bucketPrice False
-                , statsRowItem dProfile "UniSwap" uniswapPrice False
-                ]
-                    |> statsRow
-              , "Supply"
-                    |> statsHeading dProfile
-              , [ statsRowItem dProfile "Circulating" circulatingSupply True
-                , statsRowItem dProfile "Total" totalSupply True
-                ]
-                    |> statsRow
-              , "Market Cap"
-                    |> statsHeading dProfile
-              , [ statsRowItem dProfile "Circulating" marketCap False
-                , statsRowItem dProfile "Fully Diluted" fullyDilutedMarketCap False
-                ]
-                    |> statsRow
-              ]
-                |> column
-                    [ width (300 |> px)
-                    , Element.Font.color Theme.lightGray
-                    , padding 10
-                    , spacing 10
-                    , height fill
-                    ]
-            , [ "Sale"
-                    |> statsHeading dProfile
-              , [ statsRowItem dProfile "Bucket #" bucketNumber False
-                , statsRowItem dProfile "Time Left" timeLeft False
-                ]
-                    |> statsRow
-              , "Treasury"
-                    |> statsHeading dProfile
-              , [ statsRowItem dProfile "Balance" composedTreasuryBalance False
-                ]
-                    |> statsRow
-              , "Liquidity"
-                    |> statsHeading dProfile
-              , [ statsRowItem dProfile "Permafrost" permafrostDollars False
-                ]
-                    |> statsRow
-              ]
-                |> column
-                    [ width (300 |> px)
-                    , Element.Font.color Theme.lightGray
-                    , padding 10
-                    , spacing 10
-                    , height fill
-                    ]
-            ]
-                |> row
-                    ([ width fill
-                     , spacingXY 15 0
+                     , height fill
                      ]
                         ++ Theme.mainContainerBackgroundAttributes
                         ++ Theme.mainContainerBorderAttributes
