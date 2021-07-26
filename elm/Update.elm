@@ -1500,6 +1500,20 @@ update msg model =
                     , Cmd.none
                     )
 
+        DethTVLFetched fetchResult ->
+            case fetchResult of
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
+
+                Ok tvl ->
+                    ( { model
+                        | dethTVL = Just tvl
+                      }
+                    , Cmd.none
+                    )
+
         DerivedEthIssuanceDetailFetched fetchResult ->
             case fetchResult of
                 Err err ->

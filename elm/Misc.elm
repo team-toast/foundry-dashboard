@@ -95,6 +95,7 @@ emptyModel key now basePath cookieConsent =
     , teamTokenBalances = Array.initialize 3 (always Nothing)
     , balancerFryBalance = Nothing
     , dethProfit = Nothing
+    , dethTVL = Nothing
     , permaFrostTotalSupply = Nothing
     , permaFrostBalanceLocked = Nothing
     , composedTreasuryBalance =
@@ -941,6 +942,13 @@ fetchDethProfitCmd =
         DethProfitFetched
 
 
+fetchDethTVLCmd : Cmd Msg
+fetchDethTVLCmd =
+    Deth.getTVL
+        Config.derivedEthContractAddress
+        DethTVLFetched
+
+
 fetchIssuanceDetail : TokenValue -> Cmd Msg
 fetchIssuanceDetail depositAmount =
     Deth.getIssuanceDetail
@@ -1182,6 +1190,7 @@ refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucket
            , fetchFarmEndTime
            , fetchApyCmd
            , fetchDethProfitCmd
+           , fetchDethTVLCmd
            , Maybe.map fetchDethPositionInfo
                 (TokenValue.fromString withdrawalAmountInput)
                 |> Maybe.withDefault Cmd.none

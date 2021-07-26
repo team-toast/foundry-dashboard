@@ -1,5 +1,7 @@
 module Contracts.DEthWrapper exposing (..)
 
+import BigInt
+import Config
 import Contracts.Generated.DEth as Deth
 import Contracts.Generated.ERC20 as ERC20
 import Eth
@@ -56,3 +58,25 @@ approveDEthToken contract =
         contract
         (TokenValue.maxTokenValue |> TokenValue.getEvmValue)
         |> Eth.toSend
+
+
+getTVL : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+getTVL contract msgConstructor =
+    Eth.call
+        Config.ethereumProviderUrl
+        (Deth.getCollateral contract)
+        |> Task.map
+            (\getCollateralStruct ->
+                TokenValue.mulFloatWithWarning
+                    (TokenValue.tokenValue getCollateralStruct.totalCollateral)
+                    (getCollateralStruct.priceRAY
+                        -- very hacky way of converting the RAY value (27 places) to the normal 18-place wei-style value TokenValue expects
+                        |> BigInt.toString
+                        |> String.dropRight 9 
+                        |> BigInt.fromIntString
+                        |> Maybe.withDefault (BigInt.fromInt 0)
+                        |> TokenValue.tokenValue
+                        |> TokenValue.toFloatWithWarning
+                        )
+            )
+        |> Task.attempt msgConstructor

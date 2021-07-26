@@ -230,26 +230,41 @@ statsEl model =
                         model.currentEthPriceUsd
                         |> tokenValueTextOrLoadingText
                    )
-
-        dethProfitEthString =
-            (model.dethProfit
-                |> tokenValueTextOrLoadingText
+        
+        dethTVLString =
+            model.dethTVL
+                |> Maybe.map (\tvl -> TokenValue.div tvl 100)
+                |> Maybe.map TokenValue.toConciseString
+                |> Maybe.map (\valStr -> "$" ++ valStr ++ "k")
+                |> Maybe.withDefault loadingText
+        
+        maybeEthValString maybeEthVal =
+            (maybeEthVal
+                |> Maybe.map TokenValue.toConciseString
+                |> Maybe.map (\valStr -> valStr ++ " ETH")
+                |> Maybe.withDefault loadingText
             )
-                ++ " ETH"
 
-        maybeDethProfitConversionString =
+        maybeEthValAndConvertedParenthetical maybeEthVal =
+            maybeEthValString maybeEthVal
+                ++ (maybeConvertedEthValParenthetical maybeEthVal
+                        |> Maybe.map (\s -> "  " ++ s)
+                        |> Maybe.withDefault ""
+                   )
+
+        maybeConvertedEthValParenthetical maybeEthVal =
             Maybe.map2
-                (\dethProfit currentEthPriceUsd ->
+                (\ethVal currentEthPriceUsd ->
                     TokenValue.mulFloatWithWarning
-                        dethProfit
+                        ethVal
                         currentEthPriceUsd
                 )
-                model.dethProfit
+                maybeEthVal
                 model.currentEthPriceUsd
-                |> Maybe.map (TokenValue.toFloatWithWarning >> floor >> String.fromInt)
+                |> Maybe.map (TokenValue.toConciseString)
                 |> Maybe.map
                     (\numStr ->
-                        "~ $" ++ numStr
+                        "(~$" ++ numStr ++ ")"
                     )
 
         permafrostedTokens =
@@ -273,9 +288,15 @@ statsEl model =
                  ]
                     |> statsRow
                 )
-            , makeBlock "Profit"
-                ([ statsRowItem dProfile "dETH" dethProfitEthString False
-                 , statsRowItem dProfile "" (maybeDethProfitConversionString |> Maybe.withDefault "") False
+            , makeBlock "dETH"
+                ([ statsRowItem dProfile
+                    "Profit to date"
+                    (maybeEthValAndConvertedParenthetical model.dethProfit)
+                    False
+                , statsRowItem dProfile
+                    "TVL"
+                    dethTVLString
+                    False
                  ]
                     |> statsRow
                 )
