@@ -1,5 +1,6 @@
 module View.Deth exposing (view)
 
+import Config
 import Element exposing (Attribute, Color, Element, above, alignRight, alignTop, alpha, centerX, column, el, fill, height, html, htmlAttribute, inFront, maximum, minimum, mouseOver, none, padding, paddingEach, paragraph, px, rgb, rgba, row, spacing, text, transparent, width)
 import Element.Background
 import Element.Border
@@ -12,7 +13,7 @@ import Maybe.Extra
 import Misc exposing (derivedEthUserInfo, userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), DEthDepositInfo, DEthUserInfo, DEthWithdrawInfo, InputValidationError, JurisdictionCheckStatus, Model, Msg, UserDerivedEthInfo, UserInfo, Wallet(..))
+import Types exposing (Chain(..), DEthDepositInfo, DEthUserInfo, DEthWithdrawInfo, InputValidationError, JurisdictionCheckStatus, Model, Msg(..), UserDerivedEthInfo, UserInfo, Wallet(..))
 import View.Common exposing (..)
 import Wallet
 
@@ -41,6 +42,7 @@ view model =
             mainEl
                 dProfile
                 walletState
+                model.dethGlobalSupply
                 model.depositAmountInput
                 model.withdrawalAmountInput
                 model.dEthUserInfo
@@ -106,8 +108,8 @@ titleEl dProfile =
         ]
 
 
-mainEl : DisplayProfile -> Wallet -> String -> String -> Maybe DEthUserInfo -> Maybe DEthDepositInfo -> Maybe DEthWithdrawInfo -> Element Msg
-mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthInfo maybeDEthDepositInfo maybeDEthWithdrawInfo =
+mainEl : DisplayProfile -> Wallet -> Maybe TokenValue -> String -> String -> Maybe DEthUserInfo -> Maybe DEthDepositInfo -> Maybe DEthWithdrawInfo -> Element Msg
+mainEl dProfile walletState maybeGlobalDethSupply depositAmountInput withdrawalAmountInput maybeDethUserInfo maybeDEthDepositInfo maybeDEthWithdrawInfo =
     let
         dEthDepositInfoType =
             Deposit maybeDEthDepositInfo
@@ -115,32 +117,39 @@ mainEl dProfile walletState depositAmount withdrawalAmount maybeUserDerivedEthIn
         dEthWithdrawInfoType =
             Withdraw maybeDEthWithdrawInfo
     in
-    [ investOrWithdrawEl
-        dProfile
-        walletState
-        "ETH -> dETH"
-        "Deposit"
-        depositAmount
-        dEthDepositInfoType
-        maybeUserDerivedEthInfo
-        Types.DepositAmountChanged
-    , investOrWithdrawEl
-        dProfile
-        walletState
-        "dETH -> ETH"
-        "Redeem"
-        withdrawalAmount
-        dEthWithdrawInfoType
-        maybeUserDerivedEthInfo
-        Types.WithdrawalAmountChanged
-    ]
-        |> responsiveVal dProfile
-            row
-            column
-            [ spacing 20
-            , padding 20
-            , centerX
-            ]
+    column
+        [ centerX
+        , spacing 20
+        ]
+        [ el [ centerX ] <|
+            possiblyDethRedeemWarningEl dProfile maybeGlobalDethSupply maybeDethUserInfo maybeDEthDepositInfo
+        , [ investOrWithdrawEl
+                dProfile
+                walletState
+                "ETH -> dETH"
+                "Deposit"
+                depositAmountInput
+                dEthDepositInfoType
+                maybeDethUserInfo
+                Types.DepositAmountChanged
+          , investOrWithdrawEl
+                dProfile
+                walletState
+                "dETH -> ETH"
+                "Redeem"
+                withdrawalAmountInput
+                dEthWithdrawInfoType
+                maybeDethUserInfo
+                Types.WithdrawalAmountChanged
+          ]
+            |> responsiveVal dProfile
+                row
+                column
+                [ spacing 20
+                , padding 20
+                , centerX
+                ]
+        ]
 
 
 validationErrorToString : InputValidationError -> String
@@ -162,6 +171,120 @@ inputErrorEl dProfile errStr =
         |> msgInsteadOfButton
             dProfile
             errStr
+
+
+possiblyDethRedeemWarningEl :
+    DisplayProfile
+    -> Maybe TokenValue
+    -> Maybe DEthUserInfo
+    -> Maybe DEthDepositInfo
+    -> Element Msg
+possiblyDethRedeemWarningEl dProfile maybeGlobalDethSupply maybeDethUserInfo maybeDethDepositInfo =
+    case maybeGlobalDethSupply of
+        Just globalDethSupply ->
+            let
+                maybeDethBalance =
+                    maybeDethUserInfo |> Maybe.map .dEthBalance
+
+                maybeDethMintingAmount =
+                    maybeDethDepositInfo |> Maybe.map .tokensIssued
+
+                totalPossibleBalance =
+                    TokenValue.add
+                        (maybeDethBalance |> Maybe.withDefault TokenValue.zero)
+                        (maybeDethMintingAmount |> Maybe.withDefault TokenValue.zero)
+
+                userBalanceToTotalRatio =
+                    TokenValue.getRatioWithWarning totalPossibleBalance globalDethSupply
+            in
+            if userBalanceToTotalRatio > Config.userDethWarningThresholdRatio then
+                let
+                    -- mention added balance if the amount they're minting is not nothing
+                    mentionAddedBalance =
+                        maybeDethMintingAmount /= Nothing
+                in
+                dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio
+
+            else
+                Element.none
+
+        Nothing ->
+            Element.none
+
+
+dethRedeemWarningEl : Bool -> Float -> Element Msg
+dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio =
+    let
+        percentageHoldingString =
+            userBalanceToTotalRatio
+                * 100
+                |> floor
+                |> String.fromInt
+                |> (\s -> s ++ "%")
+
+        emphasizedText =
+            Element.el [ Font.color Theme.red ] << text
+        
+        paragraphWithFontsize size =
+            paragraph [ width fill, spacing 0, Font.size size ]
+        
+        link url labelText =
+            Element.newTabLink
+                [ Font.color Theme.lightBlue ]
+                { url = url
+                , label = text labelText
+                }
+
+    in
+    el
+        (Theme.mainContainerBorderAttributes
+            ++ Theme.mainContainerBackgroundAttributes
+            ++ [ padding 10 ]
+        )
+    <|
+        Element.column
+            [ width <| px 500
+            , spacing 10
+            ]
+            [ column
+                [ width fill, spacing 10 ]
+              <|
+                [ el [ Font.color Theme.yellow, centerX, Font.size 24 ] <|
+                    text <|
+                        "Whale alert! "
+                , paragraphWithFontsize 20
+                    [ text
+                        (if mentionAddedBalance then
+                            "You're about to have "
+
+                         else
+                            "You're holding "
+                        )
+                    , emphasizedText <|
+                        percentageHoldingString
+                    , text " of the total dETH supply!"
+                    ]
+                ]
+            , paragraphWithFontsize 16
+                [ text "We're stoked - "
+                , emphasizedText "but please note!"
+                , text " If you try to redeem that all at once, "
+                , emphasizedText "the transaction may fail"
+                , text " - you'll have to do it in smaller chunks in ~10 minute intervals."
+                ]
+            , paragraphWithFontsize 16
+                [ text "This safeguard gives the DeFi Saver system time to rebalance the position as the ETH collateral is withdrawn, protecting dETH from default."
+                ]
+            , paragraphWithFontsize 16
+                [ text "Read more about this "
+                , link "https://schalk-dormehl.medium.com/eth-is-money-%C2%B2-deth-13320315cfb6" "here"
+                , text ". Questions? Come say hi on "
+                , link "https://t.me/FoundryCommunity" "Telegram"
+                , text " or "
+                , link "https://discord.gg/eEtjFWBjgM" "Discord"
+                , text "."
+                ]
+            ]
 
 
 investOrWithdrawEl :

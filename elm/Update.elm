@@ -1514,6 +1514,20 @@ update msg model =
                     , Cmd.none
                     )
 
+        DethSupplyFetched fetchResult ->
+            case fetchResult of
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    )
+
+                Ok supply ->
+                    ( { model
+                        | dethGlobalSupply = Just supply
+                      }
+                    , Cmd.none
+                    )
+
         DerivedEthIssuanceDetailFetched fetchResult ->
             case fetchResult of
                 Err err ->

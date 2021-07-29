@@ -125,6 +125,7 @@ emptyModel key now basePath cookieConsent =
     , gtagHistory = GTag.emptyGtagHistory
     , farmingPeriodEnds = 0
     , initiatedOldFarmExit = False
+    , dethGlobalSupply = Nothing
     }
 
 
@@ -1156,6 +1157,13 @@ combineTreasuryBalance =
         >> Maybe.map (List.foldl TokenValue.add TokenValue.zero)
 
 
+fetchDethSupplyCmd : Cmd Msg
+fetchDethSupplyCmd =
+    Deth.fetchTotalSupply
+        Config.derivedEthContractAddress
+        DethSupplyFetched
+
+
 refreshCmds : Wallet -> Bool -> String -> Maybe Int -> List (Cmd Msg)
 refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucketId =
     let
@@ -1191,6 +1199,7 @@ refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucket
            , fetchApyCmd
            , fetchDethProfitCmd
            , fetchDethTVLCmd
+           , fetchDethSupplyCmd
            , Maybe.map fetchDethPositionInfo
                 (TokenValue.fromString withdrawalAmountInput)
                 |> Maybe.withDefault Cmd.none

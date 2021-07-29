@@ -72,11 +72,20 @@ getTVL contract msgConstructor =
                     (getCollateralStruct.priceRAY
                         -- very hacky way of converting the RAY value (27 places) to the normal 18-place wei-style value TokenValue expects
                         |> BigInt.toString
-                        |> String.dropRight 9 
+                        |> String.dropRight 9
                         |> BigInt.fromIntString
                         |> Maybe.withDefault (BigInt.fromInt 0)
                         |> TokenValue.tokenValue
                         |> TokenValue.toFloatWithWarning
-                        )
+                    )
             )
+        |> Task.attempt msgConstructor
+
+
+fetchTotalSupply : Address -> (Result Http.Error TokenValue -> msg) -> Cmd msg
+fetchTotalSupply contract msgConstructor =
+    Eth.call
+        Config.ethereumProviderUrl
+        (Deth.totalSupply contract)
+        |> Task.map TokenValue.tokenValue
         |> Task.attempt msgConstructor

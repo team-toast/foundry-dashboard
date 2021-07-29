@@ -97,6 +97,7 @@ type alias Model =
     , gtagHistory : GTag.GTagHistory
     , farmingPeriodEnds : Int
     , initiatedOldFarmExit : Bool
+    , dethGlobalSupply : Maybe TokenValue
     }
 
 
@@ -175,6 +176,7 @@ type Msg
     | FarmingPeriodEndFetched (Result Http.Error BigInt)
     | DethProfitFetched (Result Http.Error TokenValue)
     | DethTVLFetched (Result Http.Error TokenValue)
+    | DethSupplyFetched (Result Http.Error TokenValue)
 
 
 type DethMode

@@ -228,3 +228,7 @@ saleEndTime =
     Time.millisToPosix
         (1642968000 * 1000)
 
+
+userDethWarningThresholdRatio : Float
+userDethWarningThresholdRatio =
+    0.35
