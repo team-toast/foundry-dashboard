@@ -66,20 +66,6 @@ view model =
             , Font.color EH.white
             , width fill
             ]
-        |> el
-            [ Element.paddingEach
-                { top =
-                    responsiveVal
-                        dProfile
-                        60
-                        10
-                , bottom = 0
-                , left = 0
-                , right = 0
-                }
-            , centerX
-            , alignTop
-            ]
 
 
 titleEl : DisplayProfile -> Element Msg
@@ -224,17 +210,16 @@ dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio =
 
         emphasizedText =
             Element.el [ Font.color Theme.red ] << text
-        
+
         paragraphWithFontsize size =
             paragraph [ width fill, spacing 0, Font.size size ]
-        
+
         link url labelText =
             Element.newTabLink
                 [ Font.color Theme.lightBlue ]
                 { url = url
                 , label = text labelText
                 }
-
     in
     el
         (Theme.mainContainerBorderAttributes
