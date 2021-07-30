@@ -270,7 +270,7 @@ dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio =
                 , emphasizedText "but please note!"
                 , text " If you try to redeem that all at once, "
                 , emphasizedText "the transaction may fail"
-                , text " - you'll have to do it in smaller chunks in ~10 minute intervals."
+                , text " - you'll have to do it in smaller chunks (about 35%-40% of the supply) in ~10 minute intervals."
                 ]
             , paragraphWithFontsize 16
                 [ text "This safeguard gives the DeFi Saver system time to rebalance the position as the ETH collateral is withdrawn, protecting dETH from default."
