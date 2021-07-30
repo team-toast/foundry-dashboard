@@ -189,7 +189,7 @@ possiblyDethRedeemWarningEl dProfile maybeGlobalDethSupply maybeDethUserInfo may
                     mentionAddedBalance =
                         maybeDethMintingAmount /= Nothing
                 in
-                dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio
+                dethRedeemWarningEl dProfile mentionAddedBalance userBalanceToTotalRatio
 
             else
                 Element.none
@@ -198,8 +198,8 @@ possiblyDethRedeemWarningEl dProfile maybeGlobalDethSupply maybeDethUserInfo may
             Element.none
 
 
-dethRedeemWarningEl : Bool -> Float -> Element Msg
-dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio =
+dethRedeemWarningEl : DisplayProfile -> Bool -> Float -> Element Msg
+dethRedeemWarningEl dProfile mentionAddedBalance userBalanceToTotalRatio =
     let
         percentageHoldingString =
             userBalanceToTotalRatio
@@ -220,6 +220,10 @@ dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio =
                 { url = url
                 , label = text labelText
                 }
+        (fontSize1, fontSize2, fontSize3) =
+            responsiveVal dProfile
+                (24, 20, 16)
+                (20, 18, 14)
     in
     el
         (Theme.mainContainerBorderAttributes
@@ -228,16 +232,17 @@ dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio =
         )
     <|
         Element.column
-            [ width <| px 500
+            
+            [ width <| px <| responsiveVal dProfile 500 280
             , spacing 10
             ]
             [ column
                 [ width fill, spacing 10 ]
               <|
-                [ el [ Font.color Theme.yellow, centerX, Font.size 24 ] <|
+                [ el [ Font.color Theme.yellow, centerX, Font.size fontSize1 ] <|
                     text <|
                         "Whale alert! "
-                , paragraphWithFontsize 20
+                , paragraphWithFontsize fontSize2
                     [ text
                         (if mentionAddedBalance then
                             "You're about to have "
@@ -250,17 +255,17 @@ dethRedeemWarningEl mentionAddedBalance userBalanceToTotalRatio =
                     , text " of the total dETH supply!"
                     ]
                 ]
-            , paragraphWithFontsize 16
+            , paragraphWithFontsize fontSize3
                 [ text "We're stoked - "
                 , emphasizedText "but please note!"
                 , text " If you try to redeem that all at once, "
                 , emphasizedText "the transaction may fail"
                 , text " - you'll have to do it in smaller chunks (about 35%-40% of the supply) in ~10 minute intervals."
                 ]
-            , paragraphWithFontsize 16
+            , paragraphWithFontsize fontSize3
                 [ text "This safeguard gives the DeFi Saver system time to rebalance the position as the ETH collateral is withdrawn, protecting dETH from default."
                 ]
-            , paragraphWithFontsize 16
+            , paragraphWithFontsize fontSize3
                 [ text "Read more about this "
                 , link "https://schalk-dormehl.medium.com/eth-is-money-%C2%B2-deth-13320315cfb6" "here"
                 , text ". Questions? Come say hi on "
