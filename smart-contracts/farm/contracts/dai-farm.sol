@@ -753,9 +753,9 @@ contract QueryBalancerDAIPoolScript
 
         uint daiInPool = 
             IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F)
-            .balanceOf(address(_rewards.rewardsToken));
+            .balanceOf(address(_rewards.stakingToken()));
         _totalStakedValue = 
-            IERC20(address(_rewards.rewardsToken))
+            IERC20(address(_rewards.stakingToken()))
             .totalSupply()
             .mul(10**18) // 10^18 for precision
             .div(_rewards.totalSupply())
