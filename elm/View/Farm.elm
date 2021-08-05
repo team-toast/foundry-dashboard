@@ -210,10 +210,11 @@ balancesElement :
     -> DepositOrWithdrawUXModel
     -> Element Msg
 balancesElement dProfile jurisdictionCheckStatus now isFarmingActive maybeUserStakingInfo maybeOldUserStakingBalance depositWithdrawUXModel =
-    [ maybeExitOldFarmElement
-        dProfile
-        maybeOldUserStakingBalance
-    , maybeGetLiquidityMessageElement
+    [ -- maybeExitOldFarmElement
+      -- dProfile
+      -- maybeOldUserStakingBalance
+      -- ,
+      maybeGetLiquidityMessageElement
         dProfile
         maybeUserStakingInfo
     , unstakedRow
