@@ -120,10 +120,8 @@ init flags url key =
                                )
                   }
                 , (Misc.refreshCmds wallet True "" Nothing
-                    ++ [ 
-                        -- ethCmd
-                        fetchAllPollsCmd
-                        todo: event sentries are fucking dead    |  - . -  ;;
+                    ++ [ ethCmd
+                       , fetchAllPollsCmd
                        , if route == Routing.Home then
                             Browser.Navigation.pushUrl
                                 model.navKey
@@ -148,13 +146,15 @@ startSentry config =
             Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
                 config.providerUrl
 
-        ( eventSentry, secondEventSentryCmd, _ ) =
-            Eth.Sentry.Event.watch
-                (Contracts.DEthWrapper.decodeIssuedEventData
-                    >> Types.IssuedEventReceived
-                )
-                initEventSentry
-                dethMintEventFilter
+        ( eventSentry, secondEventSentryCmd ) =
+            ( initEventSentry, initEventSentryCmd )
+
+        -- Eth.Sentry.Event.watch
+        --     (Contracts.DEthWrapper.decodeIssuedEventData
+        --         >> Types.IssuedEventReceived
+        --     )
+        --     initEventSentry
+        --     dethMintEventFilter
     in
     ( eventSentry
     , Cmd.batch [ initEventSentryCmd, secondEventSentryCmd ]

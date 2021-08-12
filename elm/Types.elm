@@ -178,7 +178,7 @@ type Msg
     | DethProfitFetched (Result Http.Error TokenValue)
     | DethTVLFetched (Result Http.Error TokenValue)
     | DethSupplyFetched (Result Http.Error TokenValue)
-    | IssuedEventReceived (Event (Result Json.Decode.Error DethIssuedEventData))
+    -- | IssuedEventReceived (Event (Result Json.Decode.Error DethIssuedEventData))
 
 
 type DethMode
