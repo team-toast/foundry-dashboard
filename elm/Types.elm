@@ -5,14 +5,14 @@ import Array exposing (Array)
 import BigInt exposing (BigInt)
 import Browser
 import Browser.Navigation
-import Contracts.Generated.DEth as Death
+import Contracts.Generated.DEth as DethGenerated
 import Dict exposing (Dict)
 import ElementHelpers as EH
 import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
-import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
+import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt, Event)
 import GTag
 import Graphql.Http
 import Http
@@ -98,6 +98,7 @@ type alias Model =
     , farmingPeriodEnds : Int
     , initiatedOldFarmExit : Bool
     , dethGlobalSupply : Maybe TokenValue
+    , dethUniqueMints : AddressDict TokenValue
     }
 
 
@@ -132,13 +133,13 @@ type Msg
     | WithdrawClicked TokenValue
     | UserEthBalanceFetched (Result Http.Error TokenValue)
     | UserDerivedEthBalanceFetched (Result Http.Error TokenValue)
-    | DerivedEthRedeemableFetched (Result Http.Error Death.CalculateRedemptionValue)
+    | DerivedEthRedeemableFetched (Result Http.Error DethGenerated.CalculateRedemptionValue)
     | ApproveTokenSpend
     | DepositSigned (Result String TxHash)
     | WithdrawSigned (Result String TxHash)
     | FetchUserEthBalance
     | FetchUserDerivedEthBalance
-    | DerivedEthIssuanceDetailFetched (Result Http.Error Death.CalculateIssuanceAmount)
+    | DerivedEthIssuanceDetailFetched (Result Http.Error DethGenerated.CalculateIssuanceAmount)
     | GotoRoute Route
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
@@ -177,6 +178,7 @@ type Msg
     | DethProfitFetched (Result Http.Error TokenValue)
     | DethTVLFetched (Result Http.Error TokenValue)
     | DethSupplyFetched (Result Http.Error TokenValue)
+    | IssuedEventReceived (Event (Result Json.Decode.Error DethIssuedEventData))
 
 
 type DethMode
@@ -403,3 +405,14 @@ type XDaiStatus
     = XDaiStandby
     | WaitingForApi
     | WaitingForBalance
+
+
+type alias DethIssuedEventData =
+    { receiver : Address
+    , suppliedCollateral : TokenValue
+    , protocolFee : TokenValue
+    , automationFee : TokenValue
+    , actualCollateralAdded : TokenValue
+    , accreditedCollateral : TokenValue
+    , tokensIssued : TokenValue
+    }

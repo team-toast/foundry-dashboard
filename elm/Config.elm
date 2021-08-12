@@ -213,8 +213,8 @@ balancerPermafrostPool =
     Eth.Utils.unsafeToAddress "0x5277a42ef95eca7637ffa9e69b65a12a089fe12b"
 
 
-derivedEthContractAddress : Address
-derivedEthContractAddress =
+dethContractAddress : Address
+dethContractAddress =
     Eth.Utils.unsafeToAddress "0x51863Ec92BA14ede7B17fb2B053145C90E215A57"
 
 
@@ -232,3 +232,8 @@ saleEndTime =
 userDethWarningThresholdRatio : Float
 userDethWarningThresholdRatio =
     0.35
+
+
+dethStartScanBlock : Int
+dethStartScanBlock =
+    12799856

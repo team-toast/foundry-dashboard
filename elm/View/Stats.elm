@@ -1,5 +1,6 @@
 module View.Stats exposing (view)
 
+import AddressDict
 import BigInt
 import Chain
 import Config
@@ -230,20 +231,24 @@ statsEl model =
                         model.currentEthPriceUsd
                         |> tokenValueTextOrLoadingText
                    )
-        
+
         dethTVLString =
             model.dethTVL
                 |> Maybe.map (\tvl -> TokenValue.div tvl 1000)
                 |> Maybe.map TokenValue.toConciseString
                 |> Maybe.map (\valStr -> "$" ++ valStr ++ "k")
                 |> Maybe.withDefault loadingText
-        
+
+        dethNumUniqueMints =
+            model.dethUniqueMints
+                |> AddressDict.keys
+                |> List.length
+
         maybeEthValString maybeEthVal =
-            (maybeEthVal
+            maybeEthVal
                 |> Maybe.map TokenValue.toConciseString
                 |> Maybe.map (\valStr -> valStr ++ " ETH")
                 |> Maybe.withDefault loadingText
-            )
 
         maybeEthValAndConvertedParenthetical maybeEthVal =
             maybeEthValString maybeEthVal
@@ -261,7 +266,7 @@ statsEl model =
                 )
                 maybeEthVal
                 model.currentEthPriceUsd
-                |> Maybe.map (TokenValue.toConciseString)
+                |> Maybe.map TokenValue.toConciseString
                 |> Maybe.map
                     (\numStr ->
                         "(~$" ++ numStr ++ ")"
@@ -293,9 +298,13 @@ statsEl model =
                     "Profit to date"
                     (maybeEthValAndConvertedParenthetical model.dethProfit)
                     False
-                , statsRowItem dProfile
+                 , statsRowItem dProfile
                     "TVL"
                     dethTVLString
+                    False
+                , statsRowItem dProfile
+                    "Num"
+                    (String.fromInt dethNumUniqueMints)
                     False
                  ]
                     |> statsRow

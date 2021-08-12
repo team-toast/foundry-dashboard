@@ -126,6 +126,7 @@ emptyModel key now basePath cookieConsent =
     , farmingPeriodEnds = 0
     , initiatedOldFarmExit = False
     , dethGlobalSupply = Nothing
+    , dethUniqueMints = AddressDict.empty
     }
 
 
@@ -931,7 +932,7 @@ fetchDerivedEthBalance : Address -> Cmd Msg
 fetchDerivedEthBalance address =
     ERC20.getBalanceCmd
         Eth
-        Config.derivedEthContractAddress
+        Config.dethContractAddress
         address
         Types.UserDerivedEthBalanceFetched
 
@@ -946,14 +947,14 @@ fetchDethProfitCmd =
 fetchDethTVLCmd : Cmd Msg
 fetchDethTVLCmd =
     Deth.getTVL
-        Config.derivedEthContractAddress
+        Config.dethContractAddress
         DethTVLFetched
 
 
 fetchIssuanceDetail : TokenValue -> Cmd Msg
 fetchIssuanceDetail depositAmount =
     Deth.getIssuanceDetail
-        Config.derivedEthContractAddress
+        Config.dethContractAddress
         Config.ethereumProviderUrl
         depositAmount
         |> Task.attempt Types.DerivedEthIssuanceDetailFetched
@@ -962,7 +963,7 @@ fetchIssuanceDetail depositAmount =
 fetchDethPositionInfo : TokenValue -> Cmd Msg
 fetchDethPositionInfo amount =
     Deth.getRedeemable
-        Config.derivedEthContractAddress
+        Config.dethContractAddress
         Config.ethereumProviderUrl
         amount
         |> Task.attempt Types.DerivedEthRedeemableFetched
@@ -981,7 +982,7 @@ doDepositChainCmd sender amount =
         }
     , send =
         Deth.deposit
-            Config.derivedEthContractAddress
+            Config.dethContractAddress
             sender
             amount
     , txInfo = UserTx.DEthDeposit
@@ -1001,7 +1002,7 @@ doWithdrawChainCmd receiver amount =
         }
     , send =
         Deth.redeem
-            Config.derivedEthContractAddress
+            Config.dethContractAddress
             receiver
             amount
     , txInfo = UserTx.DEthRedeem
@@ -1160,7 +1161,7 @@ combineTreasuryBalance =
 fetchDethSupplyCmd : Cmd Msg
 fetchDethSupplyCmd =
     Deth.fetchTotalSupply
-        Config.derivedEthContractAddress
+        Config.dethContractAddress
         DethSupplyFetched
 
 

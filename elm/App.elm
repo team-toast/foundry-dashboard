@@ -5,6 +5,7 @@ import Browser.Hash as Hash
 import Browser.Navigation
 import Chain
 import Config
+import Contracts.DEthWrapper
 import ElementHelpers exposing (screenWidthToDisplayProfile)
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
@@ -94,18 +95,14 @@ init flags url key =
                         else
                             Types.NoneDetected
 
-                    ( ethSentry, ethCmd1, ethCmd2 ) =
+                    ( ethSentry, ethCmd ) =
                         startSentry model.config.ethereum
 
-                    ( xDaiSentry, xDaiCmd1, xDaiCmd2 ) =
+                    ( xDaiSentry, xDaiCmd ) =
                         startSentry model.config.xDai
 
-                    ( bscSentry, bscCmd1, bscCmd2 ) =
+                    ( bscSentry, bscCmd ) =
                         startSentry model.config.bsc
-
-                    chain =
-                        model.wallet
-                            |> Wallet.getChainDefaultEth
                 in
                 ( { model
                     | config = config
@@ -123,7 +120,10 @@ init flags url key =
                                )
                   }
                 , (Misc.refreshCmds wallet True "" Nothing
-                    ++ [ fetchAllPollsCmd
+                    ++ [ 
+                        -- ethCmd
+                        fetchAllPollsCmd
+                        todo: event sentries are fucking dead    |  - . -  ;;
                        , if route == Routing.Home then
                             Browser.Navigation.pushUrl
                                 model.navKey
@@ -138,14 +138,27 @@ init flags url key =
             )
 
 
-startSentry : Types.ChainConfig -> ( Eth.Sentry.Event.EventSentry Msg, Cmd Msg, Cmd Msg )
+startSentry : Types.ChainConfig -> ( Eth.Sentry.Event.EventSentry Msg, Cmd Msg )
 startSentry config =
     let
+        dethMintEventFilter =
+            Contracts.DEthWrapper.squanderEventFilter
+
         ( initEventSentry, initEventSentryCmd ) =
             Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
                 config.providerUrl
+
+        ( eventSentry, secondEventSentryCmd, _ ) =
+            Eth.Sentry.Event.watch
+                (Contracts.DEthWrapper.decodeIssuedEventData
+                    >> Types.IssuedEventReceived
+                )
+                initEventSentry
+                dethMintEventFilter
     in
-    ( initEventSentry, initEventSentryCmd, Cmd.none )
+    ( eventSentry
+    , Cmd.batch [ initEventSentryCmd, secondEventSentryCmd ]
+    )
 
 
 subscriptions : Model -> Sub Msg

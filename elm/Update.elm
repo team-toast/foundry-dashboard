@@ -1260,7 +1260,7 @@ update msg model =
                     [ let
                         txParams =
                             Deth.deposit
-                                Config.derivedEthContractAddress
+                                Config.dethContractAddress
                                 uInfo.address
                                 amount
                                 |> EthHelpers.addFrom uInfo.address
@@ -1294,7 +1294,7 @@ update msg model =
                     let
                         txParams =
                             Deth.redeem
-                                Config.derivedEthContractAddress
+                                Config.dethContractAddress
                                 uInfo.address
                                 amount
                                 |> EthHelpers.addFrom uInfo.address
@@ -1820,6 +1820,28 @@ update msg model =
                                 |> Maybe.withDefault 0
                       }
                     , Cmd.none
+                    )
+
+        IssuedEventReceived event ->
+            case event.returnData of
+                Ok dethIssuedEventData ->
+                    ( { model
+                        | dethUniqueMints =
+                            model.dethUniqueMints
+                                |> AddressDict.update
+                                    dethIssuedEventData.receiver
+                                    (Maybe.map
+                                        (TokenValue.add dethIssuedEventData.protocolFee)
+                                    )
+                      }
+                    , Cmd.none
+                    )
+
+                Err decodeErr ->
+                    ( model
+                    , Ports.log <|
+                        "Error decoding deth issuance event: "
+                            ++ Json.Decode.errorToString decodeErr
                     )
 
 
