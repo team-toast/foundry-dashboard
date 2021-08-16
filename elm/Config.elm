@@ -115,14 +115,14 @@ teamToastMultiSigAddress =
 
 mainTreasuryAddress : Address
 mainTreasuryAddress =
-    Eth.Utils.unsafeToAddress "0x9C59BAD7674AC1b9485Ede5c19af3B42F0516392"
+    Eth.Utils.unsafeToAddress "0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553"
 
 
 treasuryAddresses : List Address
 treasuryAddresses =
     [ mainTreasuryAddress
     , Eth.Utils.unsafeToAddress "0xecB864Bfed3260388d1a7f8F182053F406074C5a"
-    , Eth.Utils.unsafeToAddress "0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553"
+    , Eth.Utils.unsafeToAddress "0x9C59BAD7674AC1b9485Ede5c19af3B42F0516392"
     ]
 
 
