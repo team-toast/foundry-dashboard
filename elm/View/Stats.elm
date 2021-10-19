@@ -302,10 +302,10 @@ statsEl model =
                     "TVL"
                     dethTVLString
                     False
-                , statsRowItem dProfile
-                    "Num"
-                    (String.fromInt dethNumUniqueMints)
-                    False
+                -- , statsRowItem dProfile
+                --     "Num"
+                --     (String.fromInt dethNumUniqueMints)
+                --     False
                  ]
                     |> statsRow
                 )
