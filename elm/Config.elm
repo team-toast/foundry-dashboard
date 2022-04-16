@@ -20,7 +20,11 @@ displayProfileBreakpoint =
 
 ethereumProviderUrl : String
 ethereumProviderUrl =
-    "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+    "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+
+arbitrumProviderUls : String
+arbitrumProviderUls =
+    "https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
 httpProviderUrl : Chain -> String
@@ -72,14 +76,28 @@ daiContractAddress chain =
             Nothing
 
 
-erc20BalanceFetchBatchContractAddress : Address
-erc20BalanceFetchBatchContractAddress =
+ethErc20BalanceFetchBatchContractAddress : Address
+ethErc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
+
+arbiErc20BalanceFetchBatchContractAddress : Address
+arbiErc20BalanceFetchBatchContractAddress =
+    Eth.Utils.unsafeToAddress "0x6b88B564EfC6fcE6515E73B0b1DAb5c4f10a1054"
 
 
 ethereumFryContractAddress : Address
 ethereumFryContractAddress =
     Eth.Utils.unsafeToAddress "0x6c972b70c533E2E045F333Ee28b9fFb8D717bE69"
+
+
+arbitrumOneFryContractAddress : Address
+arbitrumOneFryContractAddress =
+    Eth.Utils.unsafeToAddress "0x633a3d2091dc7982597a0f635d23ba5eb1223f48"
+
+
+arbitrumOneGFryContractAddress : Address
+arbitrumOneGFryContractAddress =
+    Eth.Utils.unsafeToAddress "0x365db53eeb009b447b0e5a95e2523596e074d2fe"
 
 
 fryContractAddressForChain : Chain -> Maybe Address

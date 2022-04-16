@@ -25,7 +25,7 @@ import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
-import GTag
+import GTag 
 import Graphql.Http
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Helpers.Eth as EthHelpers
@@ -819,9 +819,9 @@ validateSigResultDecoder =
         )
 
 
-fetchFryBalancesCmd : List Address -> Cmd Msg
+fetchFryBalancesCmd : List Address -> List (Cmd Msg)
 fetchFryBalancesCmd addresses =
-    Contracts.FryBalanceFetch.fetch
+    Contracts.FryBalanceFetch.quickFetch
         addresses
         Types.FryBalancesFetched
 

@@ -944,11 +944,6 @@ update msg model =
                     )
 
         ApyFetched fetchResult ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.getChainDefaultEth
-            in
             case fetchResult of
                 Err httpErr ->
                     ( model
@@ -968,9 +963,7 @@ update msg model =
                 (\userInfo ->
                     ( model
                     , Cmd.batch
-                        [ refreshPollVotesCmd model Nothing
-                        , fetchFryBalancesCmd (model.fryBalances |> AddressDict.keys)
-                        ]
+                        ((fetchFryBalancesCmd (model.fryBalances |> AddressDict.keys)) ++ [ refreshPollVotesCmd model Nothing ])
                     )
                 )
 
@@ -1077,11 +1070,6 @@ update msg model =
                                         newDictPortion
 
                         cmd =
-                            let
-                                chain =
-                                    model.wallet
-                                        |> Wallet.getChainDefaultEth
-                            in
                             newBalancesDict
                                 |> AddressDict.filter
                                     (\addressString maybeBalance ->
@@ -1089,6 +1077,7 @@ update msg model =
                                     )
                                 |> AddressDict.keys
                                 |> fetchFryBalancesCmd
+                                |> Cmd.batch
 
                         tempModel =
                             case maybeUserNotice of
@@ -1795,11 +1784,6 @@ update msg model =
                 )
 
         FetchFarmingPeriodEnd ->
-            let
-                chain =
-                    model.wallet
-                        |> Wallet.getChainDefaultEth
-            in
             ( model
             , fetchFarmEndTime
             )
