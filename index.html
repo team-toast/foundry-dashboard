@@ -13841,16 +13841,16 @@ var $author$project$App$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
-				A2($elm$time$Time$every, 1000 * 0.5, $author$project$Types$UpdateNow),
+				A2($elm$time$Time$every, 1000 * 180, $author$project$Types$UpdateNow),
 				A2(
 				$elm$time$Time$every,
-				1000 * 5,
+				1000 * 180,
 				$elm$core$Basics$always($author$project$Types$RefreshAll)),
 				A2(
 				$elm$time$Time$every,
-				1000 * 15,
+				1000 * 180,
 				$elm$core$Basics$always($author$project$Types$RefetchStakingInfoOrApy)),
-				A2($elm$time$Time$every, 1000 * 15, $author$project$Types$Tick),
+				A2($elm$time$Time$every, 1000 * 180, $author$project$Types$Tick),
 				$author$project$Ports$web3SignResult($author$project$Types$Web3SignResultValue),
 				$author$project$Ports$web3ValidateSigResult($author$project$Types$Web3ValidateSigResultValue),
 				$author$project$Ports$walletResponse(
@@ -16473,9 +16473,7 @@ var $author$project$Contracts$FryBalanceFetch$updateBalancesFromResponse = F2(
 		return A2(
 			$elm$core$List$append,
 			_List_fromArray(
-				[
-					{balances: response.balances, erc20: response.erc20, providerUrl: response.providerUrl}
-				]),
+				[response]),
 			A2(
 				$elm$core$List$filter,
 				function (balanceSet) {

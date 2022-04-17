@@ -1804,28 +1804,6 @@ update msg model =
                     , Cmd.none
                     )
 
-        -- IssuedEventReceived event ->
-        --     case event.returnData of
-        --         Ok dethIssuedEventData ->
-        --             ( { model
-        --                 | dethUniqueMints =
-        --                     model.dethUniqueMints
-        --                         |> AddressDict.update
-        --                             dethIssuedEventData.receiver
-        --                             (Maybe.map
-        --                                 (TokenValue.add dethIssuedEventData.protocolFee)
-        --                             )
-        --               }
-        --             , Cmd.none
-        --             )
-
-        --         Err decodeErr ->
-        --             ( model
-        --             , Ports.log <|
-        --                 "Error decoding deth issuance event: "
-        --                     ++ Json.Decode.errorToString decodeErr
-        --             )
-
 
 gotoRoute : Routing.Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =

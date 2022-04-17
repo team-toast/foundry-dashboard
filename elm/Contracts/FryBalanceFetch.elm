@@ -8,13 +8,10 @@ import Eth.Types exposing (..)
 import Http
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (BalanceSet, Chain)
+import Types exposing (BalanceSet)
 import Eth.Net exposing (NetworkId(..))
-import Types exposing (Msg)
-import Dict exposing (Dict)
 import List.Extra exposing (uniqueBy)
 import Eth.Utils exposing (addressToString)
-import Contracts.Generated.ERC20BalanceFetchBatch exposing (balances)
 
 toMaybeAddressDict :
     AddressDict a
