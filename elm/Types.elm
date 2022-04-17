@@ -12,8 +12,8 @@ import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
-import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt, Event)
-import GTag
+import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt, Event, HttpProvider)
+import GTag exposing (..)
 import Graphql.Http
 import Http
 import Json.Decode exposing (Value)
@@ -39,6 +39,11 @@ type alias Flags =
     , hasWallet : Bool
     }
 
+type alias BalanceSet =
+    { providerUrl : HttpProvider
+    , erc20 : Address
+    , balances : AddressDict (Maybe TokenValue)
+    }
 
 type alias Model =
     { navKey : Browser.Navigation.Key
@@ -86,7 +91,7 @@ type alias Model =
     , polls : Maybe (List Poll)
     , maybeValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses : ValidatedResponseTracker
-    , fryBalances : AddressDict (Maybe TokenValue)
+    , fryBalances : List (BalanceSet)
     , mouseoverState : MouseoverState
     , userStakingInfo : Maybe UserStakingInfo
     , oldUserStakingBalances : List ( Address, Maybe TokenValue )
@@ -94,7 +99,7 @@ type alias Model =
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
     , config : Config
     , chainSwitchInProgress : Bool
-    , gtagHistory : GTag.GTagHistory
+    , gtagHistory : GTagHistory
     , farmingPeriodEnds : Int
     , initiatedOldFarmExit : Bool
     , dethGlobalSupply : Maybe TokenValue
@@ -151,7 +156,7 @@ type Msg
     | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (Dict Int SignedResponse))
-    | FryBalancesFetched (Result Http.Error (AddressDict TokenValue))
+    | FryBalancesFetched (Result Http.Error (BalanceSet))
     | SetMouseoverState MouseoverState
     | UpdateNow Time.Posix
     | AmountInputChanged String
@@ -205,7 +210,6 @@ type alias UserInfo =
 
 type PhaceIconId
     = UserPhace
-
 
 type alias UserStakingInfo =
     { unstaked : TokenValue

@@ -34,6 +34,9 @@ import Url
 import UserNotice as UN exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
 import UserTx exposing (Initiator, SignedTxStatus(..), TxInfo(..))
 import Wallet
+import Contracts.FryBalanceFetch exposing (updateBalancesFromResponse)
+import Contracts.FryBalanceFetch exposing (getFryAddresses)
+import Contracts.FryBalanceFetch exposing (getFryAddressesAsEmptyDict)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -963,7 +966,7 @@ update msg model =
                 (\userInfo ->
                     ( model
                     , Cmd.batch
-                        ((fetchFryBalancesCmd (model.fryBalances |> AddressDict.keys)) ++ [ refreshPollVotesCmd model Nothing ])
+                        ((fetchFryBalancesCmd (model.fryBalances |> getFryAddresses)) ++ [ refreshPollVotesCmd model Nothing ])
                     )
                 )
 
@@ -1054,30 +1057,25 @@ update msg model =
                         newBalancesDict =
                             case maybeRespondingAddress of
                                 Nothing ->
-                                    model.fryBalances
+                                    model.fryBalances |> getFryAddressesAsEmptyDict
 
                                 Just address ->
                                     let
                                         newDictPortion =
-                                            [ ( address
-                                              , Nothing
-                                              )
-                                            ]
-                                                |> AddressDict.fromList
+                                            [ ( address, Nothing ) ]
+                                            |> AddressDict.fromList
                                     in
                                     AddressDict.union
-                                        model.fryBalances
+                                        (model.fryBalances |> getFryAddressesAsEmptyDict)
                                         newDictPortion
 
                         cmd =
                             newBalancesDict
-                                |> AddressDict.filter
-                                    (\addressString maybeBalance ->
-                                        maybeBalance == Nothing
-                                    )
-                                |> AddressDict.keys
-                                |> fetchFryBalancesCmd
-                                |> Cmd.batch
+                            |> AddressDict.filter
+                                (\addressString maybeBalance -> maybeBalance == Nothing)
+                            |> AddressDict.keys
+                            |> fetchFryBalancesCmd
+                            |> Cmd.batch
 
                         tempModel =
                             case maybeUserNotice of
@@ -1100,7 +1098,11 @@ update msg model =
                                             (always True)
                                         )
                                     )
-                        , fryBalances = newBalancesDict
+                        , fryBalances = [
+                            { providerUrl = Config.ethereumProviderUrl
+                            , erc20 = Config.ethereumFryContractAddress
+                            , balances = newBalancesDict
+                            }]
                       }
                     , cmd
                     )
@@ -1185,11 +1187,7 @@ update msg model =
                 Ok newFryBalances ->
                     ( { model
                         | fryBalances =
-                            AddressDict.union
-                                (newFryBalances
-                                    |> AddressDict.map (always Just)
-                                )
-                                model.fryBalances
+                            updateBalancesFromResponse newFryBalances model.fryBalances
                       }
                     , Cmd.none
                     )

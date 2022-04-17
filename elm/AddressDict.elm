@@ -5,9 +5,8 @@ import Eth.Types exposing (Address)
 import Eth.Utils
 
 
-type AddressDict a
-    = AddressDict (Dict String a)
-
+type AddressDict a = 
+    AddressDict (Dict String a)
 
 empty : AddressDict a
 empty =

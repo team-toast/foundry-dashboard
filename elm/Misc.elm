@@ -23,7 +23,7 @@ import ElementHelpers as EH
 import Eth
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, HttpProvider)
 import Eth.Utils
 import GTag 
 import Graphql.Http
@@ -45,6 +45,7 @@ import Types exposing (..)
 import Url.Builder
 import UserTx exposing (TxInfo)
 import Wallet
+import Eth.Types exposing (HttpProvider)
 
 
 emptyModel : Browser.Navigation.Key -> Time.Posix -> String -> Bool -> Model
@@ -112,7 +113,7 @@ emptyModel key now basePath cookieConsent =
     , polls = Nothing
     , maybeValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses = Dict.empty
-    , fryBalances = AddressDict.empty
+    , fryBalances = []
     , mouseoverState = Types.None
     , userStakingInfo = Nothing
     , oldUserStakingBalances =

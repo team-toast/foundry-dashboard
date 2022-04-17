@@ -27,6 +27,7 @@ import Types exposing (Chain(..), Model, MouseoverState, Msg, Poll, PollOption, 
 import View.Common exposing (..)
 import View.Farm exposing (commonImageAttributes)
 import Wallet
+import Contracts.FryBalanceFetch exposing (unifyFryBalances)
 
 
 view : Model -> Element Msg
@@ -69,7 +70,7 @@ view model =
                                 (userInfo model.wallet)
                                 polls
                                 model.validatedResponses
-                                model.fryBalances
+                                (model.fryBalances |> unifyFryBalances)
                                 model.mouseoverState
                             ]
 
@@ -106,7 +107,7 @@ viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances mouseoverS
                 dProfile
                 maybeUserInfo
                 validatedResponses
-                fryBalances
+                fryBalances 
                 mouseoverState
             )
             (List.reverse polls)
