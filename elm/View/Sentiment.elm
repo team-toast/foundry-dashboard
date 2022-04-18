@@ -27,7 +27,7 @@ import Types exposing (Chain(..), Model, MouseoverState, Msg, Poll, PollOption, 
 import View.Common exposing (..)
 import View.Farm exposing (commonImageAttributes)
 import Wallet
-import Contracts.FryBalanceFetch exposing (unifyFryBalances)
+import Contracts.FryBalanceFetch exposing (..)
 
 
 view : Model -> Element Msg

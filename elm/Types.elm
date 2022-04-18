@@ -157,7 +157,7 @@ type Msg
     | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (Dict Int SignedResponse))
-    | FryBalancesFetched (Result Http.Error (BalanceSet))
+    | FryBalancesFetched (Result Http.Error (HttpProvider, Address, AddressDict TokenValue))
     | SetMouseoverState MouseoverState
     | UpdateNow Time.Posix
     | AmountInputChanged String

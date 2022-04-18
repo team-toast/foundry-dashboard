@@ -34,10 +34,7 @@ import Url
 import UserNotice as UN exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
 import UserTx exposing (Initiator, SignedTxStatus(..), TxInfo(..))
 import Wallet
-import Contracts.FryBalanceFetch exposing (updateBalancesFromResponse)
-import Contracts.FryBalanceFetch exposing (getFryAddresses)
-import Contracts.FryBalanceFetch exposing (getFryAddressesAsEmptyDict)
-
+import Contracts.FryBalanceFetch exposing (..)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -963,10 +960,12 @@ update msg model =
 
         RefreshAll ->
             ensureUserInfo
-                (\userInfo ->
+                (\_ ->
                     ( model
                     , Cmd.batch
-                        ((fetchFryBalancesCmd (model.fryBalances |> getFryAddresses)) ++ [ refreshPollVotesCmd Nothing ])
+                        [ refreshPollVotesCmd Nothing
+                        , fetchFryBalancesCmd (model.fryBalances |> AddressDict.keys)
+                        ]
                     )
                 )
 
@@ -1078,7 +1077,7 @@ update msg model =
 
                         fetchCmd =
                             newBalancesDict
-                            |> accumulateFetches
+                            |> accumulateFetches FryBalancesFetched
                             |> Cmd.batch
 
                         tempModel =
@@ -1102,11 +1101,7 @@ update msg model =
                                             (always True)
                                         )
                                     )
-                        , fryBalances = [
-                            { providerUrl = Config.ethereumProviderUrl
-                            , erc20 = Config.ethereumFryContractAddress
-                            , balances = newBalancesDict
-                            }]
+                        , fryBalances = newBalancesDict
                       }
                     , fetchCmd
                     )
@@ -1190,8 +1185,7 @@ update msg model =
             case fetchResult of
                 Ok newFryBalances ->
                     ( { model
-                        | fryBalances =
-                            updateBalancesFromResponse newFryBalances model.fryBalances
+                        | fryBalances = updateCrossChainFryBalanceTracker newFryBalances model.fryBalances
                       }
                     , Cmd.none
                     )

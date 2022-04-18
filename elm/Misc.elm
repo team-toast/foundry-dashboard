@@ -113,7 +113,7 @@ emptyModel key now basePath cookieConsent =
     , polls = Nothing
     , possiblyValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses = Dict.empty
-    , fryBalances = []
+    , fryBalances = AddressDict.empty
     , mouseoverState = Types.None
     , userStakingInfo = Nothing
     , oldUserStakingBalances =
@@ -820,11 +820,16 @@ validateSigResultDecoder =
         )
 
 
-fetchFryBalancesCmd : List Address -> List (Cmd Msg)
+fetchFryBalancesCmd : List Address -> Cmd Msg
 fetchFryBalancesCmd addresses =
-    Contracts.FryBalanceFetch.quickFetch
-        addresses
+    Contracts.FryBalanceFetch.fetch
         Types.FryBalancesFetched
+        Config.ethereumProviderUrl 
+        Config.ethErc20BalanceFetchBatchContractAddress 
+        Config.ethereumFryContractAddress
+        addresses
+        
+        
 
 
 validateSignedResponsesCmd : List ResponseToValidate -> Cmd Msg
