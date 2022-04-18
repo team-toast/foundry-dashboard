@@ -39,10 +39,11 @@ type alias Flags =
     , hasWallet : Bool
     }
 
-type alias BalanceSet =
-    { providerUrl : HttpProvider
-    , erc20 : Address
-    , balances : AddressDict (Maybe TokenValue)
+type alias CrossChainFryBalanceTracker =
+    { ethFryBalance : Maybe TokenValue
+    , arbFryBalance : Maybe TokenValue
+    , arbGFryBalance : Maybe TokenValue
+    -- you will need to add more chains/token contracts here manually
     }
 
 type alias Model =
@@ -89,9 +90,9 @@ type alias Model =
     , depositAmountInput : String
     , withdrawalAmountInput : String
     , polls : Maybe (List Poll)
-    , maybeValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
+    , possiblyValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses : ValidatedResponseTracker
-    , fryBalances : List (BalanceSet)
+    , fryBalances : AddressDict CrossChainFryBalanceTracker
     , mouseoverState : MouseoverState
     , userStakingInfo : Maybe UserStakingInfo
     , oldUserStakingBalances : List ( Address, Maybe TokenValue )

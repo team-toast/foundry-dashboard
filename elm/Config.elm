@@ -51,7 +51,7 @@ mainnetHttpProviderUrl chain =
 
 testModeHttpProviderUrl : String
 testModeHttpProviderUrl =
-    "http://localhost:8545"
+    "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
 ethereumDaiContractAddress : Address

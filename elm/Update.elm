@@ -966,7 +966,7 @@ update msg model =
                 (\userInfo ->
                     ( model
                     , Cmd.batch
-                        ((fetchFryBalancesCmd (model.fryBalances |> getFryAddresses)) ++ [ refreshPollVotesCmd model Nothing ])
+                        ((fetchFryBalancesCmd (model.fryBalances |> getFryAddresses)) ++ [ refreshPollVotesCmd Nothing ])
                     )
                 )
 
@@ -982,7 +982,7 @@ update msg model =
                     ( { model
                         | polls = Just polls
                       }
-                    , refreshPollVotesCmd model Nothing
+                    , refreshPollVotesCmd Nothing
                     )
 
         OptionClicked userInfo poll maybePollOptionId ->
@@ -1030,8 +1030,7 @@ update msg model =
                                 Valid ->
                                     let
                                         maybeSignedResponse =
-                                            model.maybeValidResponses
-                                                |> Dict.get responseId
+                                            Dict.get responseId model.possiblyValidResponses
                                                 |> Maybe.map Tuple.second
                                     in
                                     case maybeSignedResponse of
@@ -1057,24 +1056,29 @@ update msg model =
                         newBalancesDict =
                             case maybeRespondingAddress of
                                 Nothing ->
-                                    model.fryBalances |> getFryAddressesAsEmptyDict
+                                    model.fryBalances 
 
                                 Just address ->
                                     let
+                                        newDictPortion : AddressDict CrossChainFryBalanceTracker
                                         newDictPortion =
-                                            [ ( address, Nothing ) ]
+                                            [ 
+                                                ( address
+                                                , CrossChainFryBalanceTracker
+                                                    Nothing
+                                                    Nothing
+                                                    Nothing
+                                                )
+                                            ]
                                             |> AddressDict.fromList
                                     in
                                     AddressDict.union
-                                        (model.fryBalances |> getFryAddressesAsEmptyDict)
+                                        model.fryBalances
                                         newDictPortion
 
-                        cmd =
+                        fetchCmd =
                             newBalancesDict
-                            |> AddressDict.filter
-                                (\addressString maybeBalance -> maybeBalance == Nothing)
-                            |> AddressDict.keys
-                            |> fetchFryBalancesCmd
+                            |> accumulateFetches
                             |> Cmd.batch
 
                         tempModel =
@@ -1090,8 +1094,8 @@ update msg model =
                     in
                     ( { tempModel
                         | validatedResponses = newValidatedResponses
-                        , maybeValidResponses =
-                            model.maybeValidResponses
+                        , possiblyValidResponses =
+                            model.possiblyValidResponses
                                 |> Dict.update responseId
                                     (Maybe.map
                                         (Tuple.mapFirst
@@ -1104,10 +1108,10 @@ update msg model =
                             , balances = newBalancesDict
                             }]
                       }
-                    , cmd
+                    , fetchCmd
                     )
 
-                Err errStr ->
+                Err _ ->
                     ( model
                         |> (unexpectedError "error decoding signature validation from web3js"
                                 |> addUserNotice
@@ -1119,7 +1123,7 @@ update msg model =
             case sendResult of
                 Ok _ ->
                     ( model
-                    , refreshPollVotesCmd model <| Just pollId
+                    , refreshPollVotesCmd <| Just pollId
                     )
 
                 Err httpErr ->
@@ -1144,9 +1148,9 @@ update msg model =
 
                         Just polls ->
                             let
-                                newMaybeValidResponses =
+                                newPossiblyValidResponses =
                                     Dict.union
-                                        model.maybeValidResponses
+                                        model.possiblyValidResponses
                                         (decodedLoggedSignedResponses
                                             |> Dict.map
                                                 (\_ signedResponse ->
@@ -1155,7 +1159,7 @@ update msg model =
                                         )
 
                                 responsesToValidate =
-                                    newMaybeValidResponses
+                                    newPossiblyValidResponses
                                         |> Dict.Extra.filterMap
                                             (\_ ( isValidated, signedResponse ) ->
                                                 if not isValidated then
@@ -1169,14 +1173,14 @@ update msg model =
                                         |> Maybe.Extra.values
                             in
                             ( { model
-                                | maybeValidResponses = newMaybeValidResponses
+                                | possiblyValidResponses = newPossiblyValidResponses
                               }
                             , validateSignedResponsesCmd responsesToValidate
                             )
 
-                Err decodeErr ->
+                Err _ ->
                     ( model
-                        |> (unexpectedError "error decoding responses from server"
+                        |> (unexpectedError "error decoding signed responses from outsystems server"
                                 |> addUserNotice
                            )
                     , Cmd.none

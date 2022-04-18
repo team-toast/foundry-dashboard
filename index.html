@@ -6043,7 +6043,7 @@ var $author$project$Chain$decodeChain = A2(
 	$cmditch$elm_ethereum$Eth$Net$networkIdDecoder);
 var $author$project$Config$ethereumProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $author$project$Config$testMode = false;
-var $author$project$Config$testModeHttpProviderUrl = 'http://localhost:8545';
+var $author$project$Config$testModeHttpProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $author$project$Config$mainnetHttpProviderUrl = function (chain) {
 	switch (chain.$) {
 		case 'Eth':
@@ -13841,16 +13841,16 @@ var $author$project$App$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
-				A2($elm$time$Time$every, 1000 * 180, $author$project$Types$UpdateNow),
+				A2($elm$time$Time$every, 1000 * 0.5, $author$project$Types$UpdateNow),
 				A2(
 				$elm$time$Time$every,
-				1000 * 180,
+				1000 * 5,
 				$elm$core$Basics$always($author$project$Types$RefreshAll)),
 				A2(
 				$elm$time$Time$every,
-				1000 * 180,
+				1000 * 15,
 				$elm$core$Basics$always($author$project$Types$RefetchStakingInfoOrApy)),
-				A2($elm$time$Time$every, 1000 * 180, $author$project$Types$Tick),
+				A2($elm$time$Time$every, 1000 * 15, $author$project$Types$Tick),
 				$author$project$Ports$web3SignResult($author$project$Types$Web3SignResultValue),
 				$author$project$Ports$web3ValidateSigResult($author$project$Types$Web3ValidateSigResultValue),
 				$author$project$Ports$walletResponse(

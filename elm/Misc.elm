@@ -111,7 +111,7 @@ emptyModel key now basePath cookieConsent =
     , depositAmountInput = ""
     , withdrawalAmountInput = ""
     , polls = Nothing
-    , maybeValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
+    , possiblyValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses = Dict.empty
     , fryBalances = []
     , mouseoverState = Types.None
@@ -854,38 +854,34 @@ sendSignedResponseCmd signedResponse =
         }
 
 
-refreshPollVotesCmd : Model -> Maybe Int -> Cmd Msg
-refreshPollVotesCmd model maybePollId =
-    case model.route of
-        Sentiment ->
-            let
-                url =
-                    Url.Builder.custom
-                        (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
-                        [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
-                        (case maybePollId of
-                            Just pollId ->
-                                [ Url.Builder.int "FromPollId" pollId
-                                , Url.Builder.int "Count" 1
-                                ]
+refreshPollVotesCmd : Maybe Int -> Cmd Msg
+refreshPollVotesCmd maybePollId =
+    let
+        url =
+            Url.Builder.custom
+                (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
+                [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
+                (case maybePollId of
+                    Just pollId ->
+                        [ Url.Builder.int "FromPollId" pollId
+                        , Url.Builder.int "Count" 1
+                        ]
 
-                            Nothing ->
-                                [ Url.Builder.int "FromPollId" 0
-                                , Url.Builder.int "Count" 0
-                                ]
-                        )
-                        Nothing
-            in
-            Http.get
-                { url = url
-                , expect =
-                    Http.expectJson
-                        Types.SignedResponsesFetched
-                        signedResponsesDictFromServerDecoder
-                }
+                    Nothing ->
+                        [ Url.Builder.int "FromPollId" 0
+                        , Url.Builder.int "Count" 0
+                        ]
+                )
+                Nothing
+    in
+    Http.get
+        { url = url
+        , expect =
+            Http.expectJson
+                Types.SignedResponsesFetched
+                signedResponsesDictFromServerDecoder
+        }
 
-        _ ->
-            Cmd.none
 
 
 signedResponsesDictFromServerDecoder : Decoder.Decoder (Dict Int SignedResponse)
