@@ -39,12 +39,7 @@ type alias Flags =
     , hasWallet : Bool
     }
 
-type alias CrossChainFryBalanceTracker =
-    { ethFryBalance : Maybe TokenValue
-    , arbFryBalance : Maybe TokenValue
-    , arbGFryBalance : Maybe TokenValue
-    -- you will need to add more chains/token contracts here manually
-    }
+type alias TokenBalanceDict = AddressDict (AddressDict (Maybe TokenValue)) 
 
 type alias Model =
     { navKey : Browser.Navigation.Key
@@ -92,7 +87,8 @@ type alias Model =
     , polls : Maybe (List Poll)
     , possiblyValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses : ValidatedResponseTracker
-    , fryBalances : AddressDict CrossChainFryBalanceTracker
+    , fryBalances : TokenBalanceDict
+    , unifiedBalances : AddressDict (Maybe TokenValue)
     , mouseoverState : MouseoverState
     , userStakingInfo : Maybe UserStakingInfo
     , oldUserStakingBalances : List ( Address, Maybe TokenValue )
@@ -157,6 +153,7 @@ type Msg
     | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (Dict Int SignedResponse))
+    | FetchFryBalances 
     | FryBalancesFetched (Result Http.Error (HttpProvider, Address, AddressDict TokenValue))
     | SetMouseoverState MouseoverState
     | UpdateNow Time.Posix

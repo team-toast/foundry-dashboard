@@ -164,9 +164,10 @@ startSentry config =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     [ Time.every (1000 * 0.5) Types.UpdateNow
-    , Time.every (1000 * 5) <| always Types.RefreshAll
+    , Time.every (1000 * 5) (always Types.RefreshAll)
     , Time.every (1000 * 15) (always Types.RefetchStakingInfoOrApy)
     , Time.every (1000 * 15) Types.Tick
+    , Time.every (1000 * 10) (always Types.FetchFryBalances)
     , Ports.web3SignResult Types.Web3SignResultValue
     , Ports.web3ValidateSigResult Types.Web3ValidateSigResultValue
     , Ports.walletResponse

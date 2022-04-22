@@ -114,6 +114,7 @@ emptyModel key now basePath cookieConsent =
     , possiblyValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses = Dict.empty
     , fryBalances = AddressDict.empty
+    , unifiedBalances = AddressDict.empty
     , mouseoverState = Types.None
     , userStakingInfo = Nothing
     , oldUserStakingBalances =

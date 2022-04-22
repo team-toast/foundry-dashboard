@@ -1,12 +1,33 @@
-module AddressDict exposing (AddressDict, empty, filter, fromList, get, insert, keys, map, member, toList, union, update)
+module AddressDict exposing (AddressDict, empty, filter, fromList, get, insert, keys, map, member, toList, union, update, merge, foldl)
 
-import Dict exposing (Dict)
+import Dict exposing (..)
 import Eth.Types exposing (Address)
 import Eth.Utils
 
 
 type AddressDict a = 
     AddressDict (Dict String a)
+
+
+unwrap : AddressDict a -> Dict String a
+unwrap addressDict_ =
+    case addressDict_ of
+        AddressDict addressDict -> addressDict
+        
+
+translate :
+    (Address -> a)
+    -> String 
+    -> a
+translate fn address = fn (deterministicStringToAddress address)
+
+
+wrapFunc : ((String -> x) -> Dict String a -> Dict String b) -> (Address -> x) -> AddressDict a -> AddressDict b
+wrapFunc originalFunc inputFunc addressDict =
+    (unwrap addressDict) 
+    |> originalFunc (translate inputFunc) 
+    |> AddressDict
+
 
 empty : AddressDict a
 empty =
@@ -23,22 +44,10 @@ fromList list =
 
 get : Address -> AddressDict a -> Maybe a
 get address addressDict_ =
-    case addressDict_ of
-        AddressDict addressDict ->
-            addressDict
-                |> Dict.get (addressToDeterministicString address)
-
+    unwrap addressDict_ |> Dict.get (addressToDeterministicString address)
 
 map : (Address -> a -> b) -> AddressDict a -> AddressDict b
-map func addressDict_ =
-    case addressDict_ of
-        AddressDict addressDict ->
-            addressDict
-                |> Dict.map
-                    (\addressString ->
-                        func (deterministicStringToAddress addressString)
-                    )
-                |> AddressDict
+map = wrapFunc Dict.map
 
 
 filter : (Address -> a -> Bool) -> AddressDict a -> AddressDict a
@@ -84,6 +93,30 @@ update address updateFunc addressDict_ =
                 |> AddressDict
 
 
+
+merge :  (Address -> a -> result -> result)
+  -> (Address -> a -> b -> result -> result)
+  -> (Address -> b -> result -> result)
+  -> AddressDict a
+  -> AddressDict b
+  -> result
+  -> result
+merge leftStep_ bothStep_ rightStep_ leftAddressDict_ rightAddressDict_ initialResult =
+    Dict.merge 
+        (translate leftStep_)
+        (translate bothStep_)
+        (translate rightStep_)
+        (unwrap leftAddressDict_) 
+        (unwrap rightAddressDict_) 
+        initialResult
+
+foldl : (Address -> v -> b -> b) -> b -> AddressDict v -> b
+foldl func acc addressDict_ =
+    case addressDict_ of
+        AddressDict addressDict ->
+            addressDict
+                |> Dict.foldl (translate func) acc
+
 toList : AddressDict a -> List ( Address, a )
 toList addressDict_ =
     case addressDict_ of
@@ -93,6 +126,9 @@ toList addressDict_ =
                 |> List.map (Tuple.mapFirst deterministicStringToAddress)
 
 
+{-| Combine two dictionaries. If there is a collision, preference is given
+to the first dictionary.
+-}
 union : AddressDict a -> AddressDict a -> AddressDict a
 union dict1_ dict2_ =
     case ( dict1_, dict2_ ) of
@@ -102,12 +138,7 @@ union dict1_ dict2_ =
 
 member : Address -> AddressDict a -> Bool
 member address dict_ =
-    case dict_ of
-        AddressDict dict ->
-            Dict.member
-                (addressToDeterministicString address)
-                dict
-
+    Dict.member (addressToDeterministicString address) (unwrap dict_)
 
 addressToDeterministicString : Address -> String
 addressToDeterministicString =

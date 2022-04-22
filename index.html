@@ -7149,13 +7149,12 @@ var $author$project$Misc$emptyModel = F4(
 			dethTVL: $elm$core$Maybe$Nothing,
 			dethUniqueMints: $author$project$AddressDict$empty,
 			farmingPeriodEnds: 0,
-			fryBalances: _List_Nil,
+			fryBalances: $author$project$AddressDict$empty,
 			fullyDiluted: $elm$core$Maybe$Nothing,
 			gtagHistory: $author$project$GTag$emptyGtagHistory,
 			initiatedOldFarmExit: false,
 			jurisdictionCheckStatus: $author$project$Types$WaitingForClick,
 			marketCap: $elm$core$Maybe$Nothing,
-			maybeValidResponses: $elm$core$Dict$empty,
 			mouseoverState: $author$project$Types$None,
 			navKey: key,
 			nonRepeatingGTagsSent: _List_Nil,
@@ -7170,6 +7169,7 @@ var $author$project$Misc$emptyModel = F4(
 			permaFrostTotalSupply: $elm$core$Maybe$Nothing,
 			permaFrostedTokens: $elm$core$Maybe$Nothing,
 			polls: $elm$core$Maybe$Nothing,
+			possiblyValidResponses: $elm$core$Dict$empty,
 			route: $author$project$Routing$Sentiment,
 			sentries: {
 				bsc: A2(
@@ -7193,6 +7193,7 @@ var $author$project$Misc$emptyModel = F4(
 			trackedTxs: _List_Nil,
 			trackedTxsExpanded: false,
 			txSentry: txSentry,
+			unifiedBalances: $author$project$AddressDict$empty,
 			userDerivedEthInfo: $elm$core$Maybe$Nothing,
 			userNotices: walletNotices,
 			userStakingInfo: $elm$core$Maybe$Nothing,
@@ -12239,6 +12240,7 @@ var $author$project$App$init = F3(
 var $author$project$Types$ChainSwitchResponse = function (a) {
 	return {$: 'ChainSwitchResponse', a: a};
 };
+var $author$project$Types$FetchFryBalances = {$: 'FetchFryBalances'};
 var $author$project$Types$RefetchStakingInfoOrApy = {$: 'RefetchStakingInfoOrApy'};
 var $author$project$Types$RefreshAll = {$: 'RefreshAll'};
 var $author$project$Types$Resize = F2(
@@ -13851,6 +13853,10 @@ var $author$project$App$subscriptions = function (model) {
 				1000 * 15,
 				$elm$core$Basics$always($author$project$Types$RefetchStakingInfoOrApy)),
 				A2($elm$time$Time$every, 1000 * 15, $author$project$Types$Tick),
+				A2(
+				$elm$time$Time$every,
+				1000 * 10,
+				$elm$core$Basics$always($author$project$Types$FetchFryBalances)),
 				$author$project$Ports$web3SignResult($author$project$Types$Web3SignResultValue),
 				$author$project$Ports$web3ValidateSigResult($author$project$Types$Web3ValidateSigResultValue),
 				$author$project$Ports$walletResponse(
@@ -13867,6 +13873,9 @@ var $author$project$Types$Active = function (a) {
 };
 var $author$project$Types$Deposit = {$: 'Deposit'};
 var $author$project$UserTx$Failed = {$: 'Failed'};
+var $author$project$Types$FryBalancesFetched = function (a) {
+	return {$: 'FryBalancesFetched', a: a};
+};
 var $author$project$GTag$GTagData = F4(
 	function (event, category, label, value) {
 		return {category: category, event: event, label: label, value: value};
@@ -13885,6 +13894,173 @@ var $author$project$Types$UserInfo = F4(
 		return {address: address, balance: balance, chain: chain, xDaiStatus: xDaiStatus};
 	});
 var $author$project$Types$Withdraw = {$: 'Withdraw'};
+var $author$project$Config$arbErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x6b88B564EfC6fcE6515E73B0b1DAb5c4f10a1054');
+var $author$project$Config$arbitrumOneFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x633A3d2091dc7982597A0f635d23Ba5EB1223f48');
+var $author$project$Config$arbitrumOneGFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x365Db53EEB009b447b0E5A95e2523596E074d2FE');
+var $author$project$Config$arbitrumProviderUrl = 'https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
+var $author$project$Config$ethErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39');
+var $cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp = F4(
+	function (accum, len, _v0, tape) {
+		var decoder = _v0.a;
+		if (!len) {
+			return $elm$core$Result$Ok(
+				_Utils_Tuple2(
+					tape,
+					$elm$core$List$reverse(accum)));
+		} else {
+			var n = len;
+			return A2(
+				$elm$core$Result$andThen,
+				function (_v2) {
+					var tape_ = _v2.a;
+					var val = _v2.b;
+					return A4(
+						$cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp,
+						A2($elm$core$List$cons, val, accum),
+						n - 1,
+						$cmditch$elm_ethereum$Eth$Abi$Decode$AbiDecoder(decoder),
+						tape_);
+				},
+				decoder(tape));
+		}
+	});
+var $cmditch$elm_ethereum$Eth$Abi$Decode$parsePointer = function (_v0) {
+	var altered = _v0.b;
+	return A2(
+		$elm$core$Result$map,
+		$elm$core$Basics$mul(2),
+		$rtfeldman$elm_hex$Hex$fromString(
+			$cmditch$elm_ethereum$Eth$Utils$take64(altered)));
+};
+var $cmditch$elm_ethereum$Eth$Abi$Decode$dynamicArray = function (valDecoder) {
+	return $cmditch$elm_ethereum$Eth$Abi$Decode$AbiDecoder(
+		function (tape) {
+			var original = tape.a;
+			var altered = tape.b;
+			var getArrayData = function (lengthIndex) {
+				return A2(
+					$elm$core$Result$map,
+					function (arrayLength) {
+						return _Utils_Tuple2(
+							arrayLength,
+							A2($elm$core$String$dropLeft, lengthIndex + 64, original));
+					},
+					$rtfeldman$elm_hex$Hex$fromString(
+						A3($elm$core$String$slice, lengthIndex, lengthIndex + 64, original)));
+			};
+			return A2(
+				$elm$core$Result$andThen,
+				function (_v0) {
+					var arrayLength = _v0.a;
+					var rawArrayData = _v0.b;
+					return A2(
+						$elm$core$Result$map,
+						function (_v1) {
+							var _v2 = _v1.a;
+							var arrayData = _v1.b;
+							return _Utils_Tuple2(
+								A2(
+									$cmditch$elm_ethereum$Eth$Abi$Decode$Tape,
+									original,
+									$cmditch$elm_ethereum$Eth$Utils$drop64(altered)),
+								arrayData);
+						},
+						A4(
+							$cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp,
+							_List_Nil,
+							arrayLength,
+							valDecoder,
+							A2($cmditch$elm_ethereum$Eth$Abi$Decode$Tape, rawArrayData, rawArrayData)));
+				},
+				A2(
+					$elm$core$Result$andThen,
+					getArrayData,
+					$cmditch$elm_ethereum$Eth$Abi$Decode$parsePointer(tape)));
+		});
+};
+var $cmditch$elm_ethereum$Eth$Abi$Encode$ListE = function (a) {
+	return {$: 'ListE', a: a};
+};
+var $cmditch$elm_ethereum$Eth$Abi$Encode$list = $cmditch$elm_ethereum$Eth$Abi$Encode$ListE;
+var $author$project$Contracts$Generated$ERC20BalanceFetchBatch$balances = F3(
+	function (contractAddress, users_, tokens_) {
+		return {
+			data: $elm$core$Maybe$Just(
+				A2(
+					$cmditch$elm_ethereum$Eth$Abi$Encode$functionCall,
+					'f0002ea9',
+					_List_fromArray(
+						[
+							A2(
+							$elm$core$Basics$composeL,
+							$cmditch$elm_ethereum$Eth$Abi$Encode$list,
+							$elm$core$List$map($cmditch$elm_ethereum$Eth$Abi$Encode$address))(users_),
+							A2(
+							$elm$core$Basics$composeL,
+							$cmditch$elm_ethereum$Eth$Abi$Encode$list,
+							$elm$core$List$map($cmditch$elm_ethereum$Eth$Abi$Encode$address))(tokens_)
+						]))),
+			decoder: $cmditch$elm_ethereum$Eth$Abi$Decode$toElmDecoder(
+				$cmditch$elm_ethereum$Eth$Abi$Decode$dynamicArray($cmditch$elm_ethereum$Eth$Abi$Decode$uint)),
+			from: $elm$core$Maybe$Nothing,
+			gas: $elm$core$Maybe$Nothing,
+			gasPrice: $elm$core$Maybe$Nothing,
+			nonce: $elm$core$Maybe$Nothing,
+			to: $elm$core$Maybe$Just(contractAddress),
+			value: $elm$core$Maybe$Nothing
+		};
+	});
+var $author$project$AddressDict$addressToDeterministicString = A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Utils$addressToString, $elm$core$String$toLower);
+var $author$project$AddressDict$fromList = function (list) {
+	return $author$project$AddressDict$AddressDict(
+		$elm$core$Dict$fromList(
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$mapFirst($author$project$AddressDict$addressToDeterministicString),
+				list)));
+};
+var $author$project$Contracts$FryBalanceFetch$fetch = F5(
+	function (msgConstructor, httpProvider, batchErc20ReaderAddress, erc20Address, addresses) {
+		var translateResult = function (result) {
+			return A3(
+				$elm$core$Basics$composeR,
+				A2(
+					$elm$core$Basics$composeR,
+					$elm$core$List$map($author$project$TokenValue$tokenValue),
+					A2(
+						$elm$core$Basics$composeR,
+						A2($elm$core$List$map2, $elm$core$Tuple$pair, addresses),
+						$author$project$AddressDict$fromList)),
+				function (i) {
+					return _Utils_Tuple3(httpProvider, erc20Address, i);
+				},
+				result);
+		};
+		return A2(
+			$elm$core$Task$attempt,
+			A2(
+				$elm$core$Basics$composeR,
+				$elm$core$Result$map(translateResult),
+				msgConstructor),
+			A2(
+				$cmditch$elm_ethereum$Eth$call,
+				httpProvider,
+				A3(
+					$author$project$Contracts$Generated$ERC20BalanceFetchBatch$balances,
+					batchErc20ReaderAddress,
+					addresses,
+					_List_fromArray(
+						[erc20Address]))));
+	});
+var $author$project$Contracts$FryBalanceFetch$accumulateFetches = F2(
+	function (msgConstructor, addresses) {
+		return _List_fromArray(
+			[
+				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$ethereumProviderUrl, $author$project$Config$ethErc20BalanceFetchBatchContractAddress, $author$project$Config$ethereumFryContractAddress, addresses),
+				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$arbitrumProviderUrl, $author$project$Config$arbErc20BalanceFetchBatchContractAddress, $author$project$Config$arbitrumOneFryContractAddress, addresses),
+				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$arbitrumProviderUrl, $author$project$Config$arbErc20BalanceFetchBatchContractAddress, $author$project$Config$arbitrumOneGFryContractAddress, addresses)
+			]);
+	});
 var $author$project$Helpers$Eth$addFrom = F2(
 	function (fromAddr, call) {
 		return _Utils_update(
@@ -14241,234 +14417,8 @@ var $author$project$Contracts$Generated$StakingRewards$exit = function (contract
 		value: $elm$core$Maybe$Nothing
 	};
 };
-var $author$project$Types$FryBalancesFetched = function (a) {
-	return {$: 'FryBalancesFetched', a: a};
-};
-var $author$project$Config$arbiErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x6b88B564EfC6fcE6515E73B0b1DAb5c4f10a1054');
-var $author$project$Config$arbitrumOneFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x633a3d2091dc7982597a0f635d23ba5eb1223f48');
-var $author$project$Config$arbitrumOneGFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x365db53eeb009b447b0e5a95e2523596e074d2fe');
-var $author$project$Config$arbitrumProviderUls = 'https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
-var $author$project$Config$ethErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39');
-var $cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp = F4(
-	function (accum, len, _v0, tape) {
-		var decoder = _v0.a;
-		if (!len) {
-			return $elm$core$Result$Ok(
-				_Utils_Tuple2(
-					tape,
-					$elm$core$List$reverse(accum)));
-		} else {
-			var n = len;
-			return A2(
-				$elm$core$Result$andThen,
-				function (_v2) {
-					var tape_ = _v2.a;
-					var val = _v2.b;
-					return A4(
-						$cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp,
-						A2($elm$core$List$cons, val, accum),
-						n - 1,
-						$cmditch$elm_ethereum$Eth$Abi$Decode$AbiDecoder(decoder),
-						tape_);
-				},
-				decoder(tape));
-		}
-	});
-var $cmditch$elm_ethereum$Eth$Abi$Decode$parsePointer = function (_v0) {
-	var altered = _v0.b;
-	return A2(
-		$elm$core$Result$map,
-		$elm$core$Basics$mul(2),
-		$rtfeldman$elm_hex$Hex$fromString(
-			$cmditch$elm_ethereum$Eth$Utils$take64(altered)));
-};
-var $cmditch$elm_ethereum$Eth$Abi$Decode$dynamicArray = function (valDecoder) {
-	return $cmditch$elm_ethereum$Eth$Abi$Decode$AbiDecoder(
-		function (tape) {
-			var original = tape.a;
-			var altered = tape.b;
-			var getArrayData = function (lengthIndex) {
-				return A2(
-					$elm$core$Result$map,
-					function (arrayLength) {
-						return _Utils_Tuple2(
-							arrayLength,
-							A2($elm$core$String$dropLeft, lengthIndex + 64, original));
-					},
-					$rtfeldman$elm_hex$Hex$fromString(
-						A3($elm$core$String$slice, lengthIndex, lengthIndex + 64, original)));
-			};
-			return A2(
-				$elm$core$Result$andThen,
-				function (_v0) {
-					var arrayLength = _v0.a;
-					var rawArrayData = _v0.b;
-					return A2(
-						$elm$core$Result$map,
-						function (_v1) {
-							var _v2 = _v1.a;
-							var arrayData = _v1.b;
-							return _Utils_Tuple2(
-								A2(
-									$cmditch$elm_ethereum$Eth$Abi$Decode$Tape,
-									original,
-									$cmditch$elm_ethereum$Eth$Utils$drop64(altered)),
-								arrayData);
-						},
-						A4(
-							$cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp,
-							_List_Nil,
-							arrayLength,
-							valDecoder,
-							A2($cmditch$elm_ethereum$Eth$Abi$Decode$Tape, rawArrayData, rawArrayData)));
-				},
-				A2(
-					$elm$core$Result$andThen,
-					getArrayData,
-					$cmditch$elm_ethereum$Eth$Abi$Decode$parsePointer(tape)));
-		});
-};
-var $cmditch$elm_ethereum$Eth$Abi$Encode$ListE = function (a) {
-	return {$: 'ListE', a: a};
-};
-var $cmditch$elm_ethereum$Eth$Abi$Encode$list = $cmditch$elm_ethereum$Eth$Abi$Encode$ListE;
-var $author$project$Contracts$Generated$ERC20BalanceFetchBatch$balances = F3(
-	function (contractAddress, users_, tokens_) {
-		return {
-			data: $elm$core$Maybe$Just(
-				A2(
-					$cmditch$elm_ethereum$Eth$Abi$Encode$functionCall,
-					'f0002ea9',
-					_List_fromArray(
-						[
-							A2(
-							$elm$core$Basics$composeL,
-							$cmditch$elm_ethereum$Eth$Abi$Encode$list,
-							$elm$core$List$map($cmditch$elm_ethereum$Eth$Abi$Encode$address))(users_),
-							A2(
-							$elm$core$Basics$composeL,
-							$cmditch$elm_ethereum$Eth$Abi$Encode$list,
-							$elm$core$List$map($cmditch$elm_ethereum$Eth$Abi$Encode$address))(tokens_)
-						]))),
-			decoder: $cmditch$elm_ethereum$Eth$Abi$Decode$toElmDecoder(
-				$cmditch$elm_ethereum$Eth$Abi$Decode$dynamicArray($cmditch$elm_ethereum$Eth$Abi$Decode$uint)),
-			from: $elm$core$Maybe$Nothing,
-			gas: $elm$core$Maybe$Nothing,
-			gasPrice: $elm$core$Maybe$Nothing,
-			nonce: $elm$core$Maybe$Nothing,
-			to: $elm$core$Maybe$Just(contractAddress),
-			value: $elm$core$Maybe$Nothing
-		};
-	});
-var $author$project$AddressDict$addressToDeterministicString = A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Utils$addressToString, $elm$core$String$toLower);
-var $author$project$AddressDict$fromList = function (list) {
-	return $author$project$AddressDict$AddressDict(
-		$elm$core$Dict$fromList(
-			A2(
-				$elm$core$List$map,
-				$elm$core$Tuple$mapFirst($author$project$AddressDict$addressToDeterministicString),
-				list)));
-};
-var $author$project$AddressDict$deterministicStringToAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress;
-var $elm$core$Dict$map = F2(
-	function (func, dict) {
-		if (dict.$ === 'RBEmpty_elm_builtin') {
-			return $elm$core$Dict$RBEmpty_elm_builtin;
-		} else {
-			var color = dict.a;
-			var key = dict.b;
-			var value = dict.c;
-			var left = dict.d;
-			var right = dict.e;
-			return A5(
-				$elm$core$Dict$RBNode_elm_builtin,
-				color,
-				key,
-				A2(func, key, value),
-				A2($elm$core$Dict$map, func, left),
-				A2($elm$core$Dict$map, func, right));
-		}
-	});
-var $author$project$AddressDict$map = F2(
-	function (func, addressDict_) {
-		var addressDict = addressDict_.a;
-		return $author$project$AddressDict$AddressDict(
-			A2(
-				$elm$core$Dict$map,
-				function (addressString) {
-					return func(
-						$author$project$AddressDict$deterministicStringToAddress(addressString));
-				},
-				addressDict));
-	});
-var $author$project$Contracts$FryBalanceFetch$toMaybeAddressDict = function (dict) {
-	return A2(
-		$author$project$AddressDict$map,
-		F2(
-			function (key, balance) {
-				return $elm$core$Maybe$Just(balance);
-			}),
-		dict);
-};
-var $author$project$Contracts$FryBalanceFetch$fetch = F5(
-	function (addresses, msgConstructor, ethNode, balanceFetcher, erc20) {
-		return A2(
-			$elm$core$Task$attempt,
-			A2(
-				$elm$core$Basics$composeR,
-				$elm$core$Result$map(
-					A2(
-						$elm$core$Basics$composeR,
-						$elm$core$List$map($author$project$TokenValue$tokenValue),
-						A2(
-							$elm$core$Basics$composeR,
-							A2($elm$core$List$map2, $elm$core$Tuple$pair, addresses),
-							function (list) {
-								return {
-									balances: $author$project$Contracts$FryBalanceFetch$toMaybeAddressDict(
-										$author$project$AddressDict$fromList(list)),
-									erc20: erc20,
-									providerUrl: ethNode
-								};
-							}))),
-				msgConstructor),
-			A2(
-				$cmditch$elm_ethereum$Eth$call,
-				ethNode,
-				A3(
-					$author$project$Contracts$Generated$ERC20BalanceFetchBatch$balances,
-					balanceFetcher,
-					addresses,
-					_List_fromArray(
-						[erc20]))));
-	});
-var $author$project$Contracts$FryBalanceFetch$fetchMultiChainMultiWallet = F3(
-	function (addresses, msgConstructor, balanceQueryTuples) {
-		return A2(
-			$elm$core$List$map,
-			function (_v0) {
-				var httpProvider = _v0.a;
-				var addressChecker = _v0.b;
-				var erc20 = _v0.c;
-				return A5($author$project$Contracts$FryBalanceFetch$fetch, addresses, msgConstructor, httpProvider, addressChecker, erc20);
-			},
-			balanceQueryTuples);
-	});
-var $author$project$Contracts$FryBalanceFetch$quickFetch = F2(
-	function (addresses, msgConstructor) {
-		return A3(
-			$author$project$Contracts$FryBalanceFetch$fetchMultiChainMultiWallet,
-			addresses,
-			msgConstructor,
-			_List_fromArray(
-				[
-					_Utils_Tuple3($author$project$Config$ethereumProviderUrl, $author$project$Config$ethErc20BalanceFetchBatchContractAddress, $author$project$Config$ethereumFryContractAddress),
-					_Utils_Tuple3($author$project$Config$arbitrumProviderUls, $author$project$Config$arbiErc20BalanceFetchBatchContractAddress, $author$project$Config$arbitrumOneFryContractAddress),
-					_Utils_Tuple3($author$project$Config$arbitrumProviderUls, $author$project$Config$arbiErc20BalanceFetchBatchContractAddress, $author$project$Config$arbitrumOneGFryContractAddress)
-				]));
-	});
 var $author$project$Misc$fetchFryBalancesCmd = function (addresses) {
-	return A2($author$project$Contracts$FryBalanceFetch$quickFetch, addresses, $author$project$Types$FryBalancesFetched);
+	return A5($author$project$Contracts$FryBalanceFetch$fetch, $author$project$Types$FryBalancesFetched, $author$project$Config$ethereumProviderUrl, $author$project$Config$ethErc20BalanceFetchBatchContractAddress, $author$project$Config$ethereumFryContractAddress, addresses);
 };
 var $author$project$Types$DerivedEthIssuanceDetailFetched = function (a) {
 	return {$: 'DerivedEthIssuanceDetailFetched', a: a};
@@ -14581,18 +14531,6 @@ var $elm$core$Dict$filter = F2(
 			$elm$core$Dict$empty,
 			dict);
 	});
-var $author$project$AddressDict$filter = F2(
-	function (func, addressDict_) {
-		var addressDict = addressDict_.a;
-		return $author$project$AddressDict$AddressDict(
-			A2(
-				$elm$core$Dict$filter,
-				function (addressString) {
-					return func(
-						$author$project$AddressDict$deterministicStringToAddress(addressString));
-				},
-				addressDict));
-	});
 var $elm_community$dict_extra$Dict$Extra$filterMap = F2(
 	function (f, dict) {
 		return A3(
@@ -14670,36 +14608,6 @@ var $author$project$Misc$getCurrentBucketId = function (now) {
 				$author$project$Helpers$Time$sub,
 				$elm$time$Time$millisToPosix(now),
 				$elm$time$Time$millisToPosix($author$project$Config$saleStarted))) / $author$project$Helpers$Time$posixToSeconds($author$project$Config$bucketSaleBucketInterval)) | 0);
-};
-var $author$project$AddressDict$keys = function (addressDict_) {
-	var addressDict = addressDict_.a;
-	return A2(
-		$elm$core$List$map,
-		$author$project$AddressDict$deterministicStringToAddress,
-		$elm$core$Dict$keys(addressDict));
-};
-var $author$project$Contracts$FryBalanceFetch$getFryAddresses = function (list) {
-	return A2(
-		$elm_community$list_extra$List$Extra$uniqueBy,
-		$cmditch$elm_ethereum$Eth$Utils$addressToString,
-		$elm$core$List$concat(
-			A2(
-				$elm$core$List$map,
-				function (balanceSet) {
-					return $author$project$AddressDict$keys(balanceSet.balances);
-				},
-				list)));
-};
-var $author$project$Contracts$FryBalanceFetch$getFryAddressesAsEmptyDict = function (list) {
-	return $author$project$AddressDict$fromList(
-		A2(
-			$elm$core$List$map,
-			function (address) {
-				return _Utils_Tuple2(
-					address,
-					$elm$core$Maybe$Just($author$project$TokenValue$zero));
-			},
-			$author$project$Contracts$FryBalanceFetch$getFryAddresses(list)));
 };
 var $author$project$Contracts$Generated$StakingRewards$getReward = function (contractAddress) {
 	return {
@@ -14816,6 +14724,14 @@ var $author$project$Misc$insertValidatedResponse = F2(
 			},
 			validatedResponseTracker);
 	});
+var $author$project$AddressDict$deterministicStringToAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress;
+var $author$project$AddressDict$keys = function (addressDict_) {
+	var addressDict = addressDict_.a;
+	return A2(
+		$elm$core$List$map,
+		$author$project$AddressDict$deterministicStringToAddress,
+		$elm$core$Dict$keys(addressDict));
+};
 var $elm$browser$Browser$Navigation$load = _Browser_load;
 var $author$project$Ports$log = _Platform_outgoingPort('log', $elm$json$Json$Encode$string);
 var $author$project$Misc$encodeSignableResponse = F2(
@@ -14888,6 +14804,25 @@ var $author$project$Misc$loggedSignedResponseToResponseToValidate = F2(
 				};
 			},
 			maybePoll);
+	});
+var $elm$core$Dict$map = F2(
+	function (func, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return $elm$core$Dict$RBEmpty_elm_builtin;
+		} else {
+			var color = dict.a;
+			var key = dict.b;
+			var value = dict.c;
+			var left = dict.d;
+			var right = dict.e;
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				color,
+				key,
+				A2(func, key, value),
+				A2($elm$core$Dict$map, func, left),
+				A2($elm$core$Dict$map, func, right));
+		}
 	});
 var $author$project$Helpers$Eth$maxUintValue = A2(
 	$cmditch$elm_bigint$BigInt$sub,
@@ -15030,41 +14965,35 @@ var $author$project$Misc$signedResponsesDictFromServerDecoder = A2(
 			$elm$core$List$map(
 				$elm$json$Json$Decode$decodeValue($author$project$Misc$loggedSignedResponseFromServerDecoder)),
 			$elm$json$Json$Decode$list($elm$json$Json$Decode$value))));
-var $author$project$Misc$refreshPollVotesCmd = F2(
-	function (model, maybePollId) {
-		var _v0 = model.route;
-		if (_v0.$ === 'Sentiment') {
-			var url = A4(
-				$elm$url$Url$Builder$custom,
-				$elm$url$Url$Builder$CrossOrigin('https://personal-rxyx.outsystemscloud.com'),
-				_List_fromArray(
-					['QuantumObserver', 'rest', 'VotingResults', 'GetPollVotes']),
-				function () {
-					if (maybePollId.$ === 'Just') {
-						var pollId = maybePollId.a;
-						return _List_fromArray(
-							[
-								A2($elm$url$Url$Builder$int, 'FromPollId', pollId),
-								A2($elm$url$Url$Builder$int, 'Count', 1)
-							]);
-					} else {
-						return _List_fromArray(
-							[
-								A2($elm$url$Url$Builder$int, 'FromPollId', 0),
-								A2($elm$url$Url$Builder$int, 'Count', 0)
-							]);
-					}
-				}(),
-				$elm$core$Maybe$Nothing);
-			return $elm$http$Http$get(
-				{
-					expect: A2($elm$http$Http$expectJson, $author$project$Types$SignedResponsesFetched, $author$project$Misc$signedResponsesDictFromServerDecoder),
-					url: url
-				});
-		} else {
-			return $elm$core$Platform$Cmd$none;
-		}
-	});
+var $author$project$Misc$refreshPollVotesCmd = function (maybePollId) {
+	var url = A4(
+		$elm$url$Url$Builder$custom,
+		$elm$url$Url$Builder$CrossOrigin('https://personal-rxyx.outsystemscloud.com'),
+		_List_fromArray(
+			['QuantumObserver', 'rest', 'VotingResults', 'GetPollVotes']),
+		function () {
+			if (maybePollId.$ === 'Just') {
+				var pollId = maybePollId.a;
+				return _List_fromArray(
+					[
+						A2($elm$url$Url$Builder$int, 'FromPollId', pollId),
+						A2($elm$url$Url$Builder$int, 'Count', 1)
+					]);
+			} else {
+				return _List_fromArray(
+					[
+						A2($elm$url$Url$Builder$int, 'FromPollId', 0),
+						A2($elm$url$Url$Builder$int, 'Count', 0)
+					]);
+			}
+		}(),
+		$elm$core$Maybe$Nothing);
+	return $elm$http$Http$get(
+		{
+			expect: A2($elm$http$Http$expectJson, $author$project$Types$SignedResponsesFetched, $author$project$Misc$signedResponsesDictFromServerDecoder),
+			url: url
+		});
+};
 var $elm_community$list_extra$List$Extra$removeAt = F2(
 	function (index, l) {
 		if (index < 0) {
@@ -15362,6 +15291,86 @@ var $cmditch$elm_ethereum$Eth$Utils$txHashToString = function (_v0) {
 	return $cmditch$elm_ethereum$Eth$Utils$add0x(txHash);
 };
 var $author$project$Ports$txSend = _Platform_outgoingPort('txSend', $elm$core$Basics$identity);
+var $author$project$TokenValue$add = F2(
+	function (t1, t2) {
+		return $author$project$TokenValue$TokenValue(
+			A2(
+				$cmditch$elm_bigint$BigInt$add,
+				$author$project$TokenValue$getEvmValue(t1),
+				$author$project$TokenValue$getEvmValue(t2)));
+	});
+var $author$project$AddressDict$translate = F2(
+	function (fn, address) {
+		return fn(
+			$author$project$AddressDict$deterministicStringToAddress(address));
+	});
+var $author$project$AddressDict$unwrap = function (addressDict_) {
+	var addressDict = addressDict_.a;
+	return addressDict;
+};
+var $author$project$AddressDict$merge = F6(
+	function (leftStep_, bothStep_, rightStep_, leftAddressDict_, rightAddressDict_, initialResult) {
+		return A6(
+			$elm$core$Dict$merge,
+			$author$project$AddressDict$translate(leftStep_),
+			$author$project$AddressDict$translate(bothStep_),
+			$author$project$AddressDict$translate(rightStep_),
+			$author$project$AddressDict$unwrap(leftAddressDict_),
+			$author$project$AddressDict$unwrap(rightAddressDict_),
+			initialResult);
+	});
+var $author$project$AddressDict$toList = function (addressDict_) {
+	var addressDict = addressDict_.a;
+	return A2(
+		$elm$core$List$map,
+		$elm$core$Tuple$mapFirst($author$project$AddressDict$deterministicStringToAddress),
+		$elm$core$Dict$toList(addressDict));
+};
+var $author$project$Contracts$FryBalanceFetch$unifyFryBalances = function (fryBalances) {
+	var addMaybe = F2(
+		function (a, b) {
+			if (a.$ === 'Nothing') {
+				return b;
+			} else {
+				var aVal = a.a;
+				if (b.$ === 'Nothing') {
+					return $elm$core$Maybe$Just(aVal);
+				} else {
+					var bVal = b.a;
+					return $elm$core$Maybe$Just(
+						A2($author$project$TokenValue$add, bVal, aVal));
+				}
+			}
+		});
+	var mergeTwo = F2(
+		function (a, b) {
+			return A6(
+				$author$project$AddressDict$merge,
+				$author$project$AddressDict$insert,
+				F3(
+					function (k, v1, v2) {
+						return A2(
+							$author$project$AddressDict$insert,
+							k,
+							A2(addMaybe, v2, v1));
+					}),
+				$author$project$AddressDict$insert,
+				a,
+				b,
+				$author$project$AddressDict$empty);
+		});
+	return A3(
+		$elm$core$List$foldl,
+		mergeTwo,
+		$author$project$AddressDict$empty,
+		A2(
+			$elm$core$List$map,
+			function (_v0) {
+				var v = _v0.b;
+				return v;
+			},
+			$author$project$AddressDict$toList(fryBalances)));
+};
 var $author$project$AddressDict$union = F2(
 	function (dict1_, dict2_) {
 		var _v0 = _Utils_Tuple2(dict1_, dict2_);
@@ -16468,18 +16477,52 @@ var $cmditch$elm_ethereum$Eth$Sentry$Tx$update = F2(
 					$elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$Contracts$FryBalanceFetch$updateBalancesFromResponse = F2(
-	function (response, list) {
+var $author$project$AddressDict$get = F2(
+	function (address, addressDict_) {
 		return A2(
-			$elm$core$List$append,
-			_List_fromArray(
-				[response]),
+			$elm$core$Dict$get,
+			$author$project$AddressDict$addressToDeterministicString(address),
+			$author$project$AddressDict$unwrap(addressDict_));
+	});
+var $author$project$AddressDict$wrapFunc = F3(
+	function (originalFunc, inputFunc, addressDict) {
+		return $author$project$AddressDict$AddressDict(
 			A2(
-				$elm$core$List$filter,
-				function (balanceSet) {
-					return (!_Utils_eq(balanceSet.providerUrl, response.providerUrl)) && _Utils_eq(balanceSet.erc20, response.erc20);
-				},
-				list));
+				originalFunc,
+				$author$project$AddressDict$translate(inputFunc),
+				$author$project$AddressDict$unwrap(addressDict)));
+	});
+var $author$project$AddressDict$map = $author$project$AddressDict$wrapFunc($elm$core$Dict$map);
+var $author$project$Contracts$FryBalanceFetch$updateTokenBalanceDict = F2(
+	function (newBalances, dict) {
+		var _v0 = newBalances;
+		var erc20Address = _v0.b;
+		var newTokenValues = _v0.c;
+		var existingTokenValues = A2($author$project$AddressDict$get, erc20Address, dict);
+		var resultingUnion = function () {
+			if (existingTokenValues.$ === 'Nothing') {
+				return A2(
+					$author$project$AddressDict$map,
+					F2(
+						function (_v2, i) {
+							return $elm$core$Maybe$Just(i);
+						}),
+					newTokenValues);
+			} else {
+				var a = existingTokenValues.a;
+				return A2(
+					$author$project$AddressDict$union,
+					A2(
+						$author$project$AddressDict$map,
+						F2(
+							function (_v3, i) {
+								return $elm$core$Maybe$Just(i);
+							}),
+						newTokenValues),
+					a);
+			}
+		}();
+		return A3($author$project$AddressDict$insert, erc20Address, resultingUnion, dict);
 	});
 var $author$project$Types$Invalid = {$: 'Invalid'};
 var $author$project$Types$Valid = {$: 'Valid'};
@@ -17455,17 +17498,16 @@ var $author$project$Update$update = F2(
 				}
 			case 'RefreshAll':
 				return ensureUserInfo(
-					function (userInfo) {
+					function (_v36) {
 						return _Utils_Tuple2(
 							model,
 							$elm$core$Platform$Cmd$batch(
-								_Utils_ap(
-									$author$project$Misc$fetchFryBalancesCmd(
-										$author$project$Contracts$FryBalanceFetch$getFryAddresses(model.fryBalances)),
-									_List_fromArray(
-										[
-											A2($author$project$Misc$refreshPollVotesCmd, model, $elm$core$Maybe$Nothing)
-										]))));
+								_List_fromArray(
+									[
+										$author$project$Misc$refreshPollVotesCmd($elm$core$Maybe$Nothing),
+										$author$project$Misc$fetchFryBalancesCmd(
+										$author$project$AddressDict$keys(model.fryBalances))
+									])));
 					});
 			case 'PollsFetched':
 				var pollsFetchedResult = msg.a;
@@ -17480,7 +17522,7 @@ var $author$project$Update$update = F2(
 							{
 								polls: $elm$core$Maybe$Just(polls)
 							}),
-						A2($author$project$Misc$refreshPollVotesCmd, model, $elm$core$Maybe$Nothing));
+						$author$project$Misc$refreshPollVotesCmd($elm$core$Maybe$Nothing));
 				}
 			case 'OptionClicked':
 				var userInfo = msg.a;
@@ -17517,15 +17559,15 @@ var $author$project$Update$update = F2(
 				var jsonVal = msg.a;
 				var decodedSignResult = A2($elm$json$Json$Decode$decodeValue, $author$project$Misc$validateSigResultDecoder, jsonVal);
 				if (decodedSignResult.$ === 'Ok') {
-					var _v40 = decodedSignResult.a;
-					var responseId = _v40.a;
-					var validateResult = _v40.b;
-					var _v41 = function () {
+					var _v41 = decodedSignResult.a;
+					var responseId = _v41.a;
+					var validateResult = _v41.b;
+					var _v42 = function () {
 						if (validateResult.$ === 'Valid') {
 							var maybeSignedResponse = A2(
 								$elm$core$Maybe$map,
 								$elm$core$Tuple$second,
-								A2($elm$core$Dict$get, responseId, model.maybeValidResponses));
+								A2($elm$core$Dict$get, responseId, model.possiblyValidResponses));
 							if (maybeSignedResponse.$ === 'Just') {
 								var signedResponse = maybeSignedResponse.a;
 								return _Utils_Tuple3(
@@ -17546,35 +17588,22 @@ var $author$project$Update$update = F2(
 							return _Utils_Tuple3(model.validatedResponses, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
 						}
 					}();
-					var newValidatedResponses = _v41.a;
-					var maybeRespondingAddress = _v41.b;
-					var maybeUserNotice = _v41.c;
+					var newValidatedResponses = _v42.a;
+					var maybeRespondingAddress = _v42.b;
+					var maybeUserNotice = _v42.c;
 					var newBalancesDict = function () {
 						if (maybeRespondingAddress.$ === 'Nothing') {
-							return $author$project$Contracts$FryBalanceFetch$getFryAddressesAsEmptyDict(model.fryBalances);
+							return model.fryBalances;
 						} else {
 							var address = maybeRespondingAddress.a;
 							var newDictPortion = $author$project$AddressDict$fromList(
 								_List_fromArray(
 									[
-										_Utils_Tuple2(address, $elm$core$Maybe$Nothing)
+										_Utils_Tuple2(address, $author$project$AddressDict$empty)
 									]));
-							return A2(
-								$author$project$AddressDict$union,
-								$author$project$Contracts$FryBalanceFetch$getFryAddressesAsEmptyDict(model.fryBalances),
-								newDictPortion);
+							return A2($author$project$AddressDict$union, model.fryBalances, newDictPortion);
 						}
 					}();
-					var cmd = $elm$core$Platform$Cmd$batch(
-						$author$project$Misc$fetchFryBalancesCmd(
-							$author$project$AddressDict$keys(
-								A2(
-									$author$project$AddressDict$filter,
-									F2(
-										function (addressString, maybeBalance) {
-											return _Utils_eq(maybeBalance, $elm$core$Maybe$Nothing);
-										}),
-									newBalancesDict))));
 					var tempModel = function () {
 						if (maybeUserNotice.$ === 'Nothing') {
 							return model;
@@ -17587,22 +17616,17 @@ var $author$project$Update$update = F2(
 						_Utils_update(
 							tempModel,
 							{
-								fryBalances: _List_fromArray(
-									[
-										{balances: newBalancesDict, erc20: $author$project$Config$ethereumFryContractAddress, providerUrl: $author$project$Config$ethereumProviderUrl}
-									]),
-								maybeValidResponses: A3(
+								possiblyValidResponses: A3(
 									$elm$core$Dict$update,
 									responseId,
 									$elm$core$Maybe$map(
 										$elm$core$Tuple$mapFirst(
 											$elm$core$Basics$always(true))),
-									model.maybeValidResponses),
+									model.possiblyValidResponses),
 								validatedResponses: newValidatedResponses
 							}),
-						cmd);
+						$elm$core$Platform$Cmd$none);
 				} else {
-					var errStr = decodedSignResult.a;
 					return _Utils_Tuple2(
 						A3(
 							$elm$core$Basics$apR,
@@ -17611,15 +17635,39 @@ var $author$project$Update$update = F2(
 							model),
 						$elm$core$Platform$Cmd$none);
 				}
+			case 'FetchFryBalances':
+				return _Utils_Tuple2(
+					model,
+					$elm$core$Platform$Cmd$batch(
+						A2(
+							$author$project$Contracts$FryBalanceFetch$accumulateFetches,
+							$author$project$Types$FryBalancesFetched,
+							A2(
+								$elm_community$list_extra$List$Extra$uniqueBy,
+								$cmditch$elm_ethereum$Eth$Utils$addressToString,
+								A2(
+									$elm$core$List$map,
+									function (_v49) {
+										var _v50 = _v49.b;
+										var v = _v50.b;
+										return v.address;
+									},
+									$elm$core$Dict$toList(
+										A2(
+											$elm$core$Dict$filter,
+											F2(
+												function (_v47, _v48) {
+													var b = _v48.a;
+													return b;
+												}),
+											model.possiblyValidResponses)))))));
 			case 'ResponseSent':
 				var pollId = msg.a;
 				var sendResult = msg.b;
 				if (sendResult.$ === 'Ok') {
 					return _Utils_Tuple2(
 						model,
-						A2(
-							$author$project$Misc$refreshPollVotesCmd,
-							model,
+						$author$project$Misc$refreshPollVotesCmd(
 							$elm$core$Maybe$Just(pollId)));
 				} else {
 					var httpErr = sendResult.a;
@@ -17635,8 +17683,8 @@ var $author$project$Update$update = F2(
 				var responsesFetchedResult = msg.a;
 				if (responsesFetchedResult.$ === 'Ok') {
 					var decodedLoggedSignedResponses = responsesFetchedResult.a;
-					var _v48 = model.polls;
-					if (_v48.$ === 'Nothing') {
+					var _v53 = model.polls;
+					if (_v53.$ === 'Nothing') {
 						return _Utils_Tuple2(
 							A3(
 								$elm$core$Basics$apR,
@@ -17645,14 +17693,14 @@ var $author$project$Update$update = F2(
 								model),
 							$elm$core$Platform$Cmd$none);
 					} else {
-						var polls = _v48.a;
-						var newMaybeValidResponses = A2(
+						var polls = _v53.a;
+						var newPossiblyValidResponses = A2(
 							$elm$core$Dict$union,
-							model.maybeValidResponses,
+							model.possiblyValidResponses,
 							A2(
 								$elm$core$Dict$map,
 								F2(
-									function (_v51, signedResponse) {
+									function (_v56, signedResponse) {
 										return _Utils_Tuple2(false, signedResponse);
 									}),
 								decodedLoggedSignedResponses));
@@ -17664,24 +17712,23 @@ var $author$project$Update$update = F2(
 									A2(
 										$elm_community$dict_extra$Dict$Extra$filterMap,
 										F2(
-											function (_v49, _v50) {
-												var isValidated = _v50.a;
-												var signedResponse = _v50.b;
+											function (_v54, _v55) {
+												var isValidated = _v55.a;
+												var signedResponse = _v55.b;
 												return (!isValidated) ? $elm$core$Maybe$Just(signedResponse) : $elm$core$Maybe$Nothing;
 											}),
-										newMaybeValidResponses))));
+										newPossiblyValidResponses))));
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{maybeValidResponses: newMaybeValidResponses}),
+								{possiblyValidResponses: newPossiblyValidResponses}),
 							$author$project$Misc$validateSignedResponsesCmd(responsesToValidate));
 					}
 				} else {
-					var decodeErr = responsesFetchedResult.a;
 					return _Utils_Tuple2(
 						A3(
 							$elm$core$Basics$apR,
-							$author$project$UserNotice$unexpectedError('error decoding responses from server'),
+							$author$project$UserNotice$unexpectedError('error decoding signed responses from outsystems server'),
 							$author$project$Update$addUserNotice,
 							model),
 						$elm$core$Platform$Cmd$none);
@@ -17694,7 +17741,8 @@ var $author$project$Update$update = F2(
 						_Utils_update(
 							model,
 							{
-								fryBalances: A2($author$project$Contracts$FryBalanceFetch$updateBalancesFromResponse, newFryBalances, model.fryBalances)
+								fryBalances: A2($author$project$Contracts$FryBalanceFetch$updateTokenBalanceDict, newFryBalances, model.fryBalances),
+								unifiedBalances: $author$project$Contracts$FryBalanceFetch$unifyFryBalances(model.fryBalances)
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
@@ -17754,11 +17802,11 @@ var $author$project$Update$update = F2(
 					$elm$core$Platform$Cmd$batch(
 						_Utils_ap(
 							function () {
-								var _v54 = $author$project$Misc$userInfo(model.wallet);
-								if (_v54.$ === 'Nothing') {
+								var _v59 = $author$project$Misc$userInfo(model.wallet);
+								if (_v59.$ === 'Nothing') {
 									return _List_Nil;
 								} else {
-									var uInfo = _v54.a;
+									var uInfo = _v59.a;
 									return _List_fromArray(
 										[
 											function () {
@@ -17790,11 +17838,11 @@ var $author$project$Update$update = F2(
 				return _Utils_Tuple2(
 					model,
 					function () {
-						var _v55 = $author$project$Misc$userInfo(model.wallet);
-						if (_v55.$ === 'Nothing') {
+						var _v60 = $author$project$Misc$userInfo(model.wallet);
+						if (_v60.$ === 'Nothing') {
 							return $elm$core$Platform$Cmd$none;
 						} else {
-							var uInfo = _v55.a;
+							var uInfo = _v60.a;
 							var txParams = $cmditch$elm_ethereum$Eth$encodeSend(
 								A2(
 									$author$project$Helpers$Eth$addFrom,
@@ -17815,13 +17863,13 @@ var $author$project$Update$update = F2(
 							{
 								dEthUserInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v57 = model.dEthUserInfo;
-										if (_v57.$ === 'Nothing') {
+										var _v62 = model.dEthUserInfo;
+										if (_v62.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthUserInfo,
 												{ethBalance: tokenValue});
 										} else {
-											var oldUserDerivedEthInfoModel = _v57.a;
+											var oldUserDerivedEthInfoModel = _v62.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{ethBalance: tokenValue});
@@ -17842,13 +17890,13 @@ var $author$project$Update$update = F2(
 							{
 								dEthUserInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v59 = model.dEthUserInfo;
-										if (_v59.$ === 'Nothing') {
+										var _v64 = model.dEthUserInfo;
+										if (_v64.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthUserInfo,
 												{dEthBalance: tokenValue});
 										} else {
-											var oldUserDerivedEthInfoModel = _v59.a;
+											var oldUserDerivedEthInfoModel = _v64.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{dEthBalance: tokenValue});
@@ -17873,8 +17921,8 @@ var $author$project$Update$update = F2(
 							{
 								dEthWithdrawInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v61 = model.dEthWithdrawInfo;
-										if (_v61.$ === 'Nothing') {
+										var _v66 = model.dEthWithdrawInfo;
+										if (_v66.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthWithdrawInfo,
 												{
@@ -17883,7 +17931,7 @@ var $author$project$Update$update = F2(
 													totalCollateralRedeemed: $author$project$TokenValue$tokenValue(data.collateralRedeemed)
 												});
 										} else {
-											var oldUserDerivedEthInfoModel = _v61.a;
+											var oldUserDerivedEthInfoModel = _v66.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{
@@ -18063,8 +18111,8 @@ var $author$project$Update$update = F2(
 							{
 								dEthDepositInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v70 = model.dEthDepositInfo;
-										if (_v70.$ === 'Nothing') {
+										var _v75 = model.dEthDepositInfo;
+										if (_v75.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthDepositInfo,
 												{
@@ -18073,7 +18121,7 @@ var $author$project$Update$update = F2(
 													tokensIssued: $author$project$TokenValue$tokenValue(data.tokensIssued)
 												});
 										} else {
-											var oldUserDerivedEthInfoModel = _v70.a;
+											var oldUserDerivedEthInfoModel = _v75.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{
@@ -18184,7 +18232,7 @@ var $author$project$Update$update = F2(
 						}
 					},
 					function (info) {
-						var _v72 = A2(
+						var _v77 = A2(
 							$author$project$GTag$gTagOutOnlyOnceForEvent,
 							model.gtagHistory,
 							A4(
@@ -18194,8 +18242,8 @@ var $author$project$Update$update = F2(
 								$elm$core$Maybe$Just(
 									$cmditch$elm_ethereum$Eth$Utils$addressToString(info.address)),
 								$elm$core$Maybe$Nothing));
-						var gtagHistory = _v72.a;
-						var walletConnectedGtagCmd = _v72.b;
+						var gtagHistory = _v77.a;
+						var walletConnectedGtagCmd = _v77.b;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -18236,7 +18284,7 @@ var $author$project$Update$update = F2(
 								$author$project$Ports$log(e));
 						}
 					},
-					function (_v74) {
+					function (_v79) {
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -28271,14 +28319,6 @@ var $author$project$View$Deth$investOrWithdrawEl = F8(
 				}()
 				]));
 	});
-var $author$project$TokenValue$add = F2(
-	function (t1, t2) {
-		return $author$project$TokenValue$TokenValue(
-			A2(
-				$cmditch$elm_bigint$BigInt$add,
-				$author$project$TokenValue$getEvmValue(t1),
-				$author$project$TokenValue$getEvmValue(t2)));
-	});
 var $author$project$Theme$yellow = A3($mdgriffith$elm_ui$Element$rgb, 1, 1, 0);
 var $author$project$View$Deth$dethRedeemWarningEl = F3(
 	function (dProfile, mentionAddedBalance, userBalanceToTotalRatio) {
@@ -29622,62 +29662,6 @@ var $author$project$View$Sentiment$titleText = F2(
 					A3($author$project$ElementHelpers$responsiveVal, dProfile, 50, 18))
 				]),
 			$mdgriffith$elm_ui$Element$text(title));
-	});
-var $author$project$AddressDict$toList = function (addressDict_) {
-	var addressDict = addressDict_.a;
-	return A2(
-		$elm$core$List$map,
-		$elm$core$Tuple$mapFirst($author$project$AddressDict$deterministicStringToAddress),
-		$elm$core$Dict$toList(addressDict));
-};
-var $author$project$Contracts$FryBalanceFetch$addBalances = F2(
-	function (balances1, balances2) {
-		var castTokenMaybe = function (a) {
-			if (a.$ === 'Just') {
-				var tokenValue = a.a;
-				return tokenValue;
-			} else {
-				return $author$project$TokenValue$zero;
-			}
-		};
-		var balancesList2 = $author$project$AddressDict$toList(balances2);
-		var balancesList1 = $author$project$AddressDict$toList(balances1);
-		var addTokenValue = F2(
-			function (a, b) {
-				return A2(
-					$author$project$TokenValue$add,
-					castTokenMaybe(b),
-					castTokenMaybe(a));
-			});
-		var addTuples = F2(
-			function (a, b) {
-				return _Utils_Tuple2(
-					a.a,
-					$elm$core$Maybe$Just(
-						A2(addTokenValue, a.b, b.b)));
-			});
-		return $author$project$AddressDict$fromList(
-			A3($elm$core$List$map2, addTuples, balancesList1, balancesList2));
-	});
-var $author$project$Contracts$FryBalanceFetch$unifyFryBalances = function (list) {
-	return A3(
-		$elm$core$List$foldl,
-		$author$project$Contracts$FryBalanceFetch$addBalances,
-		$author$project$AddressDict$empty,
-		A2(
-			$elm$core$List$map,
-			function ($) {
-				return $.balances;
-			},
-			list));
-};
-var $author$project$AddressDict$get = F2(
-	function (address, addressDict_) {
-		var addressDict = addressDict_.a;
-		return A2(
-			$elm$core$Dict$get,
-			$author$project$AddressDict$addressToDeterministicString(address),
-			addressDict);
 	});
 var $dillonkearns$elm_markdown$Markdown$Parser$problemToString = function (problem) {
 	switch (problem.$) {
@@ -35970,11 +35954,10 @@ var $author$project$View$Sentiment$maxBarWidth = function (dProfile) {
 };
 var $author$project$AddressDict$member = F2(
 	function (address, dict_) {
-		var dict = dict_.a;
 		return A2(
 			$elm$core$Dict$member,
 			$author$project$AddressDict$addressToDeterministicString(address),
-			dict);
+			$author$project$AddressDict$unwrap(dict_));
 	});
 var $author$project$Images$pollChoiceEmpty = $author$project$Images$JustImage(
 	{description: 'vote for this option', src: 'img/poll-choice-empty.svg'});

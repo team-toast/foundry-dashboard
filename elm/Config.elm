@@ -92,12 +92,12 @@ ethereumFryContractAddress =
 
 arbitrumOneFryContractAddress : Address
 arbitrumOneFryContractAddress =
-    Eth.Utils.unsafeToAddress "0x633a3d2091dc7982597a0f635d23ba5eb1223f48"
+    Eth.Utils.unsafeToAddress "0x633A3d2091dc7982597A0f635d23Ba5EB1223f48"
 
 
 arbitrumOneGFryContractAddress : Address
 arbitrumOneGFryContractAddress =
-    Eth.Utils.unsafeToAddress "0x365db53eeb009b447b0e5a95e2523596e074d2fe"
+    Eth.Utils.unsafeToAddress "0x365Db53EEB009b447b0E5A95e2523596E074d2FE"
 
 
 fryContractAddressForChain : Chain -> Maybe Address

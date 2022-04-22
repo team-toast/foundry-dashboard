@@ -35,6 +35,8 @@ import UserNotice as UN exposing (UserNotice, cantConnectNoWeb3, httpFetchError,
 import UserTx exposing (Initiator, SignedTxStatus(..), TxInfo(..))
 import Wallet
 import Contracts.FryBalanceFetch exposing (..)
+import Graphql.Http.GraphqlError exposing (PossiblyParsedData)
+import Eth.Utils exposing (addressToString)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -1059,14 +1061,11 @@ update msg model =
 
                                 Just address ->
                                     let
-                                        newDictPortion : AddressDict CrossChainFryBalanceTracker
+                                        newDictPortion : TokenBalanceDict
                                         newDictPortion =
                                             [ 
                                                 ( address
-                                                , CrossChainFryBalanceTracker
-                                                    Nothing
-                                                    Nothing
-                                                    Nothing
+                                                , AddressDict.empty
                                                 )
                                             ]
                                             |> AddressDict.fromList
@@ -1074,11 +1073,6 @@ update msg model =
                                     AddressDict.union
                                         model.fryBalances
                                         newDictPortion
-
-                        fetchCmd =
-                            newBalancesDict
-                            |> accumulateFetches FryBalancesFetched
-                            |> Cmd.batch
 
                         tempModel =
                             case maybeUserNotice of
@@ -1101,9 +1095,8 @@ update msg model =
                                             (always True)
                                         )
                                     )
-                        , fryBalances = newBalancesDict
                       }
-                    , fetchCmd
+                    , Cmd.none
                     )
 
                 Err _ ->
@@ -1113,6 +1106,17 @@ update msg model =
                            )
                     , Cmd.none
                     )
+
+        FetchFryBalances ->
+            ( model
+            , model.possiblyValidResponses 
+                |> Dict.filter (\_ (b, _) -> b)
+                |> Dict.toList
+                |> List.map (\(_, (_,v)) -> v.address)
+                |> List.Extra.uniqueBy addressToString
+                |> accumulateFetches FryBalancesFetched
+                |> Cmd.batch)
+
 
         ResponseSent pollId sendResult ->
             case sendResult of
@@ -1185,24 +1189,22 @@ update msg model =
             case fetchResult of
                 Ok newFryBalances ->
                     ( { model
-                        | fryBalances = updateCrossChainFryBalanceTracker newFryBalances model.fryBalances
+                        | fryBalances = updateTokenBalanceDict newFryBalances model.fryBalances
+                        , unifiedBalances = unifyFryBalances model.fryBalances
                       }
                     , Cmd.none
                     )
 
                 Err httpErr ->
                     let
-                        chain =
-                            model.wallet
-                                |> Wallet.getChainDefaultEth
+                        chain = 
+                            model.wallet 
+                            |> Wallet.getChainDefaultEth
                     in
                     ( case chain of
                         Eth ->
-                            model
-                                |> (web3FetchError "fetch polls" httpErr
-                                        |> addUserNotice
-                                   )
-
+                            model 
+                            |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
                         _ ->
                             model
                     , Cmd.none
