@@ -8,11 +8,10 @@ import Browser.Navigation
 import Contracts.Generated.DEth as DethGenerated
 import Dict exposing (Dict)
 import ElementHelpers as EH
-import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
-import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt, Event, HttpProvider)
+import Eth.Types exposing (Address, HttpProvider, TxHash, TxReceipt)
 import GTag exposing (..)
 import Graphql.Http
 import Http
@@ -39,7 +38,10 @@ type alias Flags =
     , hasWallet : Bool
     }
 
-type alias TokenBalanceDict = AddressDict (AddressDict (Maybe TokenValue)) 
+
+type alias TokenBalanceDict =
+    AddressDict (AddressDict (Maybe TokenValue))
+
 
 type alias Model =
     { navKey : Browser.Navigation.Key
@@ -153,8 +155,8 @@ type Msg
     | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (Dict Int SignedResponse))
-    | FetchFryBalances 
-    | FryBalancesFetched (Result Http.Error (HttpProvider, Address, AddressDict TokenValue))
+    | FetchFryBalances
+    | FryBalancesFetched (Result Http.Error ( HttpProvider, Address, AddressDict TokenValue ))
     | SetMouseoverState MouseoverState
     | UpdateNow Time.Posix
     | AmountInputChanged String
@@ -181,7 +183,10 @@ type Msg
     | DethProfitFetched (Result Http.Error TokenValue)
     | DethTVLFetched (Result Http.Error TokenValue)
     | DethSupplyFetched (Result Http.Error TokenValue)
-    -- | IssuedEventReceived (Event (Result Json.Decode.Error DethIssuedEventData))
+
+
+
+-- | IssuedEventReceived (Event (Result Json.Decode.Error DethIssuedEventData))
 
 
 type DethMode
@@ -208,6 +213,7 @@ type alias UserInfo =
 
 type PhaceIconId
     = UserPhace
+
 
 type alias UserStakingInfo =
     { unstaked : TokenValue

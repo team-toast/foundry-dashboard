@@ -1,23 +1,25 @@
 module Update exposing (..)
 
-import AddressDict exposing (AddressDict)
-import Array exposing (Array)
+import AddressDict exposing (..)
+import Array
 import BigInt
 import Browser
 import Browser.Navigation
-import Chain
 import Config
 import Contracts.DEthWrapper as Deth
+import Contracts.FryBalanceFetch exposing (..)
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingRewardsContract
+import Contracts.UniSwapGraph.InputObject exposing (Burn_filter, Pair_filter)
 import Dict
 import Dict.Extra
 import ElementHelpers as EH exposing (DisplayProfile(..))
 import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
-import Eth.Utils
+import Eth.Utils exposing (addressToString)
 import GTag exposing (GTagData, gTagOut)
+import Graphql.Http.GraphqlError exposing (PossiblyParsedData)
 import Helpers.Eth as EthHelpers
 import Helpers.Tuple exposing (tuple3MapSecond, tuple3Second, tuple3ToList)
 import Json.Decode
@@ -34,9 +36,7 @@ import Url
 import UserNotice as UN exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
 import UserTx exposing (Initiator, SignedTxStatus(..), TxInfo(..))
 import Wallet
-import Contracts.FryBalanceFetch exposing (..)
-import Graphql.Http.GraphqlError exposing (PossiblyParsedData)
-import Eth.Utils exposing (addressToString)
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -324,7 +324,7 @@ update msg model =
                     model.trackedTxs
                         |> UserTx.setTrackedTxStatus trackedTxId
                             (case signResult of
-                                Err errStr ->
+                                Err _ ->
                                     UserTx.Rejected
 
                                 Ok txHash ->
@@ -358,7 +358,7 @@ update msg model =
                     model.trackedTxs
                         |> UserTx.setTrackedTxSignedStatus trackedTxId
                             (case mineResult of
-                                Err errStr ->
+                                Err _ ->
                                     UserTx.Failed
 
                                 Ok txReceipt ->
@@ -413,7 +413,7 @@ update msg model =
 
         FetchedEthPrice fetchResult ->
             case fetchResult of
-                Err error ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -452,7 +452,7 @@ update msg model =
 
         FetchedDaiPrice fetchResult ->
             case fetchResult of
-                Err error ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -491,7 +491,7 @@ update msg model =
 
         FetchedFryPrice fetchResult ->
             case fetchResult of
-                Err error ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -530,7 +530,7 @@ update msg model =
 
         FetchedTeamTokens index fetchResult ->
             case fetchResult of
-                Err error ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -558,7 +558,7 @@ update msg model =
 
         FetchedBalancerFryBalance fetchResult ->
             case fetchResult of
-                Err error ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -591,7 +591,7 @@ update msg model =
 
         FetchedPermaFrostBalanceLocked fetchResult ->
             case fetchResult of
-                Err error ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -624,7 +624,7 @@ update msg model =
 
         FetchedPermaFrostTotalSupply fetchResult ->
             case fetchResult of
-                Err error ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -657,7 +657,7 @@ update msg model =
 
         BucketValueEnteredFetched bucketId fetchResult ->
             case fetchResult of
-                Err httpErr ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -673,7 +673,7 @@ update msg model =
 
         FetchedTreasuryBalance treasuryIndex fetchResult ->
             case fetchResult of
-                Err httpErr ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -903,7 +903,7 @@ update msg model =
 
         RefetchStakingInfoOrApy ->
             ensureUserInfo
-                (\userInfo ->
+                (\_ ->
                     ( model
                     , [ fetchStakingInfoOrApyCmd model.wallet
                       , fetchApyCmd
@@ -914,7 +914,7 @@ update msg model =
 
         OldStakingBalanceFetched contractAddress fetchResult ->
             case fetchResult of
-                Err httpErr ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -932,7 +932,7 @@ update msg model =
 
         StakingInfoFetched fetchResult ->
             case fetchResult of
-                Err httpErr ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -947,7 +947,7 @@ update msg model =
 
         ApyFetched fetchResult ->
             case fetchResult of
-                Err httpErr ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     )
@@ -975,7 +975,7 @@ update msg model =
             case pollsFetchedResult of
                 Err httpErr ->
                     ( model
-                      -- |> (httpFetchError "fetch polls" httpErr |> addUserNotice)
+                        |> (httpFetchError "fetch polls" httpErr |> addUserNotice)
                     , Cmd.none
                     )
 
@@ -1026,7 +1026,7 @@ update msg model =
             case decodedSignResult of
                 Ok ( responseId, validateResult ) ->
                     let
-                        ( newValidatedResponses, maybeRespondingAddress, maybeUserNotice ) =
+                        ( newValidatedResponses, maybeUserNotice ) =
                             case validateResult of
                                 Valid ->
                                     let
@@ -1038,41 +1038,18 @@ update msg model =
                                         Just signedResponse ->
                                             ( model.validatedResponses
                                                 |> insertValidatedResponse ( responseId, signedResponse )
-                                            , Just signedResponse.address
                                             , Nothing
                                             )
 
                                         Nothing ->
                                             ( model.validatedResponses
-                                            , Nothing
                                             , Just <| unexpectedError "got a signature verify result from JS, but for response that I don't have!"
                                             )
 
                                 Invalid ->
                                     ( model.validatedResponses
                                     , Nothing
-                                    , Nothing
                                     )
-
-                        newBalancesDict =
-                            case maybeRespondingAddress of
-                                Nothing ->
-                                    model.fryBalances 
-
-                                Just address ->
-                                    let
-                                        newDictPortion : TokenBalanceDict
-                                        newDictPortion =
-                                            [ 
-                                                ( address
-                                                , AddressDict.empty
-                                                )
-                                            ]
-                                            |> AddressDict.fromList
-                                    in
-                                    AddressDict.union
-                                        model.fryBalances
-                                        newDictPortion
 
                         tempModel =
                             case maybeUserNotice of
@@ -1109,14 +1086,14 @@ update msg model =
 
         FetchFryBalances ->
             ( model
-            , model.possiblyValidResponses 
-                |> Dict.filter (\_ (b, _) -> b)
+            , model.possiblyValidResponses
+                |> Dict.filter (\_ ( b, _ ) -> b)
                 |> Dict.toList
-                |> List.map (\(_, (_,v)) -> v.address)
+                |> List.map (\( _, ( _, v ) ) -> v.address)
                 |> List.Extra.uniqueBy addressToString
                 |> accumulateFetches FryBalancesFetched
-                |> Cmd.batch)
-
+                |> Cmd.batch
+            )
 
         ResponseSent pollId sendResult ->
             case sendResult of
@@ -1197,14 +1174,15 @@ update msg model =
 
                 Err httpErr ->
                     let
-                        chain = 
-                            model.wallet 
-                            |> Wallet.getChainDefaultEth
+                        chain =
+                            model.wallet
+                                |> Wallet.getChainDefaultEth
                     in
                     ( case chain of
                         Eth ->
-                            model 
-                            |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
+                            model
+                                |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
+
                         _ ->
                             model
                     , Cmd.none
@@ -1725,7 +1703,7 @@ update msg model =
 
         TxSendResponse res ->
             ensureUserInfo
-                (\userInfo ->
+                (\_ ->
                     res
                         |> unpack
                             (\err ->
@@ -1761,7 +1739,7 @@ update msg model =
                                             |> Cmd.batch
                                         )
                             )
-                            (\txHash ->
+                            (\_ ->
                                 ( { model
                                     | userNotices =
                                         model.userNotices
@@ -1843,7 +1821,7 @@ gotoRoute route prevModel =
             , Cmd.none
             )
 
-        Routing.NotFound err ->
+        Routing.NotFound _ ->
             ( { prevModel
                 | route = route
               }

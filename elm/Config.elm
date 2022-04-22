@@ -1,11 +1,11 @@
 module Config exposing (..)
 
-import BigInt exposing (BigInt)
+import BigInt exposing (..)
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Set exposing (Set)
 import Time
-import TokenValue exposing (TokenValue)
+import TokenValue exposing (..)
 import Types exposing (Chain(..))
 
 
@@ -21,6 +21,7 @@ displayProfileBreakpoint =
 ethereumProviderUrl : String
 ethereumProviderUrl =
     "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+
 
 arbitrumProviderUrl : String
 arbitrumProviderUrl =
@@ -79,6 +80,7 @@ daiContractAddress chain =
 ethErc20BalanceFetchBatchContractAddress : Address
 ethErc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
+
 
 arbErc20BalanceFetchBatchContractAddress : Address
 arbErc20BalanceFetchBatchContractAddress =

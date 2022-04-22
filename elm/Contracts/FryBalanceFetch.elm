@@ -12,7 +12,7 @@ import Http
 import List.Extra exposing (..)
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (Msg, TokenBalanceDict)
+import Types exposing (TokenBalanceDict)
 
 
 fetch :

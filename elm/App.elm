@@ -5,20 +5,16 @@ import Browser.Hash as Hash
 import Browser.Navigation
 import Chain
 import Config
-import Contracts.DEthWrapper
 import ElementHelpers exposing (screenWidthToDisplayProfile)
 import Eth.Sentry.Event
-import Eth.Sentry.Tx
-import Eth.Sentry.Wallet
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (emptyModel, fetchAllPollsCmd, fetchApyCmd, fetchBalancerPoolFryBalance, fetchDaiPrice, fetchDerivedEthBalance, fetchDethPositionInfo, fetchEthBalance, fetchEthPrice, fetchFryPrice, fetchPermaFrostLockedTokenBalance, fetchPermaFrostTotalSupply, fetchTeamTokenBalance, fetchTreasuryBalances, userInfo)
+import Misc exposing (emptyModel, fetchAllPollsCmd)
 import Ports
 import Routing
 import Time
-import TokenValue exposing (TokenValue)
 import Types exposing (Flags, Model, Msg)
-import Update exposing (gotoRoute, update)
+import Update exposing (update)
 import Url exposing (Url)
 import UserNotice as UN
 import View exposing (view)
@@ -98,10 +94,10 @@ init flags url key =
                     ( ethSentry, ethCmd ) =
                         startSentry model.config.ethereum
 
-                    ( xDaiSentry, xDaiCmd ) =
+                    ( xDaiSentry, _ ) =
                         startSentry model.config.xDai
 
-                    ( bscSentry, bscCmd ) =
+                    ( bscSentry, _ ) =
                         startSentry model.config.bsc
                 in
                 ( { model
@@ -139,9 +135,8 @@ init flags url key =
 startSentry : Types.ChainConfig -> ( Eth.Sentry.Event.EventSentry Msg, Cmd Msg )
 startSentry config =
     let
-        dethMintEventFilter =
-            Contracts.DEthWrapper.squanderEventFilter
-
+        -- dethMintEventFilter =
+        --     Contracts.DEthWrapper.squanderEventFilter
         ( initEventSentry, initEventSentryCmd ) =
             Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
                 config.providerUrl

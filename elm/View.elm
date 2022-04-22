@@ -1,10 +1,7 @@
 module View exposing (view)
 
-import BigInt
 import Browser
-import Browser.Navigation
-import Config
-import Element exposing (Element, alignBottom, alignRight, alignTop, below, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, link, maximum, moveRight, newTabLink, none, padding, paddingXY, paragraph, rgba, row, scrollbarY, shrink, spacing, text, width)
+import Element exposing (Element, alignBottom, alignRight, alignTop, below, centerX, column, el, fill, focusStyle, height, htmlAttribute, inFront, layoutWith, maximum, moveRight, newTabLink, none, padding, paddingXY, paragraph, rgba, row, scrollbarY, shrink, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -14,7 +11,6 @@ import ElementHelpers as EH exposing (DisplayProfile(..), responsiveVal)
 import Eth.Types exposing (TxHash)
 import Eth.Utils
 import Helpers.Eth as EthHelpers
-import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Html.Attributes
@@ -22,13 +18,11 @@ import Images
 import List exposing (map)
 import Maybe.Extra
 import Misc exposing (userInfo)
-import Routing exposing (Route, routeName, routeToString)
+import Routing exposing (Route, routeName)
 import Theme exposing (defaultTheme)
-import Time
 import TokenValue
 import Tuple3
 import Types exposing (..)
-import Update exposing (gotoRoute)
 import UserNotice as UN exposing (UserNotice)
 import UserTx
 import View.Common exposing (..)
@@ -710,12 +704,11 @@ trackedTxsColumn trackedTxs =
         ]
         (trackedTxs
             |> List.indexedMap
-                (\trackedTxId trackedTx ->
+                (\_ trackedTx ->
                     case trackedTx.status of
                         UserTx.Signed txHash signedTxStatus ->
                             Just <|
                                 viewTrackedTxRow
-                                    trackedTxId
                                     trackedTx.txInfo
                                     txHash
                                     signedTxStatus
@@ -728,12 +721,11 @@ trackedTxsColumn trackedTxs =
 
 
 viewTrackedTxRow :
-    Int
-    -> UserTx.TxInfo
+    UserTx.TxInfo
     -> TxHash
     -> UserTx.SignedTxStatus
     -> Element Msg
-viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
+viewTrackedTxRow txInfo txHash signedTxStatus =
     let
         etherscanLink label =
             newTabLink
@@ -785,7 +777,7 @@ viewTrackedTxRow trackedTxId txInfo txHash signedTxStatus =
                 UserTx.Failed ->
                     etherscanLink "Failed"
 
-                UserTx.Success txReceipt ->
+                UserTx.Success _ ->
                     etherscanLink "Mined"
     in
     row

@@ -1,7 +1,6 @@
 module Images exposing (..)
 
 import Element exposing (Attribute, Element)
-import Time
 
 
 type Image

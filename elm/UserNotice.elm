@@ -1,6 +1,6 @@
 module UserNotice exposing (..)
 
-import Element exposing (Attribute, Element)
+import Element exposing (Element)
 import Element.Font
 import Http
 import Json.Decode

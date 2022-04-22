@@ -4,7 +4,6 @@ import Eth.Types exposing (..)
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
-import Url.Parser.Query as Query
 
 
 type Route

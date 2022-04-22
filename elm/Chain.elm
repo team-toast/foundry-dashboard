@@ -2,7 +2,6 @@ module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, 
 
 import Config
 import Element exposing (Color)
-import Eth.Decode
 import Eth.Net
 import Eth.Types exposing (TxHash)
 import Eth.Utils
@@ -81,7 +80,7 @@ getName chain =
 
 
 chainDecoder : Flags -> Decoder (List Types.ChainConfig)
-chainDecoder flags =
+chainDecoder _ =
     Decode.map
         (\chain ->
             { chain = chain

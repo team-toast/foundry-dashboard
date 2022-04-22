@@ -1,7 +1,7 @@
 module View.Sentiment exposing (view)
 
 import AddressDict exposing (AddressDict)
-import Chain
+import Contracts.FryBalanceFetch exposing (..)
 import Dict exposing (Dict)
 import Element exposing (Element)
 import Element.Background
@@ -27,7 +27,6 @@ import Types exposing (Chain(..), Model, MouseoverState, Msg, Poll, PollOption, 
 import View.Common exposing (..)
 import View.Farm exposing (commonImageAttributes)
 import Wallet
-import Contracts.FryBalanceFetch exposing (..)
 
 
 view : Model -> Element Msg
@@ -107,7 +106,7 @@ viewPolls dProfile maybeUserInfo polls validatedResponses fryBalances mouseoverS
                 dProfile
                 maybeUserInfo
                 validatedResponses
-                fryBalances 
+                fryBalances
                 mouseoverState
             )
             (List.reverse polls)
@@ -392,7 +391,6 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                       <|
                         voteBarBreakdown
                             dProfile
-                            maybeUserInfo
                             ( poll.id, pollOption.id )
                             totalVotes
                             totalVotesInSupport
@@ -450,7 +448,6 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                       <|
                         voteBarBreakdown
                             dProfile
-                            maybeUserInfo
                             ( poll.id, pollOption.id )
                             totalVotes
                             totalVotesInSupport
@@ -473,8 +470,8 @@ viewOption dProfile maybeUserInfo poll pollOption ( totalVotes, supportFloat ) (
                 ]
 
 
-voteBarBreakdown : DisplayProfile -> Maybe UserInfo -> ( Int, Int ) -> TokenValue -> TokenValue -> AddressDict TokenValue -> MouseoverState -> Element Msg
-voteBarBreakdown dProfile maybeUserInfo ( pollId, pollOptionId ) totalVotes totalVotesInSupport detailedSupportDict mouseoverState =
+voteBarBreakdown : DisplayProfile -> ( Int, Int ) -> TokenValue -> TokenValue -> AddressDict TokenValue -> MouseoverState -> Element Msg
+voteBarBreakdown dProfile ( pollId, pollOptionId ) totalVotes totalVotesInSupport detailedSupportDict mouseoverState =
     let
         votesToBarWidth tokens =
             let

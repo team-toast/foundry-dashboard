@@ -6,16 +6,14 @@ import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingContract
 import Contracts.Generated.StakingScripts as StakingScripts
 import Eth
-import Eth.Abi.Decode exposing (uint)
 import Eth.Types as Eth exposing (Address)
-import Helpers.BigInt as BigIntHelpers
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Http
 import String
 import Task
-import TokenValue exposing (TokenValue, tokenValue)
-import Types exposing (Chain, UserStakingInfo)
+import TokenValue exposing (TokenValue)
+import Types exposing (UserStakingInfo)
 
 
 approveLiquidityToken : Eth.Send
