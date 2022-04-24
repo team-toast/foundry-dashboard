@@ -308,8 +308,7 @@ viewChain chainId chainConfigs chainImgs =
         img =
             chainImgs
                 |> Dict.get chainId
-                |> Maybe.map .img
-                |> Maybe.withDefault View.Img.eth
+                |> Maybe.withDefault (View.Img.eth 20 (Element.rgb 0.5 0.5 1))
     in
     [ img, text txt ]
         |> row

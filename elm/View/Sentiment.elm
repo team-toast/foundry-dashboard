@@ -24,7 +24,7 @@ import Phace
 import Result.Extra
 import Theme
 import TokenValue exposing (TokenValue)
-import Types exposing (ChainId(..), Model, MouseoverState, Msg, Poll, PollOption, UserInfo, ValidatedResponse, ValidatedResponseTracker, VoteBarBlock)
+import Types exposing (ChainId, Model, MouseoverState, Msg, Poll, PollOption, UserInfo, ValidatedResponse, ValidatedResponseTracker, VoteBarBlock)
 import View.Common exposing (..)
 import View.Farm exposing (commonImageAttributes)
 import Wallet

@@ -1,22 +1,31 @@
 [
   {
     "name": "xDai",
-    "network": 100
+    "chainId": 100,
+    "nodeUrl": "https://dai.poa.network",
+    "explorerUrl": "https://blockscout.com/xdai/mainnet/"
   },
   {
     "name": "Ethereum",
-    "network": 1
+    "chainId": 1,
+    "nodeUrl": "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
   },
   {
     "name": "BSC",
-    "network": 56
-  },
-  {
-    "name": "Polygon",
-    "network": 137
+    "chainId": 56,
+    "nodeUrl": "https://bsc-mainnet.0xinfra.com",
+    "explorerUrl": "https://www.bscscan.com/"
   },
   {
     "name": "Arbitrum",
-    "network": 42131
+    "chainId": 42131,
+    "nodeUrl": "https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702",
+    "explorerUrl": "https://arbiscan.com/"
+  },
+  {
+    "name": "Polygon",
+    "chainId": 137,
+    "nodeUrl": "https://polygon-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702",
+    "explorerUrl": "https://polyscan.com/"
   }
 ]

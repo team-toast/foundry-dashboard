@@ -50,6 +50,12 @@ import Wallet
 emptyModel : Browser.Navigation.Key -> Time.Posix -> String -> Bool -> Model
 emptyModel key now basePath cookieConsent =
     let
+        txSentry =
+            TxSentry.init
+                ( txOut, txIn )
+                Types.TxSentryMsg
+                (Config.nodeUrl Config.ethChainId Dict.empty)
+
         ( wallet, walletNotices ) =
             ( Types.Connecting
             , []
@@ -62,6 +68,7 @@ emptyModel key now basePath cookieConsent =
     , now = now
     , dProfile = EH.Desktop
     , sentries = Dict.empty
+    , txSentry = txSentry
     , showAddressId = Nothing
     , userNotices = walletNotices
     , trackedTxs = []
@@ -179,48 +186,48 @@ fetchFryPrice =
         |> Graphql.Http.send Types.FetchedFryPrice
 
 
-fetchTeamTokenBalance : Address -> Address -> Int -> Cmd Msg
-fetchTeamTokenBalance tokenAddress owner index =
+fetchTeamTokenBalance : String -> Address -> Address -> Int -> Cmd Msg
+fetchTeamTokenBalance nodeUrl tokenAddress owner index =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         tokenAddress
         owner
         (Types.FetchedTeamTokens index)
 
 
-fetchPermaFrostLockedTokenBalance : Cmd Msg
-fetchPermaFrostLockedTokenBalance =
+fetchPermaFrostLockedTokenBalance : String -> Cmd Msg
+fetchPermaFrostLockedTokenBalance nodeUrl =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         Config.balancerPermafrostPool
         Config.burnAddress
         Types.FetchedPermaFrostBalanceLocked
 
 
-fetchPermaFrostTotalSupply : Cmd Msg
-fetchPermaFrostTotalSupply =
+fetchPermaFrostTotalSupply : String -> Cmd Msg
+fetchPermaFrostTotalSupply nodeUrl =
     ERC20.getTotalSupply
-        Eth
+        nodeUrl
         Config.balancerPermafrostPool
         Types.FetchedPermaFrostTotalSupply
 
 
-fetchBalancerPoolFryBalance : Cmd Msg
-fetchBalancerPoolFryBalance =
+fetchBalancerPoolFryBalance : String -> Cmd Msg
+fetchBalancerPoolFryBalance nodeUrl =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         Config.ethereumFryContractAddress
         Config.balancerPermafrostPool
         Types.FetchedBalancerFryBalance
 
 
-fetchTreasuryBalances : Cmd Msg
-fetchTreasuryBalances =
+fetchTreasuryBalances : String -> Cmd Msg
+fetchTreasuryBalances nodeUrl =
     Config.treasuryAddresses
         |> List.indexedMap
             (\id addr ->
                 ERC20.getBalanceCmd
-                    Eth
+                    nodeUrl
                     Config.ethereumDaiContractAddress
                     addr
                     (Types.FetchedTreasuryBalance id)
@@ -383,10 +390,10 @@ maybeFloatMultiply val1 val2 =
             Nothing
 
 
-fetchTotalValueEnteredCmd : Int -> Cmd Msg
-fetchTotalValueEnteredCmd bucketId =
+fetchTotalValueEnteredCmd : String -> Int -> Cmd Msg
+fetchTotalValueEnteredCmd nodeUrl bucketId =
     getTotalValueEnteredForBucket
-        Eth
+        nodeUrl
         bucketId
         (Just bucketId
             |> Types.BucketValueEnteredFetched
@@ -905,18 +912,18 @@ encodeSignedResponseForServer signedResponse =
         ]
 
 
-fetchEthBalance : Address -> Cmd Msg
-fetchEthBalance address =
+fetchEthBalance : String -> Address -> Cmd Msg
+fetchEthBalance nodeUrl address =
     ERC20.getEthBalance
-        Eth
+        nodeUrl
         address
         Types.UserEthBalanceFetched
 
 
-fetchDerivedEthBalance : Address -> Cmd Msg
-fetchDerivedEthBalance address =
+fetchDerivedEthBalance : String -> Address -> Cmd Msg
+fetchDerivedEthBalance nodeUrl address =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         Config.dethContractAddress
         address
         Types.UserDerivedEthBalanceFetched
@@ -1129,14 +1136,14 @@ fetchDethSupplyCmd =
         DethSupplyFetched
 
 
-refreshCmds : Wallet -> Bool -> String -> Maybe Int -> List (Cmd Msg)
-refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucketId =
+refreshCmds : String -> Wallet -> Bool -> String -> Maybe Int -> List (Cmd Msg)
+refreshCmds nodeUrl wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucketId =
     let
         possiblyWalletCmds =
             case wallet |> Wallet.userInfo |> Maybe.map .address of
                 Just userAddress ->
-                    [ fetchDerivedEthBalance userAddress
-                    , fetchEthBalance userAddress
+                    [ fetchDerivedEthBalance nodeUrl userAddress
+                    , fetchEthBalance nodeUrl userAddress
                     , if fetchOldFarmBalances then
                         fetchOldStakingBalances userAddress
 
@@ -1148,18 +1155,18 @@ refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucket
                     []
     in
     possiblyWalletCmds
-        ++ [ Maybe.map fetchTotalValueEnteredCmd maybeCurrentBucketId
+        ++ [ Maybe.map (fetchTotalValueEnteredCmd nodeUrl) maybeCurrentBucketId
                 |> Maybe.withDefault Cmd.none
            , fetchEthPrice
            , fetchDaiPrice
            , fetchFryPrice
-           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress1 0
-           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress2 1
-           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress3 2
-           , fetchPermaFrostLockedTokenBalance
-           , fetchPermaFrostTotalSupply
-           , fetchBalancerPoolFryBalance
-           , fetchTreasuryBalances
+           , fetchTeamTokenBalance nodeUrl Config.ethereumFryContractAddress Config.teamToastAddress1 0
+           , fetchTeamTokenBalance nodeUrl Config.ethereumFryContractAddress Config.teamToastAddress2 1
+           , fetchTeamTokenBalance nodeUrl Config.ethereumFryContractAddress Config.teamToastAddress3 2
+           , fetchPermaFrostLockedTokenBalance nodeUrl
+           , fetchPermaFrostTotalSupply nodeUrl
+           , fetchBalancerPoolFryBalance nodeUrl
+           , fetchTreasuryBalances nodeUrl
            , fetchFarmEndTime
            , fetchApyCmd
            , fetchDethProfitCmd

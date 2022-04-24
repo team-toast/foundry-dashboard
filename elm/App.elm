@@ -6,6 +6,7 @@ import Browser.Navigation
 import Chain
 import Config
 import Contracts.DEthWrapper
+import Dict
 import ElementHelpers exposing (screenWidthToDisplayProfile)
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
@@ -49,6 +50,9 @@ init flags url key =
 
         route =
             Routing.urlToRoute url
+
+        ethNodeUrl =
+            Config.nodeUrl Config.ethChainId model.chainConfigs
     in
     flags.chains
         |> Json.Decode.decodeValue
@@ -65,46 +69,9 @@ init flags url key =
                 let
                     config =
                         chainConfigs
-                            |> List.foldl
-                                (\data ->
-                                    case data.chain of
-                                        Types.XDai ->
-                                            \config_ ->
-                                                { config_
-                                                    | xDai = data
-                                                }
-
-                                        Types.Eth ->
-                                            \config_ ->
-                                                { config_
-                                                    | ethereum = data
-                                                }
-
-                                        Types.BSC ->
-                                            \config_ ->
-                                                { config_
-                                                    | bsc = data
-                                                }
-
-                                        Types.Polygon ->
-                                            \config_ ->
-                                                { config_
-                                                    | polygon = data
-                                                }
-
-                                        Types.Arbitrum ->
-                                            \config_ ->
-                                                { config_
-                                                    | arbitrum = data
-                                                }
-
-                                        Types.Private _ ->
-                                            \config_ ->
-                                                { config_
-                                                    | private = data
-                                                }
-                                )
-                                model.config
+                            |> List.map (\i -> ( i.chainId, i ))
+                            |> Dict.fromList
+                            |> Dict.union model.chainConfigs
 
                     wallet =
                         if flags.hasWallet then
@@ -113,39 +80,26 @@ init flags url key =
                         else
                             Types.NoneDetected
 
-                    ( ethSentry, ethCmd ) =
-                        startSentry model.config.ethereum
+                    ( newSentries, newCmds ) =
+                        model.chainConfigs
+                            |> Dict.map (\_ c -> startSentry c)
+                            |> Dict.toList
+                            |> List.map (\( k, ( sentry, cmd ) ) -> ( ( k, sentry ), cmd ))
+                            |> List.unzip
 
-                    ( xDaiSentry, xDaiCmd ) =
-                        startSentry model.config.xDai
-
-                    ( bscSentry, bscCmd ) =
-                        startSentry model.config.bsc
-
-                    ( polySentry, polyCmd ) =
-                        startSentry model.config.polygon
-
-                    ( arbitrumSentry, arbitrumCmd ) =
-                        startSentry model.config.arbitrum
+                    ethCmd =
+                        newCmds
+                            |> List.head
+                            |> Maybe.withDefault Cmd.none
                 in
                 ( { model
-                    | config = config
+                    | chainConfigs = config
                     , route = route
                     , wallet = wallet
                     , dProfile = screenWidthToDisplayProfile Config.displayProfileBreakpoint flags.width
-                    , sentries =
-                        model.sentries
-                            |> (\cs ->
-                                    { cs
-                                        | xDai = xDaiSentry
-                                        , ethereum = ethSentry
-                                        , bsc = bscSentry
-                                        , polygon = polySentry
-                                        , arbitrum = arbitrumSentry
-                                    }
-                               )
+                    , sentries = Dict.fromList newSentries
                   }
-                , (Misc.refreshCmds wallet True "" Nothing
+                , (Misc.refreshCmds ethNodeUrl wallet True "" Nothing
                     ++ [ ethCmd
                        , fetchAllPollsCmd
                        , if route == Routing.Home then
@@ -169,7 +123,8 @@ startSentry config =
             Contracts.DEthWrapper.squanderEventFilter
 
         ( initEventSentry, initEventSentryCmd ) =
-            Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
+            Eth.Sentry.Event.init
+                (Types.EventSentryMsg config.chainId)
                 config.nodeUrl
 
         ( eventSentry, secondEventSentryCmd ) =

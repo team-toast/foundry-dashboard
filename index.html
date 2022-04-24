@@ -5921,12 +5921,7 @@ var $elm$core$Basics$always = F2(
 	function (a, _v0) {
 		return a;
 	});
-var $author$project$Types$Arbitrum = {$: 'Arbitrum'};
-var $author$project$Types$BSC = {$: 'BSC'};
-var $author$project$Types$Eth = {$: 'Eth'};
 var $author$project$Types$NetworkNotSupported = {$: 'NetworkNotSupported'};
-var $author$project$Types$Polygon = {$: 'Polygon'};
-var $author$project$Types$XDai = {$: 'XDai'};
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $cmditch$elm_ethereum$Eth$Net$ETCMain = {$: 'ETCMain'};
 var $cmditch$elm_ethereum$Eth$Net$ETCTest = {$: 'ETCTest'};
@@ -6020,57 +6015,14 @@ var $cmditch$elm_ethereum$Eth$Net$networkIdDecoder = $elm$json$Json$Decode$oneOf
 var $author$project$Chain$decodeChain = A2(
 	$elm$json$Json$Decode$map,
 	function (network) {
-		_v0$7:
-		while (true) {
-			switch (network.$) {
-				case 'Mainnet':
-					return $elm$core$Result$Ok($author$project$Types$Eth);
-				case 'Private':
-					switch (network.a) {
-						case 1:
-							return $elm$core$Result$Ok($author$project$Types$Eth);
-						case 100:
-							return $elm$core$Result$Ok($author$project$Types$XDai);
-						case 56:
-							return $elm$core$Result$Ok($author$project$Types$BSC);
-						case 31337:
-							return $elm$core$Result$Ok($author$project$Types$Eth);
-						case 42161:
-							return $elm$core$Result$Ok($author$project$Types$Arbitrum);
-						case 137:
-							return $elm$core$Result$Ok($author$project$Types$Polygon);
-						default:
-							break _v0$7;
-					}
-				default:
-					break _v0$7;
-			}
+		if (network.$ === 'Private') {
+			var i = network.a;
+			return $elm$core$Result$Ok(i);
+		} else {
+			return $elm$core$Result$Err($author$project$Types$NetworkNotSupported);
 		}
-		return $elm$core$Result$Err($author$project$Types$NetworkNotSupported);
 	},
 	$cmditch$elm_ethereum$Eth$Net$networkIdDecoder);
-var $author$project$Config$arbitrumProviderUrl = 'https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
-var $author$project$Config$ethereumProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
-var $author$project$Config$polygonProviderUrl = 'https://polygon-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
-var $author$project$Config$testMode = false;
-var $author$project$Config$testModeHttpProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
-var $author$project$Config$mainnetHttpProviderUrl = function (chain) {
-	switch (chain.$) {
-		case 'Eth':
-			return $author$project$Config$testMode ? $author$project$Config$testModeHttpProviderUrl : $author$project$Config$ethereumProviderUrl;
-		case 'BSC':
-			return 'https://bsc-dataseed1.binance.org/';
-		case 'XDai':
-			return 'https://xdai-archive.blockscout.com';
-		case 'Arbitrum':
-			return $author$project$Config$arbitrumProviderUrl;
-		default:
-			return $author$project$Config$polygonProviderUrl;
-	}
-};
-var $author$project$Config$httpProviderUrl = function (chain) {
-	return $author$project$Config$mainnetHttpProviderUrl(chain);
-};
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm_community$result_extra$Result$Extra$unpack = F3(
 	function (errFunc, okFunc, result) {
@@ -6086,11 +6038,8 @@ var $author$project$Chain$chainDecoder = function (flags) {
 	return $elm$json$Json$Decode$list(
 		A2(
 			$elm$json$Json$Decode$map,
-			function (chain) {
-				return {
-					chain: chain,
-					providerUrl: $author$project$Config$httpProviderUrl(chain)
-				};
+			function (chainId) {
+				return {chainId: chainId, explorerUrl: '', name: '', nodeUrl: ''};
 			},
 			A2(
 				$elm$json$Json$Decode$andThen,
@@ -6099,13 +6048,12 @@ var $author$project$Chain$chainDecoder = function (flags) {
 					$elm$core$Basics$always(
 						$elm$json$Json$Decode$fail('bad network')),
 					$elm$json$Json$Decode$succeed),
-				A2($elm$json$Json$Decode$field, 'network', $author$project$Chain$decodeChain))));
+				A2($elm$json$Json$Decode$field, 'chainId', $author$project$Chain$decodeChain))));
 };
 var $elm$json$Json$Decode$decodeValue = _Json_run;
 var $author$project$Config$displayProfileBreakpoint = 1150;
 var $author$project$Types$Connecting = {$: 'Connecting'};
 var $author$project$ElementHelpers$Desktop = {$: 'Desktop'};
-var $author$project$Types$NoOp = {$: 'NoOp'};
 var $author$project$Types$None = {$: 'None'};
 var $author$project$Routing$Sentiment = {$: 'Sentiment'};
 var $author$project$Types$TxSentryMsg = function (a) {
@@ -6118,336 +6066,23 @@ var $author$project$AddressDict$AddressDict = function (a) {
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $author$project$AddressDict$empty = $author$project$AddressDict$AddressDict($elm$core$Dict$empty);
-var $author$project$Misc$emptyConfig = {
-	arbitrum: {chain: $author$project$Types$Arbitrum, providerUrl: ''},
-	bsc: {chain: $author$project$Types$BSC, providerUrl: ''},
-	ethereum: {chain: $author$project$Types$Eth, providerUrl: ''},
-	polygon: {chain: $author$project$Types$Polygon, providerUrl: ''},
-	xDai: {chain: $author$project$Types$XDai, providerUrl: ''}
-};
 var $elm$core$Set$Set_elm_builtin = function (a) {
 	return {$: 'Set_elm_builtin', a: a};
 };
 var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
 var $author$project$GTag$emptyGtagHistory = {sentOnlyOnChange: _List_Nil, sentOnlyOnce: $elm$core$Set$empty};
-var $cmditch$elm_ethereum$Eth$Sentry$Event$BlockNumber = function (a) {
-	return {$: 'BlockNumber', a: a};
+var $author$project$Config$ethChainId = 1;
+var $cmditch$elm_ethereum$Eth$Sentry$Tx$TxSentry = function (a) {
+	return {$: 'TxSentry', a: a};
 };
-var $cmditch$elm_ethereum$Eth$Sentry$Event$EventSentry = function (a) {
-	return {$: 'EventSentry', a: a};
-};
-var $elm$core$Task$onError = _Scheduler_onError;
-var $elm$core$Task$attempt = F2(
-	function (resultToMessage, task) {
-		return $elm$core$Task$command(
-			$elm$core$Task$Perform(
-				A2(
-					$elm$core$Task$onError,
-					A2(
-						$elm$core$Basics$composeL,
-						A2($elm$core$Basics$composeL, $elm$core$Task$succeed, resultToMessage),
-						$elm$core$Result$Err),
-					A2(
-						$elm$core$Task$andThen,
-						A2(
-							$elm$core$Basics$composeL,
-							A2($elm$core$Basics$composeL, $elm$core$Task$succeed, resultToMessage),
-							$elm$core$Result$Ok),
-						task))));
+var $cmditch$elm_ethereum$Eth$Sentry$Tx$init = F3(
+	function (_v0, tagger, nodePath) {
+		var outPort = _v0.a;
+		var inPort = _v0.b;
+		return $cmditch$elm_ethereum$Eth$Sentry$Tx$TxSentry(
+			{inPort: inPort, nodePath: nodePath, outPort: outPort, ref: 1, tagger: tagger, txs: $elm$core$Dict$empty});
 	});
-var $elm$core$String$cons = _String_cons;
-var $elm$core$String$fromChar = function (_char) {
-	return A2($elm$core$String$cons, _char, '');
-};
-var $elm$core$Basics$pow = _Basics_pow;
-var $rtfeldman$elm_hex$Hex$fromStringHelp = F3(
-	function (position, chars, accumulated) {
-		fromStringHelp:
-		while (true) {
-			if (!chars.b) {
-				return $elm$core$Result$Ok(accumulated);
-			} else {
-				var _char = chars.a;
-				var rest = chars.b;
-				switch (_char.valueOf()) {
-					case '0':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated;
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '1':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + A2($elm$core$Basics$pow, 16, position);
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '2':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (2 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '3':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (3 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '4':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (4 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '5':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (5 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '6':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (6 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '7':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (7 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '8':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (8 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case '9':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (9 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case 'a':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (10 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case 'b':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (11 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case 'c':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (12 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case 'd':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (13 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case 'e':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (14 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					case 'f':
-						var $temp$position = position - 1,
-							$temp$chars = rest,
-							$temp$accumulated = accumulated + (15 * A2($elm$core$Basics$pow, 16, position));
-						position = $temp$position;
-						chars = $temp$chars;
-						accumulated = $temp$accumulated;
-						continue fromStringHelp;
-					default:
-						var nonHex = _char;
-						return $elm$core$Result$Err(
-							$elm$core$String$fromChar(nonHex) + ' is not a valid hexadecimal character.');
-				}
-			}
-		}
-	});
-var $elm$core$Result$mapError = F2(
-	function (f, result) {
-		if (result.$ === 'Ok') {
-			var v = result.a;
-			return $elm$core$Result$Ok(v);
-		} else {
-			var e = result.a;
-			return $elm$core$Result$Err(
-				f(e));
-		}
-	});
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var $elm$core$List$tail = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(xs);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $elm$core$String$foldr = _String_foldr;
-var $elm$core$String$toList = function (string) {
-	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
-};
-var $rtfeldman$elm_hex$Hex$fromString = function (str) {
-	if ($elm$core$String$isEmpty(str)) {
-		return $elm$core$Result$Err('Empty strings are not valid hexadecimal strings.');
-	} else {
-		var result = function () {
-			if (A2($elm$core$String$startsWith, '-', str)) {
-				var list = A2(
-					$elm$core$Maybe$withDefault,
-					_List_Nil,
-					$elm$core$List$tail(
-						$elm$core$String$toList(str)));
-				return A2(
-					$elm$core$Result$map,
-					$elm$core$Basics$negate,
-					A3(
-						$rtfeldman$elm_hex$Hex$fromStringHelp,
-						$elm$core$List$length(list) - 1,
-						list,
-						0));
-			} else {
-				return A3(
-					$rtfeldman$elm_hex$Hex$fromStringHelp,
-					$elm$core$String$length(str) - 1,
-					$elm$core$String$toList(str),
-					0);
-			}
-		}();
-		var formatError = function (err) {
-			return A2(
-				$elm$core$String$join,
-				' ',
-				_List_fromArray(
-					['\"' + (str + '\"'), 'is not a valid hexadecimal string because', err]));
-		};
-		return A2($elm$core$Result$mapError, formatError, result);
-	}
-};
-var $cmditch$elm_ethereum$Eth$Utils$remove0x = function (str) {
-	return (A2($elm$core$String$startsWith, '0x', str) || A2($elm$core$String$startsWith, '0X', str)) ? A2($elm$core$String$dropLeft, 2, str) : str;
-};
-var $cmditch$elm_ethereum$Eth$Decode$hexInt = $cmditch$elm_ethereum$Eth$Decode$resultToDecoder(
-	A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Utils$remove0x, $rtfeldman$elm_hex$Hex$fromString));
-var $elm$http$Http$BadBody = function (a) {
-	return {$: 'BadBody', a: a};
-};
-var $elm$http$Http$BadStatus = function (a) {
-	return {$: 'BadStatus', a: a};
-};
-var $elm$http$Http$BadUrl = function (a) {
-	return {$: 'BadUrl', a: a};
-};
-var $elm$http$Http$NetworkError = {$: 'NetworkError'};
-var $elm$http$Http$Timeout = {$: 'Timeout'};
-var $elm$json$Json$Decode$decodeString = _Json_runOnString;
-var $cmditch$elm_ethereum$Eth$RPC$expectJson = F2(
-	function (decoder, response) {
-		switch (response.$) {
-			case 'BadUrl_':
-				var url = response.a;
-				return $elm$core$Result$Err(
-					$elm$http$Http$BadUrl(url));
-			case 'Timeout_':
-				return $elm$core$Result$Err($elm$http$Http$Timeout);
-			case 'NetworkError_':
-				return $elm$core$Result$Err($elm$http$Http$NetworkError);
-			case 'BadStatus_':
-				var metadata = response.a;
-				var body = response.b;
-				return $elm$core$Result$Err(
-					$elm$http$Http$BadStatus(metadata.statusCode));
-			default:
-				var metadata = response.a;
-				var body = response.b;
-				var _v1 = A2(
-					$elm$json$Json$Decode$decodeString,
-					A2($elm$json$Json$Decode$field, 'result', decoder),
-					body);
-				if (_v1.$ === 'Ok') {
-					var value = _v1.a;
-					return $elm$core$Result$Ok(value);
-				} else {
-					var err = _v1.a;
-					return $elm$core$Result$Err(
-						$elm$http$Http$BadBody(
-							$elm$json$Json$Decode$errorToString(err)));
-				}
-		}
-	});
-var $elm$http$Http$BadStatus_ = F2(
-	function (a, b) {
-		return {$: 'BadStatus_', a: a, b: b};
-	});
-var $elm$http$Http$BadUrl_ = function (a) {
-	return {$: 'BadUrl_', a: a};
-};
-var $elm$http$Http$GoodStatus_ = F2(
-	function (a, b) {
-		return {$: 'GoodStatus_', a: a, b: b};
-	});
-var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
-var $elm$http$Http$Receiving = function (a) {
-	return {$: 'Receiving', a: a};
-};
-var $elm$http$Http$Sending = function (a) {
-	return {$: 'Sending', a: a};
-};
-var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
-var $elm$core$Maybe$isJust = function (maybe) {
-	if (maybe.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $author$project$Config$ethereumProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$get = F2(
 	function (targetKey, dict) {
@@ -6480,6 +6115,203 @@ var $elm$core$Dict$get = F2(
 			}
 		}
 	});
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $author$project$Config$testMode = false;
+var $author$project$Config$testModeHttpProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
+var $author$project$Config$nodeUrl = F2(
+	function (chainId, chainConfigs) {
+		if ($author$project$Config$testMode) {
+			return $author$project$Config$testModeHttpProviderUrl;
+		} else {
+			var _v0 = $elm$core$Dict$toList(chainConfigs);
+			if (!_v0.b) {
+				return $author$project$Config$ethereumProviderUrl;
+			} else {
+				return A2(
+					$elm$core$Maybe$withDefault,
+					$author$project$Config$ethereumProviderUrl,
+					A2(
+						$elm$core$Maybe$map,
+						function ($) {
+							return $.nodeUrl;
+						},
+						A2($elm$core$Dict$get, chainId, chainConfigs)));
+			}
+		}
+	});
+var $cmditch$elm_ethereum$Internal$Types$Address = function (a) {
+	return {$: 'Address', a: a};
+};
+var $cmditch$elm_ethereum$Eth$Utils$remove0x = function (str) {
+	return (A2($elm$core$String$startsWith, '0x', str) || A2($elm$core$String$startsWith, '0X', str)) ? A2($elm$core$String$dropLeft, 2, str) : str;
+};
+var $elm$core$String$toLower = _String_toLower;
+var $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress = A2(
+	$elm$core$Basics$composeR,
+	$cmditch$elm_ethereum$Eth$Utils$remove0x,
+	A2($elm$core$Basics$composeR, $elm$core$String$toLower, $cmditch$elm_ethereum$Internal$Types$Address));
+var $author$project$Config$oldStakingContractAddresses = _List_fromArray(
+	[
+		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xa2a4ef5722b198a139dd93b1d420769261808fd1'),
+		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0')
+	]);
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2($elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var $elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var $author$project$Config$mainTreasuryAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553');
+var $author$project$Config$treasuryAddresses = _List_fromArray(
+	[
+		$author$project$Config$mainTreasuryAddress,
+		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xecB864Bfed3260388d1a7f8F182053F406074C5a'),
+		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x9C59BAD7674AC1b9485Ede5c19af3B42F0516392')
+	]);
+var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $author$project$Ports$txIn = _Platform_incomingPort('txIn', $elm$json$Json$Decode$value);
+var $author$project$Ports$txOut = _Platform_outgoingPort('txOut', $elm$core$Basics$identity);
+var $author$project$Misc$emptyModel = F4(
+	function (key, now, basePath, cookieConsent) {
+		var txSentry = A3(
+			$cmditch$elm_ethereum$Eth$Sentry$Tx$init,
+			_Utils_Tuple2($author$project$Ports$txOut, $author$project$Ports$txIn),
+			$author$project$Types$TxSentryMsg,
+			A2($author$project$Config$nodeUrl, $author$project$Config$ethChainId, $elm$core$Dict$empty));
+		var _v0 = _Utils_Tuple2($author$project$Types$Connecting, _List_Nil);
+		var wallet = _v0.a;
+		var walletNotices = _v0.b;
+		return {
+			apy: $elm$core$Maybe$Nothing,
+			balancerFryBalance: $elm$core$Maybe$Nothing,
+			basePath: basePath,
+			chainConfigs: $elm$core$Dict$empty,
+			chainSwitchInProgress: false,
+			circSupply: $elm$core$Maybe$Nothing,
+			composedTreasuryBalance: A2(
+				$elm$core$List$repeat,
+				$elm$core$List$length($author$project$Config$treasuryAddresses),
+				$elm$core$Maybe$Nothing),
+			cookieConsentGranted: cookieConsent,
+			currentBucketId: $elm$core$Maybe$Nothing,
+			currentBucketTotalEntered: $elm$core$Maybe$Nothing,
+			currentDaiPriceEth: $elm$core$Maybe$Nothing,
+			currentEthPriceUsd: $elm$core$Maybe$Nothing,
+			currentFryPriceEth: $elm$core$Maybe$Nothing,
+			currentTime: $elm$time$Time$posixToMillis(now),
+			dEthDepositInfo: $elm$core$Maybe$Nothing,
+			dEthUserInfo: $elm$core$Maybe$Nothing,
+			dEthWithdrawInfo: $elm$core$Maybe$Nothing,
+			dProfile: $author$project$ElementHelpers$Desktop,
+			depositAmountInput: '',
+			depositWithdrawUXModel: $elm$core$Maybe$Nothing,
+			dethGlobalSupply: $elm$core$Maybe$Nothing,
+			dethProfit: $elm$core$Maybe$Nothing,
+			dethTVL: $elm$core$Maybe$Nothing,
+			dethUniqueMints: $author$project$AddressDict$empty,
+			farmingPeriodEnds: 0,
+			fryBalances: $author$project$AddressDict$empty,
+			fullyDiluted: $elm$core$Maybe$Nothing,
+			gtagHistory: $author$project$GTag$emptyGtagHistory,
+			initiatedOldFarmExit: false,
+			jurisdictionCheckStatus: $author$project$Types$WaitingForClick,
+			marketCap: $elm$core$Maybe$Nothing,
+			mouseoverState: $author$project$Types$None,
+			navKey: key,
+			nonRepeatingGTagsSent: _List_Nil,
+			now: now,
+			oldUserStakingBalances: A2(
+				$elm$core$List$map,
+				function (addr) {
+					return A2($elm$core$Tuple$pair, addr, $elm$core$Maybe$Nothing);
+				},
+				$author$project$Config$oldStakingContractAddresses),
+			permaFrostBalanceLocked: $elm$core$Maybe$Nothing,
+			permaFrostTotalSupply: $elm$core$Maybe$Nothing,
+			permaFrostedTokens: $elm$core$Maybe$Nothing,
+			polls: $elm$core$Maybe$Nothing,
+			possiblyValidResponses: $elm$core$Dict$empty,
+			route: $author$project$Routing$Sentiment,
+			sentries: $elm$core$Dict$empty,
+			showAddressId: $elm$core$Maybe$Nothing,
+			teamTokenBalances: A2(
+				$elm$core$Array$initialize,
+				3,
+				$elm$core$Basics$always($elm$core$Maybe$Nothing)),
+			trackedTxs: _List_Nil,
+			trackedTxsExpanded: false,
+			txSentry: txSentry,
+			unifiedBalances: $author$project$AddressDict$empty,
+			userDerivedEthInfo: $elm$core$Maybe$Nothing,
+			userNotices: walletNotices,
+			userStakingInfo: $elm$core$Maybe$Nothing,
+			validatedResponses: $elm$core$Dict$empty,
+			wallet: wallet,
+			withdrawalAmountInput: ''
+		};
+	});
+var $author$project$Types$PollsFetched = function (a) {
+	return {$: 'PollsFetched', a: a};
+};
+var $elm$http$Http$BadStatus_ = F2(
+	function (a, b) {
+		return {$: 'BadStatus_', a: a, b: b};
+	});
+var $elm$http$Http$BadUrl_ = function (a) {
+	return {$: 'BadUrl_', a: a};
+};
+var $elm$http$Http$GoodStatus_ = F2(
+	function (a, b) {
+		return {$: 'GoodStatus_', a: a, b: b};
+	});
+var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
+var $elm$http$Http$Receiving = function (a) {
+	return {$: 'Receiving', a: a};
+};
+var $elm$http$Http$Sending = function (a) {
+	return {$: 'Sending', a: a};
+};
+var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
+var $elm$core$Maybe$isJust = function (maybe) {
+	if (maybe.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
 var $elm$core$Dict$Black = {$: 'Black'};
 var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
@@ -6961,275 +6793,8 @@ var $elm$core$Dict$update = F3(
 			return A2($elm$core$Dict$remove, targetKey, dictionary);
 		}
 	});
-var $elm$http$Http$stringResolver = A2(_Http_expect, '', $elm$core$Basics$identity);
-var $elm$core$Task$fail = _Scheduler_fail;
-var $elm$http$Http$resultToTask = function (result) {
-	if (result.$ === 'Ok') {
-		var a = result.a;
-		return $elm$core$Task$succeed(a);
-	} else {
-		var x = result.a;
-		return $elm$core$Task$fail(x);
-	}
-};
-var $elm$http$Http$task = function (r) {
-	return A3(
-		_Http_toTask,
-		_Utils_Tuple0,
-		$elm$http$Http$resultToTask,
-		{allowCookiesFromOtherDomains: false, body: r.body, expect: r.resolver, headers: r.headers, method: r.method, timeout: r.timeout, tracker: $elm$core$Maybe$Nothing, url: r.url});
-};
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $cmditch$elm_ethereum$Eth$RPC$jsonRPCVersion = '2.0';
-var $elm$json$Json$Encode$list = F2(
-	function (func, entries) {
-		return _Json_wrap(
-			A3(
-				$elm$core$List$foldl,
-				_Json_addEntry(func),
-				_Json_emptyArray(_Utils_Tuple0),
-				entries));
-	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $cmditch$elm_ethereum$Eth$RPC$encode = F3(
-	function (id, method, params) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'id',
-					$elm$json$Json$Encode$int(id)),
-					_Utils_Tuple2(
-					'jsonrpc',
-					$elm$json$Json$Encode$string($cmditch$elm_ethereum$Eth$RPC$jsonRPCVersion)),
-					_Utils_Tuple2(
-					'method',
-					$elm$json$Json$Encode$string(method)),
-					_Utils_Tuple2(
-					'params',
-					A2($elm$json$Json$Encode$list, $elm$core$Basics$identity, params))
-				]));
-	});
-var $elm$http$Http$jsonBody = function (value) {
-	return A2(
-		_Http_pair,
-		'application/json',
-		A2($elm$json$Json$Encode$encode, 0, value));
-};
-var $cmditch$elm_ethereum$Eth$RPC$toHttpBody = F3(
-	function (id, method, params) {
-		return $elm$http$Http$jsonBody(
-			A3($cmditch$elm_ethereum$Eth$RPC$encode, id, method, params));
-	});
-var $cmditch$elm_ethereum$Eth$RPC$toTask = function (_v0) {
-	var url = _v0.url;
-	var method = _v0.method;
-	var params = _v0.params;
-	var decoder = _v0.decoder;
-	return $elm$http$Http$task(
-		{
-			body: A3($cmditch$elm_ethereum$Eth$RPC$toHttpBody, 1, method, params),
-			headers: _List_Nil,
-			method: 'POST',
-			resolver: $elm$http$Http$stringResolver(
-				$cmditch$elm_ethereum$Eth$RPC$expectJson(decoder)),
-			timeout: $elm$core$Maybe$Nothing,
-			url: url
-		});
-};
-var $cmditch$elm_ethereum$Eth$getBlockNumber = function (ethNode) {
-	return $cmditch$elm_ethereum$Eth$RPC$toTask(
-		{decoder: $cmditch$elm_ethereum$Eth$Decode$hexInt, method: 'eth_blockNumber', params: _List_Nil, url: ethNode});
-};
-var $cmditch$elm_ethereum$Eth$Sentry$Event$init = F2(
-	function (tagger, nodePath) {
-		return _Utils_Tuple2(
-			$cmditch$elm_ethereum$Eth$Sentry$Event$EventSentry(
-				{blockNumber: $elm$core$Maybe$Nothing, errors: _List_Nil, nodePath: nodePath, pending: $elm$core$Set$empty, ref: 1, requests: $elm$core$Dict$empty, tagger: tagger, watching: $elm$core$Set$empty}),
-			A2(
-				$elm$core$Task$attempt,
-				A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Sentry$Event$BlockNumber, tagger),
-				$cmditch$elm_ethereum$Eth$getBlockNumber(nodePath)));
-	});
-var $cmditch$elm_ethereum$Eth$Sentry$Tx$TxSentry = function (a) {
-	return {$: 'TxSentry', a: a};
-};
-var $cmditch$elm_ethereum$Eth$Sentry$Tx$init = F3(
-	function (_v0, tagger, nodePath) {
-		var outPort = _v0.a;
-		var inPort = _v0.b;
-		return $cmditch$elm_ethereum$Eth$Sentry$Tx$TxSentry(
-			{inPort: inPort, nodePath: nodePath, outPort: outPort, ref: 1, tagger: tagger, txs: $elm$core$Dict$empty});
-	});
-var $cmditch$elm_ethereum$Internal$Types$Address = function (a) {
-	return {$: 'Address', a: a};
-};
-var $elm$core$String$toLower = _String_toLower;
-var $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress = A2(
-	$elm$core$Basics$composeR,
-	$cmditch$elm_ethereum$Eth$Utils$remove0x,
-	A2($elm$core$Basics$composeR, $elm$core$String$toLower, $cmditch$elm_ethereum$Internal$Types$Address));
-var $author$project$Config$oldStakingContractAddresses = _List_fromArray(
-	[
-		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xa2a4ef5722b198a139dd93b1d420769261808fd1'),
-		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x3bbAACCA406e83cA8D2d92f59bd8728740BD7Ff0')
-	]);
-var $elm$core$Tuple$pair = F2(
-	function (a, b) {
-		return _Utils_Tuple2(a, b);
-	});
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$core$List$repeatHelp = F3(
-	function (result, n, value) {
-		repeatHelp:
-		while (true) {
-			if (n <= 0) {
-				return result;
-			} else {
-				var $temp$result = A2($elm$core$List$cons, value, result),
-					$temp$n = n - 1,
-					$temp$value = value;
-				result = $temp$result;
-				n = $temp$n;
-				value = $temp$value;
-				continue repeatHelp;
-			}
-		}
-	});
-var $elm$core$List$repeat = F2(
-	function (n, value) {
-		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
-	});
-var $author$project$Config$mainTreasuryAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x93fE7D1d24bE7CB33329800ba2166f4D28Eaa553');
-var $author$project$Config$treasuryAddresses = _List_fromArray(
-	[
-		$author$project$Config$mainTreasuryAddress,
-		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xecB864Bfed3260388d1a7f8F182053F406074C5a'),
-		$cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x9C59BAD7674AC1b9485Ede5c19af3B42F0516392')
-	]);
-var $elm$json$Json$Decode$value = _Json_decodeValue;
-var $author$project$Ports$txIn = _Platform_incomingPort('txIn', $elm$json$Json$Decode$value);
-var $author$project$Ports$txOut = _Platform_outgoingPort('txOut', $elm$core$Basics$identity);
-var $author$project$Misc$emptyModel = F4(
-	function (key, now, basePath, cookieConsent) {
-		var txSentry = A3(
-			$cmditch$elm_ethereum$Eth$Sentry$Tx$init,
-			_Utils_Tuple2($author$project$Ports$txOut, $author$project$Ports$txIn),
-			$author$project$Types$TxSentryMsg,
-			$author$project$Config$httpProviderUrl($author$project$Types$Eth));
-		var _v0 = _Utils_Tuple2($author$project$Types$Connecting, _List_Nil);
-		var wallet = _v0.a;
-		var walletNotices = _v0.b;
-		return {
-			apy: $elm$core$Maybe$Nothing,
-			balancerFryBalance: $elm$core$Maybe$Nothing,
-			basePath: basePath,
-			chainSwitchInProgress: false,
-			circSupply: $elm$core$Maybe$Nothing,
-			composedTreasuryBalance: A2(
-				$elm$core$List$repeat,
-				$elm$core$List$length($author$project$Config$treasuryAddresses),
-				$elm$core$Maybe$Nothing),
-			config: $author$project$Misc$emptyConfig,
-			cookieConsentGranted: cookieConsent,
-			currentBucketId: $elm$core$Maybe$Nothing,
-			currentBucketTotalEntered: $elm$core$Maybe$Nothing,
-			currentDaiPriceEth: $elm$core$Maybe$Nothing,
-			currentEthPriceUsd: $elm$core$Maybe$Nothing,
-			currentFryPriceEth: $elm$core$Maybe$Nothing,
-			currentTime: $elm$time$Time$posixToMillis(now),
-			dEthDepositInfo: $elm$core$Maybe$Nothing,
-			dEthUserInfo: $elm$core$Maybe$Nothing,
-			dEthWithdrawInfo: $elm$core$Maybe$Nothing,
-			dProfile: $author$project$ElementHelpers$Desktop,
-			depositAmountInput: '',
-			depositWithdrawUXModel: $elm$core$Maybe$Nothing,
-			dethGlobalSupply: $elm$core$Maybe$Nothing,
-			dethProfit: $elm$core$Maybe$Nothing,
-			dethTVL: $elm$core$Maybe$Nothing,
-			dethUniqueMints: $author$project$AddressDict$empty,
-			farmingPeriodEnds: 0,
-			fryBalances: $author$project$AddressDict$empty,
-			fullyDiluted: $elm$core$Maybe$Nothing,
-			gtagHistory: $author$project$GTag$emptyGtagHistory,
-			initiatedOldFarmExit: false,
-			jurisdictionCheckStatus: $author$project$Types$WaitingForClick,
-			marketCap: $elm$core$Maybe$Nothing,
-			mouseoverState: $author$project$Types$None,
-			navKey: key,
-			nonRepeatingGTagsSent: _List_Nil,
-			now: now,
-			oldUserStakingBalances: A2(
-				$elm$core$List$map,
-				function (addr) {
-					return A2($elm$core$Tuple$pair, addr, $elm$core$Maybe$Nothing);
-				},
-				$author$project$Config$oldStakingContractAddresses),
-			permaFrostBalanceLocked: $elm$core$Maybe$Nothing,
-			permaFrostTotalSupply: $elm$core$Maybe$Nothing,
-			permaFrostedTokens: $elm$core$Maybe$Nothing,
-			polls: $elm$core$Maybe$Nothing,
-			possiblyValidResponses: $elm$core$Dict$empty,
-			route: $author$project$Routing$Sentiment,
-			sentries: {
-				arbitrum: A2(
-					$cmditch$elm_ethereum$Eth$Sentry$Event$init,
-					$elm$core$Basics$always($author$project$Types$NoOp),
-					'').a,
-				bsc: A2(
-					$cmditch$elm_ethereum$Eth$Sentry$Event$init,
-					$elm$core$Basics$always($author$project$Types$NoOp),
-					'').a,
-				ethereum: A2(
-					$cmditch$elm_ethereum$Eth$Sentry$Event$init,
-					$elm$core$Basics$always($author$project$Types$NoOp),
-					'').a,
-				polygon: A2(
-					$cmditch$elm_ethereum$Eth$Sentry$Event$init,
-					$elm$core$Basics$always($author$project$Types$NoOp),
-					'').a,
-				xDai: A2(
-					$cmditch$elm_ethereum$Eth$Sentry$Event$init,
-					$elm$core$Basics$always($author$project$Types$NoOp),
-					'').a
-			},
-			showAddressId: $elm$core$Maybe$Nothing,
-			teamTokenBalances: A2(
-				$elm$core$Array$initialize,
-				3,
-				$elm$core$Basics$always($elm$core$Maybe$Nothing)),
-			trackedTxs: _List_Nil,
-			trackedTxsExpanded: false,
-			txSentry: txSentry,
-			unifiedBalances: $author$project$AddressDict$empty,
-			userDerivedEthInfo: $elm$core$Maybe$Nothing,
-			userNotices: walletNotices,
-			userStakingInfo: $elm$core$Maybe$Nothing,
-			validatedResponses: $elm$core$Dict$empty,
-			wallet: wallet,
-			withdrawalAmountInput: ''
-		};
-	});
-var $author$project$Types$PollsFetched = function (a) {
-	return {$: 'PollsFetched', a: a};
-};
 var $elm$http$Http$emptyBody = _Http_emptyBody;
+var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $elm$http$Http$expectStringResponse = F2(
 	function (toMsg, toResult) {
 		return A3(
@@ -7238,6 +6803,28 @@ var $elm$http$Http$expectStringResponse = F2(
 			$elm$core$Basics$identity,
 			A2($elm$core$Basics$composeR, toResult, toMsg));
 	});
+var $elm$core$Result$mapError = F2(
+	function (f, result) {
+		if (result.$ === 'Ok') {
+			var v = result.a;
+			return $elm$core$Result$Ok(v);
+		} else {
+			var e = result.a;
+			return $elm$core$Result$Err(
+				f(e));
+		}
+	});
+var $elm$http$Http$BadBody = function (a) {
+	return {$: 'BadBody', a: a};
+};
+var $elm$http$Http$BadStatus = function (a) {
+	return {$: 'BadStatus', a: a};
+};
+var $elm$http$Http$BadUrl = function (a) {
+	return {$: 'BadUrl', a: a};
+};
+var $elm$http$Http$NetworkError = {$: 'NetworkError'};
+var $elm$http$Http$Timeout = {$: 'Timeout'};
 var $elm$http$Http$resolve = F2(
 	function (toResult, response) {
 		switch (response.$) {
@@ -7498,6 +7085,46 @@ var $author$project$Misc$fetchAllPollsCmd = $elm$http$Http$request(
 		tracker: $elm$core$Maybe$Nothing,
 		url: 'https://personal-rxyx.outsystemscloud.com/QuantumObserver/rest/VotingResults/GetPolls?FromPollId=0&Count=0'
 	});
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$Dict$map = F2(
+	function (func, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return $elm$core$Dict$RBEmpty_elm_builtin;
+		} else {
+			var color = dict.a;
+			var key = dict.b;
+			var value = dict.c;
+			var left = dict.d;
+			var right = dict.e;
+			return A5(
+				$elm$core$Dict$RBNode_elm_builtin,
+				color,
+				key,
+				A2(func, key, value),
+				A2($elm$core$Dict$map, func, left),
+				A2($elm$core$Dict$map, func, right));
+		}
+	});
 var $elm$time$Time$Posix = function (a) {
 	return {$: 'Posix', a: a};
 };
@@ -7508,11 +7135,34 @@ var $author$project$Config$ethereumFryContractAddress = $cmditch$elm_ethereum$Et
 var $author$project$Types$ApyFetched = function (a) {
 	return {$: 'ApyFetched', a: a};
 };
+var $elm$core$Task$onError = _Scheduler_onError;
+var $elm$core$Task$attempt = F2(
+	function (resultToMessage, task) {
+		return $elm$core$Task$command(
+			$elm$core$Task$Perform(
+				A2(
+					$elm$core$Task$onError,
+					A2(
+						$elm$core$Basics$composeL,
+						A2($elm$core$Basics$composeL, $elm$core$Task$succeed, resultToMessage),
+						$elm$core$Result$Err),
+					A2(
+						$elm$core$Task$andThen,
+						A2(
+							$elm$core$Basics$composeL,
+							A2($elm$core$Basics$composeL, $elm$core$Task$succeed, resultToMessage),
+							$elm$core$Result$Ok),
+						task))));
+	});
 var $cmditch$elm_ethereum$Eth$Types$LatestBlock = {$: 'LatestBlock'};
 var $cmditch$elm_ethereum$Eth$Utils$add0x = function (str) {
 	return (A2($elm$core$String$startsWith, '0x', str) || A2($elm$core$String$startsWith, '0X', str)) ? str : ('0x' + str);
 };
+var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$core$String$fromList = _String_fromList;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $rtfeldman$elm_hex$Hex$unsafeToDigit = function (num) {
 	unsafeToDigit:
@@ -7600,6 +7250,128 @@ var $cmditch$elm_ethereum$Eth$Encode$blockId = function (blockId_) {
 		default:
 			return $elm$json$Json$Encode$string('pending');
 	}
+};
+var $cmditch$elm_ethereum$Eth$RPC$expectJson = F2(
+	function (decoder, response) {
+		switch (response.$) {
+			case 'BadUrl_':
+				var url = response.a;
+				return $elm$core$Result$Err(
+					$elm$http$Http$BadUrl(url));
+			case 'Timeout_':
+				return $elm$core$Result$Err($elm$http$Http$Timeout);
+			case 'NetworkError_':
+				return $elm$core$Result$Err($elm$http$Http$NetworkError);
+			case 'BadStatus_':
+				var metadata = response.a;
+				var body = response.b;
+				return $elm$core$Result$Err(
+					$elm$http$Http$BadStatus(metadata.statusCode));
+			default:
+				var metadata = response.a;
+				var body = response.b;
+				var _v1 = A2(
+					$elm$json$Json$Decode$decodeString,
+					A2($elm$json$Json$Decode$field, 'result', decoder),
+					body);
+				if (_v1.$ === 'Ok') {
+					var value = _v1.a;
+					return $elm$core$Result$Ok(value);
+				} else {
+					var err = _v1.a;
+					return $elm$core$Result$Err(
+						$elm$http$Http$BadBody(
+							$elm$json$Json$Decode$errorToString(err)));
+				}
+		}
+	});
+var $elm$http$Http$stringResolver = A2(_Http_expect, '', $elm$core$Basics$identity);
+var $elm$core$Task$fail = _Scheduler_fail;
+var $elm$http$Http$resultToTask = function (result) {
+	if (result.$ === 'Ok') {
+		var a = result.a;
+		return $elm$core$Task$succeed(a);
+	} else {
+		var x = result.a;
+		return $elm$core$Task$fail(x);
+	}
+};
+var $elm$http$Http$task = function (r) {
+	return A3(
+		_Http_toTask,
+		_Utils_Tuple0,
+		$elm$http$Http$resultToTask,
+		{allowCookiesFromOtherDomains: false, body: r.body, expect: r.resolver, headers: r.headers, method: r.method, timeout: r.timeout, tracker: $elm$core$Maybe$Nothing, url: r.url});
+};
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $cmditch$elm_ethereum$Eth$RPC$jsonRPCVersion = '2.0';
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $cmditch$elm_ethereum$Eth$RPC$encode = F3(
+	function (id, method, params) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'id',
+					$elm$json$Json$Encode$int(id)),
+					_Utils_Tuple2(
+					'jsonrpc',
+					$elm$json$Json$Encode$string($cmditch$elm_ethereum$Eth$RPC$jsonRPCVersion)),
+					_Utils_Tuple2(
+					'method',
+					$elm$json$Json$Encode$string(method)),
+					_Utils_Tuple2(
+					'params',
+					A2($elm$json$Json$Encode$list, $elm$core$Basics$identity, params))
+				]));
+	});
+var $elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2($elm$json$Json$Encode$encode, 0, value));
+};
+var $cmditch$elm_ethereum$Eth$RPC$toHttpBody = F3(
+	function (id, method, params) {
+		return $elm$http$Http$jsonBody(
+			A3($cmditch$elm_ethereum$Eth$RPC$encode, id, method, params));
+	});
+var $cmditch$elm_ethereum$Eth$RPC$toTask = function (_v0) {
+	var url = _v0.url;
+	var method = _v0.method;
+	var params = _v0.params;
+	var decoder = _v0.decoder;
+	return $elm$http$Http$task(
+		{
+			body: A3($cmditch$elm_ethereum$Eth$RPC$toHttpBody, 1, method, params),
+			headers: _List_Nil,
+			method: 'POST',
+			resolver: $elm$http$Http$stringResolver(
+				$cmditch$elm_ethereum$Eth$RPC$expectJson(decoder)),
+			timeout: $elm$core$Maybe$Nothing,
+			url: url
+		});
 };
 var $cmditch$elm_ethereum$Eth$Utils$addressToString = function (_v0) {
 	var address = _v0.a;
@@ -7695,6 +7467,7 @@ var $elm_community$list_extra$List$Extra$dropWhileRight = function (p) {
 var $cmditch$elm_bigint$BigInt$dropZeroes = $elm_community$list_extra$List$Extra$dropWhileRight(
 	$elm$core$Basics$eq(0));
 var $cmditch$elm_bigint$Constants$maxDigitMagnitude = 7;
+var $elm$core$Basics$pow = _Basics_pow;
 var $cmditch$elm_bigint$Constants$maxDigitValue = (-1) + A2($elm$core$Basics$pow, 10, $cmditch$elm_bigint$Constants$maxDigitMagnitude);
 var $cmditch$elm_bigint$BigInt$baseDigit = $cmditch$elm_bigint$Constants$maxDigitValue + 1;
 var $elm$core$Tuple$mapFirst = F2(
@@ -8263,6 +8036,10 @@ var $cmditch$elm_bigint$BigInt$eightHexDigits = A2(
 	$cmditch$elm_bigint$BigInt$mul,
 	$cmditch$elm_bigint$BigInt$fromInt(2),
 	$cmditch$elm_bigint$BigInt$fromInt(2147483648));
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
 var $elm$core$Bitwise$and = _Bitwise_and;
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
 var $elm$core$String$repeatHelp = F3(
@@ -8372,16 +8149,6 @@ var $cmditch$elm_ethereum$Eth$Encode$listOfMaybesToVal = function (keyValueList)
 				},
 				keyValueList)));
 };
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
 var $cmditch$elm_ethereum$Eth$Encode$txCall = function (_v0) {
 	var to = _v0.to;
 	var from = _v0.from;
@@ -8682,6 +8449,10 @@ var $cmditch$elm_ethereum$Eth$Abi$Int$toBinaryUnsafe = function (_char) {
 			return 'error converting hex to binary';
 	}
 };
+var $elm$core$String$foldr = _String_foldr;
+var $elm$core$String$toList = function (string) {
+	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
+};
 var $cmditch$elm_ethereum$Eth$Abi$Int$twosComplementUnsafe = function (str) {
 	var reducer = F2(
 		function (_char, _v1) {
@@ -8954,6 +8725,198 @@ var $elm$regex$Regex$Match = F4(
 		return {index: index, match: match, number: number, submatches: submatches};
 	});
 var $elm$regex$Regex$contains = _Regex_contains;
+var $rtfeldman$elm_hex$Hex$fromStringHelp = F3(
+	function (position, chars, accumulated) {
+		fromStringHelp:
+		while (true) {
+			if (!chars.b) {
+				return $elm$core$Result$Ok(accumulated);
+			} else {
+				var _char = chars.a;
+				var rest = chars.b;
+				switch (_char.valueOf()) {
+					case '0':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated;
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '1':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + A2($elm$core$Basics$pow, 16, position);
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '2':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (2 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '3':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (3 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '4':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (4 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '5':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (5 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '6':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (6 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '7':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (7 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '8':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (8 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '9':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (9 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'a':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (10 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'b':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (11 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'c':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (12 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'd':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (13 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'e':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (14 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'f':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (15 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					default:
+						var nonHex = _char;
+						return $elm$core$Result$Err(
+							$elm$core$String$fromChar(nonHex) + ' is not a valid hexadecimal character.');
+				}
+			}
+		}
+	});
+var $elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(xs);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $rtfeldman$elm_hex$Hex$fromString = function (str) {
+	if ($elm$core$String$isEmpty(str)) {
+		return $elm$core$Result$Err('Empty strings are not valid hexadecimal strings.');
+	} else {
+		var result = function () {
+			if (A2($elm$core$String$startsWith, '-', str)) {
+				var list = A2(
+					$elm$core$Maybe$withDefault,
+					_List_Nil,
+					$elm$core$List$tail(
+						$elm$core$String$toList(str)));
+				return A2(
+					$elm$core$Result$map,
+					$elm$core$Basics$negate,
+					A3(
+						$rtfeldman$elm_hex$Hex$fromStringHelp,
+						$elm$core$List$length(list) - 1,
+						list,
+						0));
+			} else {
+				return A3(
+					$rtfeldman$elm_hex$Hex$fromStringHelp,
+					$elm$core$String$length(str) - 1,
+					$elm$core$String$toList(str),
+					0);
+			}
+		}();
+		var formatError = function (err) {
+			return A2(
+				$elm$core$String$join,
+				' ',
+				_List_fromArray(
+					['\"' + (str + '\"'), 'is not a valid hexadecimal string because', err]));
+		};
+		return A2($elm$core$Result$mapError, formatError, result);
+	}
+};
 var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
 var $elm$regex$Regex$fromString = function (string) {
 	return A2(
@@ -9499,7 +9462,7 @@ var $author$project$Contracts$Generated$ERC20$balanceOf = F2(
 		};
 	});
 var $author$project$Contracts$ERC20Wrapper$getBalanceCmd = F4(
-	function (chain, tokenAddress, owner, msgConstructor) {
+	function (nodeUrl, tokenAddress, owner, msgConstructor) {
 		return A2(
 			$elm$core$Task$attempt,
 			A2(
@@ -9508,10 +9471,12 @@ var $author$project$Contracts$ERC20Wrapper$getBalanceCmd = F4(
 				msgConstructor),
 			A2(
 				$cmditch$elm_ethereum$Eth$call,
-				$author$project$Config$httpProviderUrl(chain),
+				nodeUrl,
 				A2($author$project$Contracts$Generated$ERC20$balanceOf, tokenAddress, owner)));
 	});
-var $author$project$Misc$fetchBalancerPoolFryBalance = A4($author$project$Contracts$ERC20Wrapper$getBalanceCmd, $author$project$Types$Eth, $author$project$Config$ethereumFryContractAddress, $author$project$Config$balancerPermafrostPool, $author$project$Types$FetchedBalancerFryBalance);
+var $author$project$Misc$fetchBalancerPoolFryBalance = function (nodeUrl) {
+	return A4($author$project$Contracts$ERC20Wrapper$getBalanceCmd, nodeUrl, $author$project$Config$ethereumFryContractAddress, $author$project$Config$balancerPermafrostPool, $author$project$Types$FetchedBalancerFryBalance);
+};
 var $author$project$Types$FetchedDaiPrice = function (a) {
 	return {$: 'FetchedDaiPrice', a: a};
 };
@@ -10304,18 +10269,6 @@ var $dillonkearns$elm_graphql$Graphql$Http$GraphqlError$GraphqlError = F3(
 	function (message, locations, details) {
 		return {details: details, locations: locations, message: message};
 	});
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
 var $elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
 var $elm$json$Json$Decode$dict = function (decoder) {
 	return A2(
@@ -10703,9 +10656,10 @@ var $author$project$Types$UserDerivedEthBalanceFetched = function (a) {
 	return {$: 'UserDerivedEthBalanceFetched', a: a};
 };
 var $author$project$Config$dethContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x51863Ec92BA14ede7B17fb2B053145C90E215A57');
-var $author$project$Misc$fetchDerivedEthBalance = function (address) {
-	return A4($author$project$Contracts$ERC20Wrapper$getBalanceCmd, $author$project$Types$Eth, $author$project$Config$dethContractAddress, address, $author$project$Types$UserDerivedEthBalanceFetched);
-};
+var $author$project$Misc$fetchDerivedEthBalance = F2(
+	function (nodeUrl, address) {
+		return A4($author$project$Contracts$ERC20Wrapper$getBalanceCmd, nodeUrl, $author$project$Config$dethContractAddress, address, $author$project$Types$UserDerivedEthBalanceFetched);
+	});
 var $author$project$Types$DerivedEthRedeemableFetched = function (a) {
 	return {$: 'DerivedEthRedeemableFetched', a: a};
 };
@@ -11204,15 +11158,6 @@ var $cmditch$elm_bigint$BigInt$div = F2(
 				$elm$core$Tuple$first,
 				A2($cmditch$elm_bigint$BigInt$divmod, num, den)));
 	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
 var $cmditch$elm_bigint$BigInt$isEven = function (num) {
 	var even = function (i) {
 		return !A2($elm$core$Basics$modBy, 2, i);
@@ -11432,21 +11377,19 @@ var $cmditch$elm_ethereum$Eth$getBalance = F2(
 		return A3($cmditch$elm_ethereum$Eth$getBalanceAtBlock, ethNode, address, $cmditch$elm_ethereum$Eth$Types$LatestBlock);
 	});
 var $author$project$Contracts$ERC20Wrapper$getEthBalance = F3(
-	function (chain, address, msgConstructor) {
+	function (nodeUrl, address, msgConstructor) {
 		return A2(
 			$elm$core$Task$attempt,
 			A2(
 				$elm$core$Basics$composeR,
 				$elm$core$Result$map($author$project$TokenValue$tokenValue),
 				msgConstructor),
-			A2(
-				$cmditch$elm_ethereum$Eth$getBalance,
-				$author$project$Config$httpProviderUrl(chain),
-				address));
+			A2($cmditch$elm_ethereum$Eth$getBalance, nodeUrl, address));
 	});
-var $author$project$Misc$fetchEthBalance = function (address) {
-	return A3($author$project$Contracts$ERC20Wrapper$getEthBalance, $author$project$Types$Eth, address, $author$project$Types$UserEthBalanceFetched);
-};
+var $author$project$Misc$fetchEthBalance = F2(
+	function (nodeUrl, address) {
+		return A3($author$project$Contracts$ERC20Wrapper$getEthBalance, nodeUrl, address, $author$project$Types$UserEthBalanceFetched);
+	});
 var $author$project$Types$FetchedEthPrice = function (a) {
 	return {$: 'FetchedEthPrice', a: a};
 };
@@ -11604,7 +11547,9 @@ var $author$project$Types$FetchedPermaFrostBalanceLocked = function (a) {
 	return {$: 'FetchedPermaFrostBalanceLocked', a: a};
 };
 var $author$project$Config$burnAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x0000000000000000000000000000000000000001');
-var $author$project$Misc$fetchPermaFrostLockedTokenBalance = A4($author$project$Contracts$ERC20Wrapper$getBalanceCmd, $author$project$Types$Eth, $author$project$Config$balancerPermafrostPool, $author$project$Config$burnAddress, $author$project$Types$FetchedPermaFrostBalanceLocked);
+var $author$project$Misc$fetchPermaFrostLockedTokenBalance = function (nodeUrl) {
+	return A4($author$project$Contracts$ERC20Wrapper$getBalanceCmd, nodeUrl, $author$project$Config$balancerPermafrostPool, $author$project$Config$burnAddress, $author$project$Types$FetchedPermaFrostBalanceLocked);
+};
 var $author$project$Types$FetchedPermaFrostTotalSupply = function (a) {
 	return {$: 'FetchedPermaFrostTotalSupply', a: a};
 };
@@ -11622,7 +11567,7 @@ var $author$project$Contracts$Generated$ERC20$totalSupply = function (contractAd
 	};
 };
 var $author$project$Contracts$ERC20Wrapper$getTotalSupply = F3(
-	function (chain, tokenAddress, msgConstructor) {
+	function (nodeUrl, tokenAddress, msgConstructor) {
 		return A2(
 			$elm$core$Task$attempt,
 			A2(
@@ -11631,19 +11576,21 @@ var $author$project$Contracts$ERC20Wrapper$getTotalSupply = F3(
 				msgConstructor),
 			A2(
 				$cmditch$elm_ethereum$Eth$call,
-				$author$project$Config$httpProviderUrl(chain),
+				nodeUrl,
 				$author$project$Contracts$Generated$ERC20$totalSupply(tokenAddress)));
 	});
-var $author$project$Misc$fetchPermaFrostTotalSupply = A3($author$project$Contracts$ERC20Wrapper$getTotalSupply, $author$project$Types$Eth, $author$project$Config$balancerPermafrostPool, $author$project$Types$FetchedPermaFrostTotalSupply);
+var $author$project$Misc$fetchPermaFrostTotalSupply = function (nodeUrl) {
+	return A3($author$project$Contracts$ERC20Wrapper$getTotalSupply, nodeUrl, $author$project$Config$balancerPermafrostPool, $author$project$Types$FetchedPermaFrostTotalSupply);
+};
 var $author$project$Types$FetchedTeamTokens = F2(
 	function (a, b) {
 		return {$: 'FetchedTeamTokens', a: a, b: b};
 	});
-var $author$project$Misc$fetchTeamTokenBalance = F3(
-	function (tokenAddress, owner, index) {
+var $author$project$Misc$fetchTeamTokenBalance = F4(
+	function (nodeUrl, tokenAddress, owner, index) {
 		return A4(
 			$author$project$Contracts$ERC20Wrapper$getBalanceCmd,
-			$author$project$Types$Eth,
+			nodeUrl,
 			tokenAddress,
 			owner,
 			$author$project$Types$FetchedTeamTokens(index));
@@ -11674,7 +11621,7 @@ var $author$project$Contracts$BucketSale$Generated$BucketSale$buckets = F2(
 		};
 	});
 var $author$project$Contracts$BucketSale$Wrappers$getTotalValueEnteredForBucket = F3(
-	function (chain, bucketId, msgConstructor) {
+	function (nodeUrl, bucketId, msgConstructor) {
 		return A2(
 			$elm$core$Task$attempt,
 			msgConstructor,
@@ -11683,37 +11630,40 @@ var $author$project$Contracts$BucketSale$Wrappers$getTotalValueEnteredForBucket 
 				$author$project$TokenValue$tokenValue,
 				A2(
 					$cmditch$elm_ethereum$Eth$call,
-					$author$project$Config$httpProviderUrl(chain),
+					nodeUrl,
 					A2(
 						$author$project$Contracts$BucketSale$Generated$BucketSale$buckets,
 						$author$project$Config$bucketSaleAddress,
 						$cmditch$elm_bigint$BigInt$fromInt(bucketId)))));
 	});
-var $author$project$Misc$fetchTotalValueEnteredCmd = function (bucketId) {
-	return A3(
-		$author$project$Contracts$BucketSale$Wrappers$getTotalValueEnteredForBucket,
-		$author$project$Types$Eth,
-		bucketId,
-		$author$project$Types$BucketValueEnteredFetched(
-			$elm$core$Maybe$Just(bucketId)));
-};
+var $author$project$Misc$fetchTotalValueEnteredCmd = F2(
+	function (nodeUrl, bucketId) {
+		return A3(
+			$author$project$Contracts$BucketSale$Wrappers$getTotalValueEnteredForBucket,
+			nodeUrl,
+			bucketId,
+			$author$project$Types$BucketValueEnteredFetched(
+				$elm$core$Maybe$Just(bucketId)));
+	});
 var $author$project$Types$FetchedTreasuryBalance = F2(
 	function (a, b) {
 		return {$: 'FetchedTreasuryBalance', a: a, b: b};
 	});
-var $author$project$Misc$fetchTreasuryBalances = $elm$core$Platform$Cmd$batch(
-	A2(
-		$elm$core$List$indexedMap,
-		F2(
-			function (id, addr) {
-				return A4(
-					$author$project$Contracts$ERC20Wrapper$getBalanceCmd,
-					$author$project$Types$Eth,
-					$author$project$Config$ethereumDaiContractAddress,
-					addr,
-					$author$project$Types$FetchedTreasuryBalance(id));
-			}),
-		$author$project$Config$treasuryAddresses));
+var $author$project$Misc$fetchTreasuryBalances = function (nodeUrl) {
+	return $elm$core$Platform$Cmd$batch(
+		A2(
+			$elm$core$List$indexedMap,
+			F2(
+				function (id, addr) {
+					return A4(
+						$author$project$Contracts$ERC20Wrapper$getBalanceCmd,
+						nodeUrl,
+						$author$project$Config$ethereumDaiContractAddress,
+						addr,
+						$author$project$Types$FetchedTreasuryBalance(id));
+				}),
+			$author$project$Config$treasuryAddresses));
+};
 var $author$project$TokenValue$fromString = function (s) {
 	return A2(
 		$elm$core$Maybe$map,
@@ -11731,8 +11681,8 @@ var $author$project$Wallet$userInfo = function (walletState) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
-var $author$project$Misc$refreshCmds = F4(
-	function (wallet, fetchOldFarmBalances, withdrawalAmountInput, maybeCurrentBucketId) {
+var $author$project$Misc$refreshCmds = F5(
+	function (nodeUrl, wallet, fetchOldFarmBalances, withdrawalAmountInput, maybeCurrentBucketId) {
 		var possiblyWalletCmds = function () {
 			var _v0 = A2(
 				$elm$core$Maybe$map,
@@ -11744,8 +11694,8 @@ var $author$project$Misc$refreshCmds = F4(
 				var userAddress = _v0.a;
 				return _List_fromArray(
 					[
-						$author$project$Misc$fetchDerivedEthBalance(userAddress),
-						$author$project$Misc$fetchEthBalance(userAddress),
+						A2($author$project$Misc$fetchDerivedEthBalance, nodeUrl, userAddress),
+						A2($author$project$Misc$fetchEthBalance, nodeUrl, userAddress),
 						fetchOldFarmBalances ? $author$project$Misc$fetchOldStakingBalances(userAddress) : $elm$core$Platform$Cmd$none
 					]);
 			} else {
@@ -11759,17 +11709,20 @@ var $author$project$Misc$refreshCmds = F4(
 					A2(
 					$elm$core$Maybe$withDefault,
 					$elm$core$Platform$Cmd$none,
-					A2($elm$core$Maybe$map, $author$project$Misc$fetchTotalValueEnteredCmd, maybeCurrentBucketId)),
+					A2(
+						$elm$core$Maybe$map,
+						$author$project$Misc$fetchTotalValueEnteredCmd(nodeUrl),
+						maybeCurrentBucketId)),
 					$author$project$Misc$fetchEthPrice,
 					$author$project$Misc$fetchDaiPrice,
 					$author$project$Misc$fetchFryPrice,
-					A3($author$project$Misc$fetchTeamTokenBalance, $author$project$Config$ethereumFryContractAddress, $author$project$Config$teamToastAddress1, 0),
-					A3($author$project$Misc$fetchTeamTokenBalance, $author$project$Config$ethereumFryContractAddress, $author$project$Config$teamToastAddress2, 1),
-					A3($author$project$Misc$fetchTeamTokenBalance, $author$project$Config$ethereumFryContractAddress, $author$project$Config$teamToastAddress3, 2),
-					$author$project$Misc$fetchPermaFrostLockedTokenBalance,
-					$author$project$Misc$fetchPermaFrostTotalSupply,
-					$author$project$Misc$fetchBalancerPoolFryBalance,
-					$author$project$Misc$fetchTreasuryBalances,
+					A4($author$project$Misc$fetchTeamTokenBalance, nodeUrl, $author$project$Config$ethereumFryContractAddress, $author$project$Config$teamToastAddress1, 0),
+					A4($author$project$Misc$fetchTeamTokenBalance, nodeUrl, $author$project$Config$ethereumFryContractAddress, $author$project$Config$teamToastAddress2, 1),
+					A4($author$project$Misc$fetchTeamTokenBalance, nodeUrl, $author$project$Config$ethereumFryContractAddress, $author$project$Config$teamToastAddress3, 2),
+					$author$project$Misc$fetchPermaFrostLockedTokenBalance(nodeUrl),
+					$author$project$Misc$fetchPermaFrostTotalSupply(nodeUrl),
+					$author$project$Misc$fetchBalancerPoolFryBalance(nodeUrl),
+					$author$project$Misc$fetchTreasuryBalances(nodeUrl),
 					$author$project$Misc$fetchFarmEndTime,
 					$author$project$Misc$fetchApyCmd,
 					$author$project$Misc$fetchDethProfitCmd,
@@ -11859,6 +11812,28 @@ var $author$project$Types$EventSentryMsg = F2(
 	function (a, b) {
 		return {$: 'EventSentryMsg', a: a, b: b};
 	});
+var $cmditch$elm_ethereum$Eth$Sentry$Event$BlockNumber = function (a) {
+	return {$: 'BlockNumber', a: a};
+};
+var $cmditch$elm_ethereum$Eth$Sentry$Event$EventSentry = function (a) {
+	return {$: 'EventSentry', a: a};
+};
+var $cmditch$elm_ethereum$Eth$Decode$hexInt = $cmditch$elm_ethereum$Eth$Decode$resultToDecoder(
+	A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Utils$remove0x, $rtfeldman$elm_hex$Hex$fromString));
+var $cmditch$elm_ethereum$Eth$getBlockNumber = function (ethNode) {
+	return $cmditch$elm_ethereum$Eth$RPC$toTask(
+		{decoder: $cmditch$elm_ethereum$Eth$Decode$hexInt, method: 'eth_blockNumber', params: _List_Nil, url: ethNode});
+};
+var $cmditch$elm_ethereum$Eth$Sentry$Event$init = F2(
+	function (tagger, nodePath) {
+		return _Utils_Tuple2(
+			$cmditch$elm_ethereum$Eth$Sentry$Event$EventSentry(
+				{blockNumber: $elm$core$Maybe$Nothing, errors: _List_Nil, nodePath: nodePath, pending: $elm$core$Set$empty, ref: 1, requests: $elm$core$Dict$empty, tagger: tagger, watching: $elm$core$Set$empty}),
+			A2(
+				$elm$core$Task$attempt,
+				A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Sentry$Event$BlockNumber, tagger),
+				$cmditch$elm_ethereum$Eth$getBlockNumber(nodePath)));
+	});
 var $cmditch$elm_ethereum$Eth$Types$BlockNum = function (a) {
 	return {$: 'BlockNum', a: a};
 };
@@ -11892,8 +11867,8 @@ var $author$project$App$startSentry = function (config) {
 	var dethMintEventFilter = $author$project$Contracts$DEthWrapper$squanderEventFilter;
 	var _v0 = A2(
 		$cmditch$elm_ethereum$Eth$Sentry$Event$init,
-		$author$project$Types$EventSentryMsg(config.chain),
-		config.providerUrl);
+		$author$project$Types$EventSentryMsg(config.chainId),
+		config.nodeUrl);
 	var initEventSentry = _v0.a;
 	var initEventSentryCmd = _v0.b;
 	var _v1 = _Utils_Tuple2(initEventSentry, initEventSentryCmd);
@@ -11927,6 +11902,35 @@ var $author$project$UserNotice$unexpectedError = function (text) {
 		uniqueLabel: 'unexpectedError ' + text
 	};
 };
+var $elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3($elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$Dict$union = F2(
+	function (t1, t2) {
+		return A3($elm$core$Dict$foldl, $elm$core$Dict$insert, t2, t1);
+	});
 var $elm_community$maybe_extra$Maybe$Extra$unwrap = F3(
 	function (_default, f, m) {
 		if (m.$ === 'Nothing') {
@@ -11936,6 +11940,23 @@ var $elm_community$maybe_extra$Maybe$Extra$unwrap = F3(
 			return f(a);
 		}
 	});
+var $elm$core$List$unzip = function (pairs) {
+	var step = F2(
+		function (_v0, _v1) {
+			var x = _v0.a;
+			var y = _v0.b;
+			var xs = _v1.a;
+			var ys = _v1.b;
+			return _Utils_Tuple2(
+				A2($elm$core$List$cons, x, xs),
+				A2($elm$core$List$cons, y, ys));
+		});
+	return A3(
+		$elm$core$List$foldr,
+		step,
+		_Utils_Tuple2(_List_Nil, _List_Nil),
+		pairs);
+};
 var $author$project$Routing$NotFound = function (a) {
 	return {$: 'NotFound', a: a};
 };
@@ -12178,6 +12199,7 @@ var $author$project$App$init = F3(
 		var route = $author$project$Routing$urlToRoute(url);
 		var now = $elm$time$Time$millisToPosix(flags.nowInMillis);
 		var model = A4($author$project$Misc$emptyModel, key, now, flags.basePath, flags.cookieConsent);
+		var ethNodeUrl = A2($author$project$Config$nodeUrl, $author$project$Config$ethChainId, model.chainConfigs);
 		return A3(
 			$elm_community$maybe_extra$Maybe$Extra$unwrap,
 			_Utils_Tuple2(
@@ -12192,77 +12214,55 @@ var $author$project$App$init = F3(
 				$elm$core$Platform$Cmd$none),
 			function (chainConfigs) {
 				var wallet = flags.hasWallet ? $author$project$Types$NetworkReady : $author$project$Types$NoneDetected;
-				var config = A3(
-					$elm$core$List$foldl,
-					function (data) {
-						var _v5 = data.chain;
-						switch (_v5.$) {
-							case 'XDai':
-								return function (config_) {
-									return _Utils_update(
-										config_,
-										{xDai: data});
-								};
-							case 'Eth':
-								return function (config_) {
-									return _Utils_update(
-										config_,
-										{ethereum: data});
-								};
-							case 'BSC':
-								return function (config_) {
-									return _Utils_update(
-										config_,
-										{bsc: data});
-								};
-							case 'Polygon':
-								return function (config_) {
-									return _Utils_update(
-										config_,
-										{polygon: data});
-								};
-							default:
-								return function (config_) {
-									return _Utils_update(
-										config_,
-										{arbitrum: data});
-								};
-						}
-					},
-					model.config,
-					chainConfigs);
-				var _v0 = $author$project$App$startSentry(model.config.xDai);
-				var xDaiSentry = _v0.a;
-				var xDaiCmd = _v0.b;
-				var _v1 = $author$project$App$startSentry(model.config.polygon);
-				var polySentry = _v1.a;
-				var polyCmd = _v1.b;
-				var _v2 = $author$project$App$startSentry(model.config.ethereum);
-				var ethSentry = _v2.a;
-				var ethCmd = _v2.b;
-				var _v3 = $author$project$App$startSentry(model.config.bsc);
-				var bscSentry = _v3.a;
-				var bscCmd = _v3.b;
-				var _v4 = $author$project$App$startSentry(model.config.arbitrum);
-				var arbitrumSentry = _v4.a;
-				var arbitrumCmd = _v4.b;
+				var config = A2(
+					$elm$core$Dict$union,
+					model.chainConfigs,
+					$elm$core$Dict$fromList(
+						A2(
+							$elm$core$List$map,
+							function (i) {
+								return _Utils_Tuple2(i.chainId, i);
+							},
+							chainConfigs)));
+				var _v0 = $elm$core$List$unzip(
+					A2(
+						$elm$core$List$map,
+						function (_v2) {
+							var k = _v2.a;
+							var _v3 = _v2.b;
+							var sentry = _v3.a;
+							var cmd = _v3.b;
+							return _Utils_Tuple2(
+								_Utils_Tuple2(k, sentry),
+								cmd);
+						},
+						$elm$core$Dict$toList(
+							A2(
+								$elm$core$Dict$map,
+								F2(
+									function (_v1, c) {
+										return $author$project$App$startSentry(c);
+									}),
+								model.chainConfigs))));
+				var newSentries = _v0.a;
+				var newCmds = _v0.b;
+				var ethCmd = A2(
+					$elm$core$Maybe$withDefault,
+					$elm$core$Platform$Cmd$none,
+					$elm$core$List$head(newCmds));
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							config: config,
+							chainConfigs: config,
 							dProfile: A2($author$project$ElementHelpers$screenWidthToDisplayProfile, $author$project$Config$displayProfileBreakpoint, flags.width),
 							route: route,
-							sentries: function (cs) {
-								return _Utils_update(
-									cs,
-									{arbitrum: arbitrumSentry, bsc: bscSentry, ethereum: ethSentry, polygon: polySentry, xDai: xDaiSentry});
-							}(model.sentries),
+							sentries: $elm$core$Dict$fromList(newSentries),
 							wallet: wallet
 						}),
 					$elm$core$Platform$Cmd$batch(
 						_Utils_ap(
-							A4($author$project$Misc$refreshCmds, wallet, true, '', $elm$core$Maybe$Nothing),
+							A5($author$project$Misc$refreshCmds, ethNodeUrl, wallet, true, '', $elm$core$Maybe$Nothing),
 							_List_fromArray(
 								[
 									ethCmd,
@@ -12372,31 +12372,6 @@ var $elm$time$Time$addMySub = F2(
 				interval,
 				A2($elm$core$List$cons, tagger, taggers),
 				state);
-		}
-	});
-var $elm$core$Dict$foldl = F3(
-	function (func, acc, dict) {
-		foldl:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return acc;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var $temp$func = func,
-					$temp$acc = A3(
-					func,
-					key,
-					value,
-					A3($elm$core$Dict$foldl, func, acc, left)),
-					$temp$dict = right;
-				func = $temp$func;
-				acc = $temp$acc;
-				dict = $temp$dict;
-				continue foldl;
-			}
 		}
 	});
 var $elm$core$Dict$merge = F6(
@@ -12661,10 +12636,6 @@ var $elm$browser$Browser$Events$spawn = F3(
 						router,
 						A2($elm$browser$Browser$Events$Event, key, event));
 				}));
-	});
-var $elm$core$Dict$union = F2(
-	function (t1, t2) {
-		return A3($elm$core$Dict$foldl, $elm$core$Dict$insert, t2, t1);
 	});
 var $elm$browser$Browser$Events$onEffects = F3(
 	function (router, subs, state) {
@@ -13843,8 +13814,8 @@ var $author$project$Wallet$walletInfoDecoder = A2(
 								function (addr, bal) {
 									return A2(
 										$elm$core$Result$map,
-										function (chain) {
-											return {address: addr, balance: bal, chain: chain, xDaiStatus: $author$project$Types$XDaiStandby};
+										function (chainId) {
+											return {address: addr, balance: bal, chainId: chainId, xDaiStatus: $author$project$Types$XDaiStandby};
 										},
 										networkRes);
 								}),
@@ -13932,13 +13903,14 @@ var $author$project$UserTx$Success = function (a) {
 	return {$: 'Success', a: a};
 };
 var $author$project$Types$UserInfo = F4(
-	function (address, balance, chain, xDaiStatus) {
-		return {address: address, balance: balance, chain: chain, xDaiStatus: xDaiStatus};
+	function (address, balance, chainId, xDaiStatus) {
+		return {address: address, balance: balance, chainId: chainId, xDaiStatus: xDaiStatus};
 	});
 var $author$project$Types$Withdraw = {$: 'Withdraw'};
 var $author$project$Config$arbErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x6b88B564EfC6fcE6515E73B0b1DAb5c4f10a1054');
 var $author$project$Config$arbitrumOneFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x633A3d2091dc7982597A0f635d23Ba5EB1223f48');
 var $author$project$Config$arbitrumOneGFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x365Db53EEB009b447b0E5A95e2523596E074d2FE');
+var $author$project$Config$arbitrumProviderUrl = 'https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $author$project$Config$ethErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39');
 var $cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp = F4(
 	function (accum, len, _v0, tape) {
@@ -14096,6 +14068,7 @@ var $author$project$Contracts$FryBalanceFetch$fetch = F5(
 var $author$project$Config$polyErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xe698841cd03a580e28611281739392a27b42b848');
 var $author$project$Config$polyFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xc9BAA8cfdDe8E328787E29b4B078abf2DaDc2055');
 var $author$project$Config$polyGFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xC86c63E5681254Dd8DF64e69fB29eAD5a23dA461');
+var $author$project$Config$polygonProviderUrl = 'https://polygon-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $author$project$Contracts$FryBalanceFetch$accumulateFetches = F2(
 	function (msgConstructor, addresses) {
 		return _List_fromArray(
@@ -14640,9 +14613,9 @@ var $author$project$Wallet$getChainDefaultEth = A2(
 		$elm$core$Basics$composeR,
 		$elm$core$Maybe$map(
 			function ($) {
-				return $.chain;
+				return $.chainId;
 			}),
-		$elm$core$Maybe$withDefault($author$project$Types$Eth)));
+		$elm$core$Maybe$withDefault($author$project$Config$ethChainId)));
 var $author$project$Config$bucketSaleBucketInterval = $elm$time$Time$millisToPosix(((1000 * 60) * 60) * 7);
 var $author$project$Helpers$Time$posixToSeconds = function (t) {
 	return ($elm$time$Time$posixToMillis(t) / 1000) | 0;
@@ -14851,25 +14824,6 @@ var $author$project$Misc$loggedSignedResponseToResponseToValidate = F2(
 				};
 			},
 			maybePoll);
-	});
-var $elm$core$Dict$map = F2(
-	function (func, dict) {
-		if (dict.$ === 'RBEmpty_elm_builtin') {
-			return $elm$core$Dict$RBEmpty_elm_builtin;
-		} else {
-			var color = dict.a;
-			var key = dict.b;
-			var value = dict.c;
-			var left = dict.d;
-			var right = dict.e;
-			return A5(
-				$elm$core$Dict$RBNode_elm_builtin,
-				color,
-				key,
-				A2(func, key, value),
-				A2($elm$core$Dict$map, func, left),
-				A2($elm$core$Dict$map, func, right));
-		}
 	});
 var $author$project$Helpers$Eth$maxUintValue = A2(
 	$cmditch$elm_bigint$BigInt$sub,
@@ -16650,6 +16604,7 @@ var $author$project$Contracts$Generated$StakingRewards$withdraw = F2(
 	});
 var $author$project$Update$update = F2(
 	function (msg, model) {
+		var ethNodeUrl = A2($author$project$Config$nodeUrl, $author$project$Config$ethChainId, model.chainConfigs);
 		var ensureUserInfo = function (fn) {
 			return A3(
 				$elm_community$maybe_extra$Maybe$Extra$unwrap,
@@ -16795,7 +16750,7 @@ var $author$project$Update$update = F2(
 							now: i
 						}),
 					$elm$core$Platform$Cmd$batch(
-						A4($author$project$Misc$refreshCmds, model.wallet, model.initiatedOldFarmExit, model.withdrawalAmountInput, model.currentBucketId)));
+						A5($author$project$Misc$refreshCmds, ethNodeUrl, model.wallet, model.initiatedOldFarmExit, model.withdrawalAmountInput, model.currentBucketId)));
 			case 'Resize':
 				var width = msg.a;
 				return _Utils_Tuple2(
@@ -16811,7 +16766,7 @@ var $author$project$Update$update = F2(
 				var walletSentryResult = msg.a;
 				if (walletSentryResult.$ === 'Ok') {
 					var walletSentry = walletSentryResult.a;
-					var chain = $author$project$Wallet$getChainDefaultEth(model.wallet);
+					var chainId = $author$project$Wallet$getChainDefaultEth(model.wallet);
 					var newWallet = function () {
 						var _v6 = walletSentry.account;
 						if (_v6.$ === 'Just') {
@@ -16824,7 +16779,7 @@ var $author$project$Update$update = F2(
 									},
 									$author$project$Misc$userInfo(model.wallet)),
 								$elm$core$Maybe$Just(newAddress)) ? model.wallet : $author$project$Types$Active(
-								A4($author$project$Types$UserInfo, newAddress, $author$project$TokenValue$zero, chain, $author$project$Types$XDaiStandby));
+								A4($author$project$Types$UserInfo, newAddress, $author$project$TokenValue$zero, chainId, $author$project$Types$XDaiStandby));
 						} else {
 							return $author$project$Types$NoneDetected;
 						}
@@ -16845,8 +16800,8 @@ var $author$project$Update$update = F2(
 								return $elm$core$Platform$Cmd$batch(
 									_List_fromArray(
 										[
-											$author$project$Misc$fetchDerivedEthBalance(userAddress),
-											$author$project$Misc$fetchEthBalance(userAddress),
+											A2($author$project$Misc$fetchDerivedEthBalance, ethNodeUrl, userAddress),
+											A2($author$project$Misc$fetchEthBalance, ethNodeUrl, userAddress),
 											$author$project$Misc$fetchOldStakingBalances(userAddress)
 										]));
 							} else {
@@ -16873,85 +16828,36 @@ var $author$project$Update$update = F2(
 						{txSentry: newTxSentry}),
 					subCmd);
 			case 'EventSentryMsg':
-				var chain = msg.a;
+				var chainId = msg.a;
 				var eventMsg = msg.b;
-				switch (chain.$) {
-					case 'Eth':
-						var _v9 = A2($cmditch$elm_ethereum$Eth$Sentry$Event$update, eventMsg, model.sentries.ethereum);
-						var newEventSentry = _v9.a;
-						var cmd = _v9.b;
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									sentries: function (ss) {
-										return _Utils_update(
-											ss,
-											{ethereum: newEventSentry});
-									}(model.sentries)
-								}),
-							cmd);
-					case 'BSC':
-						var _v10 = A2($cmditch$elm_ethereum$Eth$Sentry$Event$update, eventMsg, model.sentries.bsc);
-						var newEventSentry = _v10.a;
-						var cmd = _v10.b;
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									sentries: function (ss) {
-										return _Utils_update(
-											ss,
-											{bsc: newEventSentry});
-									}(model.sentries)
-								}),
-							cmd);
-					case 'XDai':
-						var _v11 = A2($cmditch$elm_ethereum$Eth$Sentry$Event$update, eventMsg, model.sentries.xDai);
-						var newEventSentry = _v11.a;
-						var cmd = _v11.b;
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									sentries: function (ss) {
-										return _Utils_update(
-											ss,
-											{xDai: newEventSentry});
-									}(model.sentries)
-								}),
-							cmd);
-					case 'Polygon':
-						var _v12 = A2($cmditch$elm_ethereum$Eth$Sentry$Event$update, eventMsg, model.sentries.polygon);
-						var newEventSentry = _v12.a;
-						var cmd = _v12.b;
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									sentries: function (ss) {
-										return _Utils_update(
-											ss,
-											{polygon: newEventSentry});
-									}(model.sentries)
-								}),
-							cmd);
-					default:
-						var _v13 = A2($cmditch$elm_ethereum$Eth$Sentry$Event$update, eventMsg, model.sentries.arbitrum);
-						var newEventSentry = _v13.a;
-						var cmd = _v13.b;
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{
-									sentries: function (ss) {
-										return _Utils_update(
-											ss,
-											{arbitrum: newEventSentry});
-									}(model.sentries)
-								}),
-							cmd);
-				}
+				var _v8 = A2(
+					$cmditch$elm_ethereum$Eth$Sentry$Event$init,
+					$author$project$Types$EventSentryMsg($author$project$Config$ethChainId),
+					ethNodeUrl);
+				var defaultEventSentry = _v8.a;
+				var _v9 = A2(
+					$cmditch$elm_ethereum$Eth$Sentry$Event$update,
+					eventMsg,
+					A2(
+						$elm$core$Maybe$withDefault,
+						defaultEventSentry,
+						A2($elm$core$Dict$get, chainId, model.sentries)));
+				var newEventSentry = _v9.a;
+				var cmd = _v9.b;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							sentries: A2(
+								$elm$core$Dict$union,
+								$elm$core$Dict$fromList(
+									_List_fromArray(
+										[
+											_Utils_Tuple2(chainId, newEventSentry)
+										])),
+								model.sentries)
+						}),
+					cmd);
 			case 'DismissNotice':
 				var id = msg.a;
 				return _Utils_Tuple2(
@@ -17281,11 +17187,11 @@ var $author$project$Update$update = F2(
 					$elm$core$Platform$Cmd$none);
 			case 'AmountInputChanged':
 				var newInput = msg.a;
-				var _v30 = model.depositWithdrawUXModel;
-				if (_v30.$ === 'Just') {
-					var _v31 = _v30.a;
-					var depositOrWithdraw = _v31.a;
-					var amountInputUXModel = _v31.b;
+				var _v26 = model.depositWithdrawUXModel;
+				if (_v26.$ === 'Just') {
+					var _v27 = _v26.a;
+					var depositOrWithdraw = _v27.a;
+					var amountInputUXModel = _v27.b;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -17546,9 +17452,9 @@ var $author$project$Update$update = F2(
 					var httpErr = fetchResult.a;
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				} else {
-					var _v36 = fetchResult.a;
-					var userStakingInfo = _v36.a;
-					var apy = _v36.b;
+					var _v32 = fetchResult.a;
+					var userStakingInfo = _v32.a;
+					var apy = _v32.b;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -17575,7 +17481,7 @@ var $author$project$Update$update = F2(
 				}
 			case 'RefreshAll':
 				return ensureUserInfo(
-					function (_v38) {
+					function (_v34) {
 						return _Utils_Tuple2(
 							model,
 							$elm$core$Platform$Cmd$batch(
@@ -17636,10 +17542,10 @@ var $author$project$Update$update = F2(
 				var jsonVal = msg.a;
 				var decodedSignResult = A2($elm$json$Json$Decode$decodeValue, $author$project$Misc$validateSigResultDecoder, jsonVal);
 				if (decodedSignResult.$ === 'Ok') {
-					var _v43 = decodedSignResult.a;
-					var responseId = _v43.a;
-					var validateResult = _v43.b;
-					var _v44 = function () {
+					var _v39 = decodedSignResult.a;
+					var responseId = _v39.a;
+					var validateResult = _v39.b;
+					var _v40 = function () {
 						if (validateResult.$ === 'Valid') {
 							var maybeSignedResponse = A2(
 								$elm$core$Maybe$map,
@@ -17665,9 +17571,9 @@ var $author$project$Update$update = F2(
 							return _Utils_Tuple3(model.validatedResponses, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
 						}
 					}();
-					var newValidatedResponses = _v44.a;
-					var maybeRespondingAddress = _v44.b;
-					var maybeUserNotice = _v44.c;
+					var newValidatedResponses = _v40.a;
+					var maybeRespondingAddress = _v40.b;
+					var maybeUserNotice = _v40.c;
 					var newBalancesDict = function () {
 						if (maybeRespondingAddress.$ === 'Nothing') {
 							return model.fryBalances;
@@ -17724,17 +17630,17 @@ var $author$project$Update$update = F2(
 								$cmditch$elm_ethereum$Eth$Utils$addressToString,
 								A2(
 									$elm$core$List$map,
-									function (_v51) {
-										var _v52 = _v51.b;
-										var v = _v52.b;
+									function (_v47) {
+										var _v48 = _v47.b;
+										var v = _v48.b;
 										return v.address;
 									},
 									$elm$core$Dict$toList(
 										A2(
 											$elm$core$Dict$filter,
 											F2(
-												function (_v49, _v50) {
-													var b = _v50.a;
+												function (_v45, _v46) {
+													var b = _v46.a;
 													return b;
 												}),
 											model.possiblyValidResponses)))))));
@@ -17760,8 +17666,8 @@ var $author$project$Update$update = F2(
 				var responsesFetchedResult = msg.a;
 				if (responsesFetchedResult.$ === 'Ok') {
 					var decodedLoggedSignedResponses = responsesFetchedResult.a;
-					var _v55 = model.polls;
-					if (_v55.$ === 'Nothing') {
+					var _v51 = model.polls;
+					if (_v51.$ === 'Nothing') {
 						return _Utils_Tuple2(
 							A3(
 								$elm$core$Basics$apR,
@@ -17770,14 +17676,14 @@ var $author$project$Update$update = F2(
 								model),
 							$elm$core$Platform$Cmd$none);
 					} else {
-						var polls = _v55.a;
+						var polls = _v51.a;
 						var newPossiblyValidResponses = A2(
 							$elm$core$Dict$union,
 							model.possiblyValidResponses,
 							A2(
 								$elm$core$Dict$map,
 								F2(
-									function (_v58, signedResponse) {
+									function (_v54, signedResponse) {
 										return _Utils_Tuple2(false, signedResponse);
 									}),
 								decodedLoggedSignedResponses));
@@ -17789,9 +17695,9 @@ var $author$project$Update$update = F2(
 									A2(
 										$elm_community$dict_extra$Dict$Extra$filterMap,
 										F2(
-											function (_v56, _v57) {
-												var isValidated = _v57.a;
-												var signedResponse = _v57.b;
+											function (_v52, _v53) {
+												var isValidated = _v53.a;
+												var signedResponse = _v53.b;
 												return (!isValidated) ? $elm$core$Maybe$Just(signedResponse) : $elm$core$Maybe$Nothing;
 											}),
 										newPossiblyValidResponses))));
@@ -17824,19 +17730,12 @@ var $author$project$Update$update = F2(
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var httpErr = fetchResult.a;
-					var chain = $author$project$Wallet$getChainDefaultEth(model.wallet);
 					return _Utils_Tuple2(
-						function () {
-							if (chain.$ === 'Eth') {
-								return A3(
-									$elm$core$Basics$apR,
-									A2($author$project$UserNotice$web3FetchError, 'fetch polls', httpErr),
-									$author$project$Update$addUserNotice,
-									model);
-							} else {
-								return model;
-							}
-						}(),
+						A3(
+							$elm$core$Basics$apR,
+							A2($author$project$UserNotice$web3FetchError, 'fetch polls', httpErr),
+							$author$project$Update$addUserNotice,
+							model),
 						$elm$core$Platform$Cmd$none);
 				}
 			case 'SetMouseoverState':
@@ -17879,11 +17778,11 @@ var $author$project$Update$update = F2(
 					$elm$core$Platform$Cmd$batch(
 						_Utils_ap(
 							function () {
-								var _v61 = $author$project$Misc$userInfo(model.wallet);
-								if (_v61.$ === 'Nothing') {
+								var _v56 = $author$project$Misc$userInfo(model.wallet);
+								if (_v56.$ === 'Nothing') {
 									return _List_Nil;
 								} else {
-									var uInfo = _v61.a;
+									var uInfo = _v56.a;
 									return _List_fromArray(
 										[
 											function () {
@@ -17915,11 +17814,11 @@ var $author$project$Update$update = F2(
 				return _Utils_Tuple2(
 					model,
 					function () {
-						var _v62 = $author$project$Misc$userInfo(model.wallet);
-						if (_v62.$ === 'Nothing') {
+						var _v57 = $author$project$Misc$userInfo(model.wallet);
+						if (_v57.$ === 'Nothing') {
 							return $elm$core$Platform$Cmd$none;
 						} else {
-							var uInfo = _v62.a;
+							var uInfo = _v57.a;
 							var txParams = $cmditch$elm_ethereum$Eth$encodeSend(
 								A2(
 									$author$project$Helpers$Eth$addFrom,
@@ -17940,13 +17839,13 @@ var $author$project$Update$update = F2(
 							{
 								dEthUserInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v64 = model.dEthUserInfo;
-										if (_v64.$ === 'Nothing') {
+										var _v59 = model.dEthUserInfo;
+										if (_v59.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthUserInfo,
 												{ethBalance: tokenValue});
 										} else {
-											var oldUserDerivedEthInfoModel = _v64.a;
+											var oldUserDerivedEthInfoModel = _v59.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{ethBalance: tokenValue});
@@ -17967,13 +17866,13 @@ var $author$project$Update$update = F2(
 							{
 								dEthUserInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v66 = model.dEthUserInfo;
-										if (_v66.$ === 'Nothing') {
+										var _v61 = model.dEthUserInfo;
+										if (_v61.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthUserInfo,
 												{dEthBalance: tokenValue});
 										} else {
-											var oldUserDerivedEthInfoModel = _v66.a;
+											var oldUserDerivedEthInfoModel = _v61.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{dEthBalance: tokenValue});
@@ -17998,8 +17897,8 @@ var $author$project$Update$update = F2(
 							{
 								dEthWithdrawInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v68 = model.dEthWithdrawInfo;
-										if (_v68.$ === 'Nothing') {
+										var _v63 = model.dEthWithdrawInfo;
+										if (_v63.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthWithdrawInfo,
 												{
@@ -18008,7 +17907,7 @@ var $author$project$Update$update = F2(
 													totalCollateralRedeemed: $author$project$TokenValue$tokenValue(data.collateralRedeemed)
 												});
 										} else {
-											var oldUserDerivedEthInfoModel = _v68.a;
+											var oldUserDerivedEthInfoModel = _v63.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{
@@ -18101,7 +18000,8 @@ var $author$project$Update$update = F2(
 						$elm$core$Platform$Cmd$none,
 						A2(
 							$elm$core$Maybe$map,
-							$author$project$Misc$fetchEthBalance,
+							$author$project$Misc$fetchEthBalance(
+								A2($author$project$Config$nodeUrl, $author$project$Config$ethChainId, model.chainConfigs)),
 							A2(
 								$elm$core$Maybe$map,
 								function ($) {
@@ -18116,7 +18016,8 @@ var $author$project$Update$update = F2(
 						$elm$core$Platform$Cmd$none,
 						A2(
 							$elm$core$Maybe$map,
-							$author$project$Misc$fetchDerivedEthBalance,
+							$author$project$Misc$fetchDerivedEthBalance(
+								A2($author$project$Config$nodeUrl, $author$project$Config$ethChainId, model.chainConfigs)),
 							A2(
 								$elm$core$Maybe$map,
 								function ($) {
@@ -18188,8 +18089,8 @@ var $author$project$Update$update = F2(
 							{
 								dEthDepositInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v77 = model.dEthDepositInfo;
-										if (_v77.$ === 'Nothing') {
+										var _v72 = model.dEthDepositInfo;
+										if (_v72.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthDepositInfo,
 												{
@@ -18198,7 +18099,7 @@ var $author$project$Update$update = F2(
 													tokensIssued: $author$project$TokenValue$tokenValue(data.tokensIssued)
 												});
 										} else {
-											var oldUserDerivedEthInfoModel = _v77.a;
+											var oldUserDerivedEthInfoModel = _v72.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{
@@ -18309,7 +18210,7 @@ var $author$project$Update$update = F2(
 						}
 					},
 					function (info) {
-						var _v79 = A2(
+						var _v74 = A2(
 							$author$project$GTag$gTagOutOnlyOnceForEvent,
 							model.gtagHistory,
 							A4(
@@ -18319,8 +18220,8 @@ var $author$project$Update$update = F2(
 								$elm$core$Maybe$Just(
 									$cmditch$elm_ethereum$Eth$Utils$addressToString(info.address)),
 								$elm$core$Maybe$Nothing));
-						var gtagHistory = _v79.a;
-						var walletConnectedGtagCmd = _v79.b;
+						var gtagHistory = _v74.a;
+						var walletConnectedGtagCmd = _v74.b;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -18335,8 +18236,8 @@ var $author$project$Update$update = F2(
 										walletConnectedGtagCmd,
 										$author$project$Misc$fetchStakingInfoOrApyCmd(
 										$author$project$Types$Active(info)),
-										$author$project$Misc$fetchDerivedEthBalance(info.address),
-										$author$project$Misc$fetchEthBalance(info.address),
+										A2($author$project$Misc$fetchDerivedEthBalance, ethNodeUrl, info.address),
+										A2($author$project$Misc$fetchEthBalance, ethNodeUrl, info.address),
 										$author$project$Misc$fetchOldStakingBalances(info.address)
 									])));
 					},
@@ -18361,7 +18262,7 @@ var $author$project$Update$update = F2(
 								$author$project$Ports$log(e));
 						}
 					},
-					function (_v81) {
+					function (_v76) {
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -24104,6 +24005,7 @@ var $mdgriffith$elm_ui$Element$spacing = function (x) {
 var $author$project$Types$DismissNotice = function (a) {
 	return {$: 'DismissNotice', a: a};
 };
+var $author$project$Types$NoOp = {$: 'NoOp'};
 var $mdgriffith$elm_ui$Element$rgb = F3(
 	function (r, g, b) {
 		return A4($mdgriffith$elm_ui$Internal$Model$Rgba, r, g, b, 1);
@@ -28636,7 +28538,7 @@ var $author$project$View$Deth$titleEl = function (dProfile) {
 var $author$project$View$Deth$view = function (model) {
 	var walletState = model.wallet;
 	var dProfile = model.dProfile;
-	var chain = $author$project$Wallet$getChainDefaultEth(model.wallet);
+	var chainId = $author$project$Wallet$getChainDefaultEth(model.wallet);
 	return A2(
 		$mdgriffith$elm_ui$Element$column,
 		_List_fromArray(
@@ -28650,24 +28552,18 @@ var $author$project$View$Deth$view = function (model) {
 		_List_fromArray(
 			[
 				$author$project$View$Deth$titleEl(dProfile),
-				function () {
-				if (chain.$ === 'Eth') {
-					return A8($author$project$View$Deth$mainEl, dProfile, walletState, model.dethGlobalSupply, model.depositAmountInput, model.withdrawalAmountInput, model.dEthUserInfo, model.dEthDepositInfo, model.dEthWithdrawInfo);
-				} else {
-					return A2(
-						$mdgriffith$elm_ui$Element$el,
-						_List_fromArray(
-							[
-								$mdgriffith$elm_ui$Element$Font$size(
-								A3($author$project$ElementHelpers$responsiveVal, dProfile, 30, 16)),
-								$mdgriffith$elm_ui$Element$Font$color($author$project$ElementHelpers$white),
-								$mdgriffith$elm_ui$Element$Font$medium,
-								$mdgriffith$elm_ui$Element$Font$italic,
-								$mdgriffith$elm_ui$Element$centerX
-							]),
-						$mdgriffith$elm_ui$Element$text('dETH currently only available on mainnet.'));
-				}
-			}()
+				(chainId === 1) ? A8($author$project$View$Deth$mainEl, dProfile, walletState, model.dethGlobalSupply, model.depositAmountInput, model.withdrawalAmountInput, model.dEthUserInfo, model.dEthDepositInfo, model.dEthWithdrawInfo) : A2(
+				$mdgriffith$elm_ui$Element$el,
+				_List_fromArray(
+					[
+						$mdgriffith$elm_ui$Element$Font$size(
+						A3($author$project$ElementHelpers$responsiveVal, dProfile, 30, 16)),
+						$mdgriffith$elm_ui$Element$Font$color($author$project$ElementHelpers$white),
+						$mdgriffith$elm_ui$Element$Font$medium,
+						$mdgriffith$elm_ui$Element$Font$italic,
+						$mdgriffith$elm_ui$Element$centerX
+					]),
+				$mdgriffith$elm_ui$Element$text('dETH currently only available on mainnet.'))
 			]));
 };
 var $author$project$View$Farm$apyElement = F2(
@@ -29680,7 +29576,7 @@ var $author$project$View$Farm$titleEl = F2(
 	});
 var $author$project$View$Farm$view = function (model) {
 	var dProfile = model.dProfile;
-	var chain = $author$project$Wallet$getChainDefaultEth(model.wallet);
+	var chainId = $author$project$Wallet$getChainDefaultEth(model.wallet);
 	return A2(
 		$mdgriffith$elm_ui$Element$el,
 		_List_fromArray(
@@ -29703,27 +29599,21 @@ var $author$project$View$Farm$view = function (model) {
 					A3($author$project$ElementHelpers$responsiveVal, dProfile, 40, 15)),
 					$mdgriffith$elm_ui$Element$height($mdgriffith$elm_ui$Element$fill)
 				]),
-			function () {
-				if (chain.$ === 'Eth') {
-					return _List_fromArray(
+			(chainId === 1) ? _List_fromArray(
+				[
+					A2($author$project$View$Farm$titleEl, dProfile, 'Farming for Fryers!'),
+					A3($author$project$View$Farm$subTitleEl, dProfile, model.now, model.farmingPeriodEnds),
+					model.chainSwitchInProgress ? A2(
+					$mdgriffith$elm_ui$Element$el,
+					_List_fromArray(
 						[
-							A2($author$project$View$Farm$titleEl, dProfile, 'Farming for Fryers!'),
-							A3($author$project$View$Farm$subTitleEl, dProfile, model.now, model.farmingPeriodEnds),
-							model.chainSwitchInProgress ? A2(
-							$mdgriffith$elm_ui$Element$el,
-							_List_fromArray(
-								[
-									$mdgriffith$elm_ui$Element$Font$color($author$project$Theme$almostWhite)
-								]),
-							$mdgriffith$elm_ui$Element$text($author$project$Misc$loadingText)) : $author$project$View$Farm$bodyEl(model)
-						]);
-				} else {
-					return _List_fromArray(
-						[
-							A2($author$project$View$Farm$titleEl, dProfile, 'Farming currently only available on mainnet.')
-						]);
-				}
-			}()));
+							$mdgriffith$elm_ui$Element$Font$color($author$project$Theme$almostWhite)
+						]),
+					$mdgriffith$elm_ui$Element$text($author$project$Misc$loadingText)) : $author$project$View$Farm$bodyEl(model)
+				]) : _List_fromArray(
+				[
+					A2($author$project$View$Farm$titleEl, dProfile, 'Farming currently only available on mainnet.')
+				])));
 };
 var $author$project$View$Home$view = function (model) {
 	return $mdgriffith$elm_ui$Element$text('home :3');
@@ -36707,27 +36597,18 @@ var $author$project$View$Sentiment$view = function (model) {
 							$mdgriffith$elm_ui$Element$spacing(
 							A3($author$project$ElementHelpers$responsiveVal, dProfile, 50, 15))
 						]),
-					function () {
-						if (chain.$ === 'Eth') {
-							return _List_fromArray(
-								[
-									A2($author$project$View$Sentiment$titleText, dProfile, 'Foundry Polls'),
-									A6(
-									$author$project$View$Sentiment$viewPolls,
-									dProfile,
-									$author$project$Misc$userInfo(model.wallet),
-									polls,
-									model.validatedResponses,
-									$author$project$Contracts$FryBalanceFetch$unifyFryBalances(model.fryBalances),
-									model.mouseoverState)
-								]);
-						} else {
-							return _List_fromArray(
-								[
-									A2($author$project$View$Sentiment$titleText, dProfile, 'Foundry Polls only available on mainnet')
-								]);
-						}
-					}());
+					_List_fromArray(
+						[
+							A2($author$project$View$Sentiment$titleText, dProfile, 'Foundry Polls'),
+							A6(
+							$author$project$View$Sentiment$viewPolls,
+							dProfile,
+							$author$project$Misc$userInfo(model.wallet),
+							polls,
+							model.validatedResponses,
+							$author$project$Contracts$FryBalanceFetch$unifyFryBalances(model.fryBalances),
+							model.mouseoverState)
+						]));
 			}
 		}());
 };
@@ -37144,22 +37025,17 @@ var $author$project$View$Stats$statsEl = function (model) {
 	}
 };
 var $author$project$Config$teamToastMultiSigAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xF7396C708Ad9127B6684b7fd690083158d2ebdE5');
-var $author$project$Config$blockExplorerUrl = function (chain) {
-	switch (chain.$) {
-		case 'Eth':
-			return 'https://etherscan.io/address/';
-		case 'BSC':
-			return 'https://bscscan.com/address/';
-		case 'XDai':
-			return 'https://blockscout.com/xdai/mainnet/';
-		case 'Arbitrum':
-			return 'https://arbitrum.io/address/';
-		default:
-			return 'https://polygon.io/address/';
-	}
-};
-var $author$project$View$Stats$viewAddressAndLabel = F4(
-	function (dProfile, chain, label, address) {
+var $author$project$Config$blockExplorerUrl = F2(
+	function (chainId, chainConfigs) {
+		return A2(
+			$elm$core$Maybe$map,
+			function ($) {
+				return $.explorerUrl;
+			},
+			A2($elm$core$Dict$get, chainId, chainConfigs));
+	});
+var $author$project$View$Stats$viewAddressAndLabel = F5(
+	function (dProfile, chainId, chainConfigs, label, address) {
 		return A2(
 			$mdgriffith$elm_ui$Element$column,
 			_List_fromArray(
@@ -37198,14 +37074,19 @@ var $author$project$View$Stats$viewAddressAndLabel = F4(
 						{
 							label: $mdgriffith$elm_ui$Element$text(
 								$cmditch$elm_ethereum$Eth$Utils$addressToString(address)),
-							url: _Utils_ap(
-								$author$project$Config$blockExplorerUrl(chain),
-								$cmditch$elm_ethereum$Eth$Utils$addressToString(address))
+							url: A2(
+								$elm$core$Maybe$withDefault,
+								'',
+								A2(
+									$elm$core$Maybe$map,
+									$elm$core$Basics$append(
+										$cmditch$elm_ethereum$Eth$Utils$addressToString(address)),
+									A2($author$project$Config$blockExplorerUrl, chainId, chainConfigs)))
 						}))
 				]));
 	});
-var $author$project$View$Stats$viewAddresses = F2(
-	function (chain, dProfile) {
+var $author$project$View$Stats$viewAddresses = F3(
+	function (chainId, chainConfigs, dProfile) {
 		return A2(
 			$mdgriffith$elm_ui$Element$column,
 			_Utils_ap(
@@ -37227,22 +37108,10 @@ var $author$project$View$Stats$viewAddresses = F2(
 							$mdgriffith$elm_ui$Element$Font$color($author$project$ElementHelpers$white)
 						]),
 					$mdgriffith$elm_ui$Element$text('Foundry Addresses')),
-					A4($author$project$View$Stats$viewAddressAndLabel, dProfile, chain, 'FRY token', $author$project$Config$ethereumFryContractAddress),
-					function () {
-					if (chain.$ === 'Eth') {
-						return A4($author$project$View$Stats$viewAddressAndLabel, dProfile, chain, 'Treasury', $author$project$Config$mainTreasuryAddress);
-					} else {
-						return $mdgriffith$elm_ui$Element$none;
-					}
-				}(),
-					function () {
-					if (chain.$ === 'Eth') {
-						return A4($author$project$View$Stats$viewAddressAndLabel, dProfile, chain, 'Bucket sale', $author$project$Config$bucketSaleAddress);
-					} else {
-						return $mdgriffith$elm_ui$Element$none;
-					}
-				}(),
-					A4($author$project$View$Stats$viewAddressAndLabel, dProfile, chain, 'Multisig', $author$project$Config$teamToastMultiSigAddress)
+					A5($author$project$View$Stats$viewAddressAndLabel, dProfile, chainId, chainConfigs, 'FRY token', $author$project$Config$ethereumFryContractAddress),
+					(chainId === 1) ? A5($author$project$View$Stats$viewAddressAndLabel, dProfile, chainId, chainConfigs, 'Treasury', $author$project$Config$mainTreasuryAddress) : $mdgriffith$elm_ui$Element$none,
+					(chainId === 1) ? A5($author$project$View$Stats$viewAddressAndLabel, dProfile, chainId, chainConfigs, 'Bucket sale', $author$project$Config$bucketSaleAddress) : $mdgriffith$elm_ui$Element$none,
+					A5($author$project$View$Stats$viewAddressAndLabel, dProfile, chainId, chainConfigs, 'Multisig', $author$project$Config$teamToastMultiSigAddress)
 				]));
 	});
 var $author$project$Config$saleEndTime = $elm$time$Time$millisToPosix(1642968000 * 1000);
@@ -37289,7 +37158,7 @@ var $author$project$View$Stats$weeksRemainingEl = function (now) {
 			]));
 };
 var $author$project$View$Stats$view = function (model) {
-	var chain = $author$project$Wallet$getChainDefaultEth(model.wallet);
+	var chainId = $author$project$Wallet$getChainDefaultEth(model.wallet);
 	return A2(
 		$mdgriffith$elm_ui$Element$column,
 		_List_fromArray(
@@ -37322,7 +37191,7 @@ var $author$project$View$Stats$view = function (model) {
 				_List_fromArray(
 					[
 						$author$project$View$Stats$statsEl(model),
-						A2($author$project$View$Stats$viewAddresses, chain, model.dProfile)
+						A3($author$project$View$Stats$viewAddresses, chainId, model.chainConfigs, model.dProfile)
 					]))
 			]));
 };

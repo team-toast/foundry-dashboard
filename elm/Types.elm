@@ -48,6 +48,7 @@ type alias Model =
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , sentries : Dict ChainId (EventSentry Msg)
+    , txSentry : TxSentry Msg
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : UserTx.Tracker Msg
@@ -368,7 +369,7 @@ type InputValidationError
 
 
 type alias ChainConfig =
-    { chain : Int
+    { chainId : ChainId
     , name : String
     , nodeUrl : String
     , explorerUrl : String
@@ -380,7 +381,7 @@ type alias ChainId =
 
 
 type alias ChainConfigs =
-    Dict Int ChainConfig
+    Dict ChainId ChainConfig
 
 
 type WalletConnectErr

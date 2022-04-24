@@ -11,7 +11,7 @@ import Helpers.Eth
 import Json.Decode as Decode exposing (Decoder)
 import Result.Extra
 import Theme
-import Types exposing (ChainConfig, ChainConfigs, ChainId, Config, Flags)
+import Types exposing (ChainConfig, ChainConfigs, ChainId, Flags)
 
 
 getProviderUrl : ChainId -> ChainConfigs -> Maybe String
@@ -52,14 +52,14 @@ getName chainId chainConfigs =
 chainDecoder : Flags -> Decoder (List Types.ChainConfig)
 chainDecoder flags =
     Decode.map
-        (\chain ->
-            { chain = chain
+        (\chainId ->
+            { chainId = chainId
             , name = ""
-            , nodeUrl = Config.httpProviderUrl chain
+            , nodeUrl = ""
             , explorerUrl = ""
             }
         )
-        (Decode.field "network" decodeChain
+        (Decode.field "chainId" decodeChain
             |> Decode.andThen
                 (Result.Extra.unpack
                     (always (Decode.fail "bad network"))
@@ -76,10 +76,8 @@ decodeChain =
             (\network ->
                 case network of
                     Eth.Net.Private i ->
-                        i
-                            |> Ok
+                        Ok i
 
                     _ ->
-                        Types.NetworkNotSupported
-                            |> Err
+                        Err Types.NetworkNotSupported
             )

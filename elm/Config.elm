@@ -44,26 +44,22 @@ polygonProviderUrl =
     "https://polygon-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
-httpProviderUrl : ChainId -> ChainConfigs -> Maybe String
-httpProviderUrl chainId chainConfigs =
-    mainnetHttpProviderUrl chainId chainConfigs
-
-
-
--- This should probably be a dictionary that looks up some for of chain config record
--- The config record should contain things like the http provider url, chainId, etc
-
-
-mainnetHttpProviderUrl : ChainId -> ChainConfigs -> Maybe String
-mainnetHttpProviderUrl chainId chainConfigs =
+nodeUrl : ChainId -> ChainConfigs -> String
+nodeUrl chainId chainConfigs =
     if testMode then
-        Just testModeHttpProviderUrl
+        testModeHttpProviderUrl
 
     else
-        chainConfigs
-            |> Dict.get chainId
-            |> Maybe.map
-                .nodeUrl
+        case chainConfigs |> Dict.toList of
+            [] ->
+                ethereumProviderUrl
+
+            _ ->
+                chainConfigs
+                    |> Dict.get chainId
+                    |> Maybe.map
+                        .nodeUrl
+                    |> Maybe.withDefault ethereumProviderUrl
 
 
 testModeHttpProviderUrl : String

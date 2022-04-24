@@ -13,7 +13,7 @@ import Maybe.Extra
 import Misc exposing (derivedEthUserInfo, userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
-import Types exposing (ChainId(..), DEthDepositInfo, DEthUserInfo, DEthWithdrawInfo, InputValidationError, JurisdictionCheckStatus, Model, Msg(..), UserDerivedEthInfo, UserInfo, Wallet(..))
+import Types exposing (ChainId, DEthDepositInfo, DEthUserInfo, DEthWithdrawInfo, InputValidationError, JurisdictionCheckStatus, Model, Msg(..), UserDerivedEthInfo, UserInfo, Wallet(..))
 import View.Common exposing (..)
 import Wallet
 
@@ -32,33 +32,32 @@ view model =
         walletState =
             model.wallet
 
-        chain =
+        chainId =
             model.wallet
                 |> Wallet.getChainDefaultEth
     in
     [ titleEl dProfile
-    , case chain of
-        Eth ->
-            mainEl
-                dProfile
-                walletState
-                model.dethGlobalSupply
-                model.depositAmountInput
-                model.withdrawalAmountInput
-                model.dEthUserInfo
-                model.dEthDepositInfo
-                model.dEthWithdrawInfo
+    , if chainId == 1 then
+        mainEl
+            dProfile
+            walletState
+            model.dethGlobalSupply
+            model.depositAmountInput
+            model.withdrawalAmountInput
+            model.dEthUserInfo
+            model.dEthDepositInfo
+            model.dEthWithdrawInfo
 
-        _ ->
-            "dETH currently only available on mainnet."
-                |> text
-                |> el
-                    [ Font.size <| responsiveVal dProfile 30 16
-                    , Font.color EH.white
-                    , Font.medium
-                    , Font.italic
-                    , centerX
-                    ]
+      else
+        "dETH currently only available on mainnet."
+            |> text
+            |> el
+                [ Font.size <| responsiveVal dProfile 30 16
+                , Font.color EH.white
+                , Font.medium
+                , Font.italic
+                , centerX
+                ]
     ]
         |> column
             [ padding 20

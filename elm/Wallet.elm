@@ -79,10 +79,10 @@ walletInfoDecoder =
                         (\addr bal ->
                             networkRes
                                 |> Result.map
-                                    (\chain ->
+                                    (\chainId ->
                                         { address = addr
                                         , balance = bal
-                                        , chain = chain
+                                        , chainId = chainId
                                         , xDaiStatus = Types.XDaiStandby
                                         }
                                     )

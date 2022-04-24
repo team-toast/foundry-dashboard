@@ -6,7 +6,7 @@ import BigInt
 import Browser
 import Browser.Navigation
 import Chain
-import Config
+import Config exposing (ethChainId)
 import Contracts.DEthWrapper as Deth
 import Contracts.FryBalanceFetch exposing (..)
 import Contracts.Generated.ERC20 as ERC20
@@ -45,6 +45,9 @@ update msg model =
             model.wallet
                 |> Wallet.userInfo
                 |> unwrap ( model, Ports.log "Missing wallet" ) fn
+
+        ethNodeUrl =
+            Config.nodeUrl Config.ethChainId model.chainConfigs
     in
     case msg of
         LinkClicked urlRequest ->
@@ -165,7 +168,12 @@ update msg model =
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , refreshCmds model.wallet model.initiatedOldFarmExit model.withdrawalAmountInput model.currentBucketId
+            , refreshCmds
+                ethNodeUrl
+                model.wallet
+                model.initiatedOldFarmExit
+                model.withdrawalAmountInput
+                model.currentBucketId
                 |> Cmd.batch
             )
 
@@ -186,7 +194,7 @@ update msg model =
             case walletSentryResult of
                 Ok walletSentry ->
                     let
-                        chain =
+                        chainId =
                             model.wallet
                                 |> Wallet.getChainDefaultEth
 
@@ -206,7 +214,7 @@ update msg model =
                                         UserInfo
                                             newAddress
                                             TokenValue.zero
-                                            chain
+                                            chainId
                                             XDaiStandby
                                             |> Types.Active
 
@@ -218,8 +226,8 @@ update msg model =
                       }
                     , case model.wallet |> Wallet.userInfo |> Maybe.map .address of
                         Just userAddress ->
-                            [ fetchDerivedEthBalance userAddress
-                            , fetchEthBalance userAddress
+                            [ fetchDerivedEthBalance ethNodeUrl userAddress
+                            , fetchEthBalance ethNodeUrl userAddress
                             , fetchOldStakingBalances userAddress
                             ]
                                 |> Cmd.batch
@@ -241,30 +249,27 @@ update msg model =
             in
             ( { model | txSentry = newTxSentry }, subCmd )
 
-        EventSentryMsg chain eventMsg ->
+        EventSentryMsg chainId eventMsg ->
             let
+                ( defaultEventSentry, _ ) =
+                    EventSentry.init
+                        (Types.EventSentryMsg ethChainId)
+                        ethNodeUrl
+
                 ( newEventSentry, cmd ) =
                     EventSentry.update
                         eventMsg
-                        (model.sentries |> Dict.get chain)
+                        (model.sentries
+                            |> Dict.get chainId
+                            |> Maybe.withDefault defaultEventSentry
+                        )
             in
             ( { model
-                | sentries = Dict.update chain newEventSentry model.sentries
+                | sentries =
+                    Dict.union ([ ( chainId, newEventSentry ) ] |> Dict.fromList) model.sentries
               }
             , cmd
             )
-                ( { model
-                    | sentries =
-                        model.sentries
-                            |> (\ss ->
-                                    { ss
-                                        | ethereum =
-                                            newEventSentry
-                                    }
-                               )
-                  }
-                , cmd
-                )
 
         DismissNotice id ->
             ( { model
@@ -1158,18 +1163,7 @@ update msg model =
                     )
 
                 Err httpErr ->
-                    let
-                        chain =
-                            model.wallet
-                                |> Wallet.getChainDefaultEth
-                    in
-                    ( case chain of
-                        Eth ->
-                            model
-                                |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
-
-                        _ ->
-                            model
+                    ( model |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
                     , Cmd.none
                     )
 
@@ -1424,15 +1418,15 @@ update msg model =
 
         FetchUserEthBalance ->
             ( model
-            , Maybe.map fetchEthBalance
-                (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+            , (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+                |> Maybe.map (fetchEthBalance (Config.nodeUrl Config.ethChainId model.chainConfigs))
                 |> Maybe.withDefault Cmd.none
             )
 
         FetchUserDerivedEthBalance ->
             ( model
-            , Maybe.map fetchDerivedEthBalance
-                (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+            , (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+                |> Maybe.map (fetchDerivedEthBalance (Config.nodeUrl Config.ethChainId model.chainConfigs))
                 |> Maybe.withDefault Cmd.none
             )
 
@@ -1650,8 +1644,8 @@ update msg model =
                           }
                         , [ walletConnectedGtagCmd
                           , fetchStakingInfoOrApyCmd (Active info)
-                          , fetchDerivedEthBalance info.address
-                          , fetchEthBalance info.address
+                          , fetchDerivedEthBalance ethNodeUrl info.address
+                          , fetchEthBalance ethNodeUrl info.address
                           , fetchOldStakingBalances info.address
                           ]
                             |> Cmd.batch
