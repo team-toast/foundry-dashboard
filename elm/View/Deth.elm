@@ -13,7 +13,7 @@ import Maybe.Extra
 import Misc exposing (derivedEthUserInfo, userInfo)
 import Theme exposing (disabledButton, green, red, redButton)
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), DEthDepositInfo, DEthUserInfo, DEthWithdrawInfo, InputValidationError, JurisdictionCheckStatus, Model, Msg(..), UserDerivedEthInfo, UserInfo, Wallet(..))
+import Types exposing (ChainId(..), DEthDepositInfo, DEthUserInfo, DEthWithdrawInfo, InputValidationError, JurisdictionCheckStatus, Model, Msg(..), UserDerivedEthInfo, UserInfo, Wallet(..))
 import View.Common exposing (..)
 import Wallet
 
@@ -220,10 +220,11 @@ dethRedeemWarningEl dProfile mentionAddedBalance userBalanceToTotalRatio =
                 { url = url
                 , label = text labelText
                 }
-        (fontSize1, fontSize2, fontSize3) =
+
+        ( fontSize1, fontSize2, fontSize3 ) =
             responsiveVal dProfile
-                (24, 20, 16)
-                (20, 18, 14)
+                ( 24, 20, 16 )
+                ( 20, 18, 14 )
     in
     el
         (Theme.mainContainerBorderAttributes
@@ -232,7 +233,6 @@ dethRedeemWarningEl dProfile mentionAddedBalance userBalanceToTotalRatio =
         )
     <|
         Element.column
-            
             [ width <| px <| responsiveVal dProfile 500 280
             , spacing 10
             ]

@@ -15,7 +15,7 @@ import Http
 import String
 import Task
 import TokenValue exposing (TokenValue, tokenValue)
-import Types exposing (Chain, UserStakingInfo)
+import Types exposing (ChainId, UserStakingInfo)
 
 
 approveLiquidityToken : Eth.Send

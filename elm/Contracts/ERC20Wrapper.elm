@@ -7,11 +7,11 @@ import Eth.Types exposing (..)
 import Http
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain)
+import Types exposing (ChainId)
 
 
 getBalanceCmd :
-    Chain
+    ChainId
     -> Address
     -> Address
     -> (Result Http.Error TokenValue -> msg)
@@ -28,7 +28,7 @@ getBalanceCmd chain tokenAddress owner msgConstructor =
 
 
 getTotalSupply :
-    Chain
+    ChainId
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
@@ -43,7 +43,7 @@ getTotalSupply chain tokenAddress msgConstructor =
 
 
 getEthBalance :
-    Chain
+    ChainId
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg

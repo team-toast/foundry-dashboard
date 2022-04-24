@@ -21,7 +21,7 @@ import Misc exposing (calcAvailableRewards, calcTimeLeft, loadingText, userInfo,
 import Theme exposing (almostWhite, blueButton, lightGray)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (AmountUXModel, Chain(..), DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
+import Types exposing (AmountUXModel, ChainId(..), DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
 import View.Attrs exposing (hover)
 import View.Common exposing (web3ConnectButton)
 import View.Img

@@ -16,7 +16,7 @@ import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPe
 import Theme
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), Model, Msg)
+import Types exposing (ChainId(..), Model, Msg)
 import View.Common exposing (..)
 import Wallet
 
@@ -302,10 +302,11 @@ statsEl model =
                     "TVL"
                     dethTVLString
                     False
-                -- , statsRowItem dProfile
-                --     "Num"
-                --     (String.fromInt dethNumUniqueMints)
-                --     False
+
+                 -- , statsRowItem dProfile
+                 --     "Num"
+                 --     (String.fromInt dethNumUniqueMints)
+                 --     False
                  ]
                     |> statsRow
                 )
