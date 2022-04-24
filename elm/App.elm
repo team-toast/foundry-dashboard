@@ -85,6 +85,24 @@ init flags url key =
                                                 { config_
                                                     | bsc = data
                                                 }
+
+                                        Types.Polygon ->
+                                            \config_ ->
+                                                { config_
+                                                    | polygon = data
+                                                }
+
+                                        Types.Arbitrum ->
+                                            \config_ ->
+                                                { config_
+                                                    | arbitrum = data
+                                                }
+
+                                        Types.Private _ ->
+                                            \config_ ->
+                                                { config_
+                                                    | private = data
+                                                }
                                 )
                                 model.config
 
@@ -103,6 +121,12 @@ init flags url key =
 
                     ( bscSentry, bscCmd ) =
                         startSentry model.config.bsc
+
+                    ( polySentry, polyCmd ) =
+                        startSentry model.config.polygon
+
+                    ( arbitrumSentry, arbitrumCmd ) =
+                        startSentry model.config.arbitrum
                 in
                 ( { model
                     | config = config
@@ -116,6 +140,8 @@ init flags url key =
                                         | xDai = xDaiSentry
                                         , ethereum = ethSentry
                                         , bsc = bscSentry
+                                        , polygon = polySentry
+                                        , arbitrum = arbitrumSentry
                                     }
                                )
                   }
@@ -144,7 +170,7 @@ startSentry config =
 
         ( initEventSentry, initEventSentryCmd ) =
             Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
-                config.providerUrl
+                config.nodeUrl
 
         ( eventSentry, secondEventSentryCmd ) =
             ( initEventSentry, initEventSentryCmd )

@@ -25,7 +25,7 @@ import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, HttpProvider)
 import Eth.Utils
-import GTag 
+import GTag
 import Graphql.Http
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Helpers.Eth as EthHelpers
@@ -45,18 +45,11 @@ import Types exposing (..)
 import Url.Builder
 import UserTx exposing (TxInfo)
 import Wallet
-import Eth.Types exposing (HttpProvider)
 
 
 emptyModel : Browser.Navigation.Key -> Time.Posix -> String -> Bool -> Model
 emptyModel key now basePath cookieConsent =
     let
-        txSentry =
-            TxSentry.init
-                ( txOut, txIn )
-                Types.TxSentryMsg
-                (Config.httpProviderUrl Eth)
-
         ( wallet, walletNotices ) =
             ( Types.Connecting
             , []
@@ -68,15 +61,7 @@ emptyModel key now basePath cookieConsent =
     , wallet = wallet
     , now = now
     , dProfile = EH.Desktop
-    , sentries =
-        { xDai =
-            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
-        , ethereum =
-            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
-        , bsc =
-            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
-        }
-    , txSentry = txSentry
+    , sentries = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
     , trackedTxs = []
@@ -122,7 +107,7 @@ emptyModel key now basePath cookieConsent =
             |> List.map (\addr -> Tuple.pair addr Nothing)
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
-    , config = emptyConfig
+    , chainConfigs = Dict.empty
     , chainSwitchInProgress = False
     , gtagHistory = GTag.emptyGtagHistory
     , farmingPeriodEnds = 0
@@ -825,12 +810,10 @@ fetchFryBalancesCmd : List Address -> Cmd Msg
 fetchFryBalancesCmd addresses =
     Contracts.FryBalanceFetch.fetch
         Types.FryBalancesFetched
-        Config.ethereumProviderUrl 
-        Config.ethErc20BalanceFetchBatchContractAddress 
+        Config.ethereumProviderUrl
+        Config.ethErc20BalanceFetchBatchContractAddress
         Config.ethereumFryContractAddress
         addresses
-        
-        
 
 
 validateSignedResponsesCmd : List ResponseToValidate -> Cmd Msg
@@ -887,7 +870,6 @@ refreshPollVotesCmd maybePollId =
                 Types.SignedResponsesFetched
                 signedResponsesDictFromServerDecoder
         }
-
 
 
 signedResponsesDictFromServerDecoder : Decoder.Decoder (Dict Int SignedResponse)
@@ -1114,30 +1096,9 @@ addTrackedTx userTx notifiers tracker =
     )
 
 
-emptyConfig : Types.Config
-emptyConfig =
-    { xDai =
-        { chain = Types.XDai
-
-        -- , contract = emptyAddress
-        -- , startScanBlock = 0
-        , providerUrl = ""
-        }
-    , ethereum =
-        { chain = Types.Eth
-
-        -- , contract = emptyAddress
-        -- , startScanBlock = 0
-        , providerUrl = ""
-        }
-    , bsc =
-        { chain = Types.BSC
-
-        -- , contract = emptyAddress
-        -- , startScanBlock = 0
-        , providerUrl = ""
-        }
-    }
+emptyChainConfig : Types.ChainConfigs
+emptyChainConfig =
+    Dict.empty
 
 
 emptyAddress : Address

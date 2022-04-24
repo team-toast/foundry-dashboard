@@ -8,6 +8,7 @@ import Browser.Navigation
 import Chain
 import Config
 import Contracts.DEthWrapper as Deth
+import Contracts.FryBalanceFetch exposing (..)
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingRewardsContract
 import Dict
@@ -16,8 +17,9 @@ import ElementHelpers as EH exposing (DisplayProfile(..))
 import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
-import Eth.Utils
+import Eth.Utils exposing (addressToString)
 import GTag exposing (GTagData, gTagOut)
+import Graphql.Http.GraphqlError exposing (PossiblyParsedData)
 import Helpers.Eth as EthHelpers
 import Helpers.Tuple exposing (tuple3MapSecond, tuple3Second, tuple3ToList)
 import Json.Decode
@@ -34,9 +36,7 @@ import Url
 import UserNotice as UN exposing (UserNotice, cantConnectNoWeb3, httpFetchError, httpSendError, routeNotFound, signingError, unexpectedError, walletError, web3FetchError)
 import UserTx exposing (Initiator, SignedTxStatus(..), TxInfo(..))
 import Wallet
-import Contracts.FryBalanceFetch exposing (..)
-import Graphql.Http.GraphqlError exposing (PossiblyParsedData)
-import Eth.Utils exposing (addressToString)
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -242,66 +242,29 @@ update msg model =
             ( { model | txSentry = newTxSentry }, subCmd )
 
         EventSentryMsg chain eventMsg ->
-            case chain of
-                Eth ->
-                    let
-                        ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.ethereum
-                    in
-                    ( { model
-                        | sentries =
-                            model.sentries
-                                |> (\ss ->
-                                        { ss
-                                            | ethereum =
-                                                newEventSentry
-                                        }
-                                   )
-                      }
-                    , cmd
-                    )
-
-                BSC ->
-                    let
-                        ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.bsc
-                    in
-                    ( { model
-                        | sentries =
-                            model.sentries
-                                |> (\ss ->
-                                        { ss
-                                            | bsc =
-                                                newEventSentry
-                                        }
-                                   )
-                      }
-                    , cmd
-                    )
-
-                XDai ->
-                    let
-                        ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.xDai
-                    in
-                    ( { model
-                        | sentries =
-                            model.sentries
-                                |> (\ss ->
-                                        { ss
-                                            | xDai =
-                                                newEventSentry
-                                        }
-                                   )
-                      }
-                    , cmd
-                    )
+            let
+                ( newEventSentry, cmd ) =
+                    EventSentry.update
+                        eventMsg
+                        (model.sentries |> Dict.get chain)
+            in
+            ( { model
+                | sentries = Dict.update chain newEventSentry model.sentries
+              }
+            , cmd
+            )
+                ( { model
+                    | sentries =
+                        model.sentries
+                            |> (\ss ->
+                                    { ss
+                                        | ethereum =
+                                            newEventSentry
+                                    }
+                               )
+                  }
+                , cmd
+                )
 
         DismissNotice id ->
             ( { model
@@ -1057,18 +1020,17 @@ update msg model =
                         newBalancesDict =
                             case maybeRespondingAddress of
                                 Nothing ->
-                                    model.fryBalances 
+                                    model.fryBalances
 
                                 Just address ->
                                     let
                                         newDictPortion : TokenBalanceDict
                                         newDictPortion =
-                                            [ 
-                                                ( address
-                                                , AddressDict.empty
-                                                )
+                                            [ ( address
+                                              , AddressDict.empty
+                                              )
                                             ]
-                                            |> AddressDict.fromList
+                                                |> AddressDict.fromList
                                     in
                                     AddressDict.union
                                         model.fryBalances
@@ -1109,14 +1071,14 @@ update msg model =
 
         FetchFryBalances ->
             ( model
-            , model.possiblyValidResponses 
-                |> Dict.filter (\_ (b, _) -> b)
+            , model.possiblyValidResponses
+                |> Dict.filter (\_ ( b, _ ) -> b)
                 |> Dict.toList
-                |> List.map (\(_, (_,v)) -> v.address)
+                |> List.map (\( _, ( _, v ) ) -> v.address)
                 |> List.Extra.uniqueBy addressToString
                 |> accumulateFetches FryBalancesFetched
-                |> Cmd.batch)
-
+                |> Cmd.batch
+            )
 
         ResponseSent pollId sendResult ->
             case sendResult of
@@ -1197,14 +1159,15 @@ update msg model =
 
                 Err httpErr ->
                     let
-                        chain = 
-                            model.wallet 
-                            |> Wallet.getChainDefaultEth
+                        chain =
+                            model.wallet
+                                |> Wallet.getChainDefaultEth
                     in
                     ( case chain of
                         Eth ->
-                            model 
-                            |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
+                            model
+                                |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
+
                         _ ->
                             model
                     , Cmd.none

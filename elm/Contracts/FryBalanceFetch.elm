@@ -12,7 +12,7 @@ import Http
 import List.Extra exposing (..)
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (Msg, TokenBalanceDict)
+import Types exposing (TokenBalanceDict)
 
 
 fetch :
@@ -69,6 +69,24 @@ accumulateFetches msgConstructor addresses =
             Config.arbitrumProviderUrl
             Config.arbErc20BalanceFetchBatchContractAddress
             Config.arbitrumOneGFryContractAddress
+    , addresses
+        |> fetch
+            msgConstructor
+            Config.polygonProviderUrl
+            Config.polyErc20BalanceFetchBatchContractAddress
+            Config.polyFryContractAddress
+    , addresses
+        |> fetch
+            msgConstructor
+            Config.polygonProviderUrl
+            Config.polyErc20BalanceFetchBatchContractAddress
+            Config.polyGFryContractAddress
+    , addresses
+        |> fetch
+            msgConstructor
+            Config.polygonProviderUrl
+            Config.polyErc20BalanceFetchBatchContractAddress
+            Config.polyFryContractAddress
     ]
 
 

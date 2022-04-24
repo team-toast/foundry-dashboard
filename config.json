@@ -10,5 +10,13 @@
   {
     "name": "BSC",
     "network": 56
+  },
+  {
+    "name": "Polygon",
+    "network": 137
+  },
+  {
+    "name": "Arbitrum",
+    "network": 42131
   }
 ]

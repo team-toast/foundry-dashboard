@@ -32,10 +32,6 @@ type alias Flags =
     , nowInMillis : Int
     , cookieConsent : Bool
     , chains : Value
-
-    -- , ethProviderUrl : String
-    -- , xDaiProviderUrl : String
-    -- , bscProviderUrl : String
     , hasWallet : Bool
     }
 
@@ -51,15 +47,7 @@ type alias Model =
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
-    , sentries :
-        { xDai : EventSentry Msg
-        , ethereum : EventSentry Msg
-        , bsc : EventSentry Msg
-        , polygon : EventSentry Msg
-        , arbitrum : EventSentry Msg
-        , private : EventSentry Msg
-        }
-    , txSentry : TxSentry Msg
+    , sentries : Dict ChainId (EventSentry Msg)
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : UserTx.Tracker Msg
@@ -100,7 +88,7 @@ type alias Model =
     , oldUserStakingBalances : List ( Address, Maybe TokenValue )
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
-    , config : Config
+    , chainConfigs : ChainConfigs
     , chainSwitchInProgress : Bool
     , gtagHistory : GTagHistory
     , farmingPeriodEnds : Int
@@ -119,7 +107,7 @@ type Msg
     | Resize Int Int
     | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
-    | EventSentryMsg Chain EventSentry.Msg
+    | EventSentryMsg ChainId EventSentry.Msg
     | DismissNotice Int
     | ClickHappened
     | ShowExpandedTrackedTxs Bool
@@ -210,7 +198,7 @@ type alias PriceValue =
 type alias UserInfo =
     { address : Address
     , balance : TokenValue
-    , chain : Chain
+    , chainId : ChainId
     , xDaiStatus : XDaiStatus
     }
 
@@ -379,30 +367,20 @@ type InputValidationError
     | InputInvalid
 
 
-type Chain
-    = XDai
-    | Eth
-    | BSC
-    | Arbitrum
-    | Polygon
-    | Private Int
-
-
 type alias ChainConfig =
-    { chain : Chain
+    { chain : Int
+    , name : String
     , nodeUrl : String
     , explorerUrl : String
     }
 
 
-type alias Config =
-    { xDai : ChainConfig
-    , ethereum : ChainConfig
-    , bsc : ChainConfig
-    , arbitrum : ChainConfig
-    , polygon : ChainConfig
-    , private : ChainConfig
-    }
+type alias ChainId =
+    Int
+
+
+type alias ChainConfigs =
+    Dict Int ChainConfig
 
 
 type WalletConnectErr
