@@ -26,14 +26,14 @@ import View exposing (view)
 import Wallet
 
 
-errorPassthrough : Result Json.Decode.Error b -> Result Json.Decode.Error b
-errorPassthrough r =
-    case r of
-        Err err ->
-            Debug.log (Json.Decode.errorToString err) Err err
 
-        Ok _ ->
-            r
+-- errorPassthrough : Result Json.Decode.Error b -> Result Json.Decode.Error b
+-- errorPassthrough r =
+--     case r of
+--         Err err ->
+--             Debug.log (Json.Decode.errorToString err) Err err
+--         Ok _ ->
+--             r
 
 
 main : Program Flags Model Msg
@@ -67,7 +67,7 @@ init flags url key =
     flags.chains
         |> Json.Decode.decodeValue
             (Chain.chainDecoder flags)
-        |> errorPassthrough
+        --|> errorPassthrough
         |> Result.toMaybe
         |> unwrap
             ( { model
