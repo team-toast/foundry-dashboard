@@ -55,7 +55,7 @@ chainDecoder flags =
         (\networkId ->
             { name = "Ethereum"
             , networkId = 1
-            , nodeUrl = "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+            , nodeUrl = Config.ethereumProviderUrl
             , explorerUrl = "https://etherscan.io/"
             }
         )

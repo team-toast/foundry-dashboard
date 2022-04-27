@@ -31,7 +31,11 @@ displayProfileBreakpoint =
 
 ethereumProviderUrl : String
 ethereumProviderUrl =
-    "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+    "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
+
+
+
+-- "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
 arbitrumProviderUrl : String
