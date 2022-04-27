@@ -6,8 +6,9 @@ import BigInt
 import Browser
 import Browser.Navigation
 import Chain
-import Config
+import Config exposing (ethChainId)
 import Contracts.DEthWrapper as Deth
+import Contracts.FryBalanceFetch exposing (..)
 import Contracts.Generated.ERC20 as ERC20
 import Contracts.Generated.StakingRewards as StakingRewardsContract
 import Dict
@@ -16,8 +17,9 @@ import ElementHelpers as EH exposing (DisplayProfile(..))
 import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
-import Eth.Utils
+import Eth.Utils exposing (addressToString)
 import GTag exposing (GTagData, gTagOut)
+import Graphql.Http.GraphqlError exposing (PossiblyParsedData)
 import Helpers.Eth as EthHelpers
 import Helpers.Tuple exposing (tuple3MapSecond, tuple3Second, tuple3ToList)
 import Json.Decode
@@ -43,6 +45,9 @@ update msg model =
             model.wallet
                 |> Wallet.userInfo
                 |> unwrap ( model, Ports.log "Missing wallet" ) fn
+
+        ethNodeUrl =
+            Config.nodeUrl Config.ethChainId model.chainConfigs
     in
     case msg of
         LinkClicked urlRequest ->
@@ -163,7 +168,12 @@ update msg model =
                 , currentTime = Time.posixToMillis i
                 , currentBucketId = getCurrentBucketId <| Time.posixToMillis i
               }
-            , refreshCmds model.wallet model.initiatedOldFarmExit model.withdrawalAmountInput model.currentBucketId
+            , refreshCmds
+                ethNodeUrl
+                model.wallet
+                model.initiatedOldFarmExit
+                model.withdrawalAmountInput
+                model.currentBucketId
                 |> Cmd.batch
             )
 
@@ -184,7 +194,7 @@ update msg model =
             case walletSentryResult of
                 Ok walletSentry ->
                     let
-                        chain =
+                        chainId =
                             model.wallet
                                 |> Wallet.getChainDefaultEth
 
@@ -204,7 +214,7 @@ update msg model =
                                         UserInfo
                                             newAddress
                                             TokenValue.zero
-                                            chain
+                                            chainId
                                             XDaiStandby
                                             |> Types.Active
 
@@ -216,8 +226,8 @@ update msg model =
                       }
                     , case model.wallet |> Wallet.userInfo |> Maybe.map .address of
                         Just userAddress ->
-                            [ fetchDerivedEthBalance userAddress
-                            , fetchEthBalance userAddress
+                            [ fetchDerivedEthBalance ethNodeUrl userAddress
+                            , fetchEthBalance ethNodeUrl userAddress
                             , fetchOldStakingBalances userAddress
                             ]
                                 |> Cmd.batch
@@ -239,67 +249,27 @@ update msg model =
             in
             ( { model | txSentry = newTxSentry }, subCmd )
 
-        EventSentryMsg chain eventMsg ->
-            case chain of
-                Eth ->
-                    let
-                        ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.ethereum
-                    in
-                    ( { model
-                        | sentries =
-                            model.sentries
-                                |> (\ss ->
-                                        { ss
-                                            | ethereum =
-                                                newEventSentry
-                                        }
-                                   )
-                      }
-                    , cmd
-                    )
+        EventSentryMsg chainId eventMsg ->
+            let
+                ( defaultEventSentry, _ ) =
+                    EventSentry.init
+                        (Types.EventSentryMsg ethChainId)
+                        ethNodeUrl
 
-                BSC ->
-                    let
-                        ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.bsc
-                    in
-                    ( { model
-                        | sentries =
-                            model.sentries
-                                |> (\ss ->
-                                        { ss
-                                            | bsc =
-                                                newEventSentry
-                                        }
-                                   )
-                      }
-                    , cmd
-                    )
-
-                XDai ->
-                    let
-                        ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.xDai
-                    in
-                    ( { model
-                        | sentries =
-                            model.sentries
-                                |> (\ss ->
-                                        { ss
-                                            | xDai =
-                                                newEventSentry
-                                        }
-                                   )
-                      }
-                    , cmd
-                    )
+                ( newEventSentry, cmd ) =
+                    EventSentry.update
+                        eventMsg
+                        (model.sentries
+                            |> Dict.get chainId
+                            |> Maybe.withDefault defaultEventSentry
+                        )
+            in
+            ( { model
+                | sentries =
+                    Dict.union ([ ( chainId, newEventSentry ) ] |> Dict.fromList) model.sentries
+              }
+            , cmd
+            )
 
         DismissNotice id ->
             ( { model
@@ -960,10 +930,21 @@ update msg model =
 
         RefreshAll ->
             ensureUserInfo
-                (\userInfo ->
+                (\_ ->
                     ( model
                     , Cmd.batch
-                        ((fetchFryBalancesCmd (model.fryBalances |> AddressDict.keys)) ++ [ refreshPollVotesCmd model Nothing ])
+                        [ refreshPollVotesCmd Nothing
+                        , model.possiblyValidResponses
+                            |> Dict.filter (\_ ( b, _ ) -> b)
+                            |> Dict.toList
+                            |> List.map (\( _, ( _, v ) ) -> v.address)
+                            |> List.Extra.uniqueBy addressToString
+                            |> accumulateFetches FryBalancesFetched
+                            |> Cmd.batch
+
+                        -- fetchFryBalancesCmd
+                        -- (model.fryBalances |> AddressDict.keys)
+                        ]
                     )
                 )
 
@@ -979,7 +960,7 @@ update msg model =
                     ( { model
                         | polls = Just polls
                       }
-                    , refreshPollVotesCmd model Nothing
+                    , refreshPollVotesCmd Nothing
                     )
 
         OptionClicked userInfo poll maybePollOptionId ->
@@ -1027,8 +1008,7 @@ update msg model =
                                 Valid ->
                                     let
                                         maybeSignedResponse =
-                                            model.maybeValidResponses
-                                                |> Dict.get responseId
+                                            Dict.get responseId model.possiblyValidResponses
                                                 |> Maybe.map Tuple.second
                                     in
                                     case maybeSignedResponse of
@@ -1058,9 +1038,10 @@ update msg model =
 
                                 Just address ->
                                     let
+                                        newDictPortion : TokenBalanceDict
                                         newDictPortion =
                                             [ ( address
-                                              , Nothing
+                                              , AddressDict.empty
                                               )
                                             ]
                                                 |> AddressDict.fromList
@@ -1068,16 +1049,6 @@ update msg model =
                                     AddressDict.union
                                         model.fryBalances
                                         newDictPortion
-
-                        cmd =
-                            newBalancesDict
-                                |> AddressDict.filter
-                                    (\addressString maybeBalance ->
-                                        maybeBalance == Nothing
-                                    )
-                                |> AddressDict.keys
-                                |> fetchFryBalancesCmd
-                                |> Cmd.batch
 
                         tempModel =
                             case maybeUserNotice of
@@ -1092,20 +1063,19 @@ update msg model =
                     in
                     ( { tempModel
                         | validatedResponses = newValidatedResponses
-                        , maybeValidResponses =
-                            model.maybeValidResponses
+                        , possiblyValidResponses =
+                            model.possiblyValidResponses
                                 |> Dict.update responseId
                                     (Maybe.map
                                         (Tuple.mapFirst
                                             (always True)
                                         )
                                     )
-                        , fryBalances = newBalancesDict
                       }
-                    , cmd
+                    , Cmd.none
                     )
 
-                Err errStr ->
+                Err _ ->
                     ( model
                         |> (unexpectedError "error decoding signature validation from web3js"
                                 |> addUserNotice
@@ -1113,11 +1083,22 @@ update msg model =
                     , Cmd.none
                     )
 
+        FetchFryBalances ->
+            ( model
+            , model.possiblyValidResponses
+                |> Dict.filter (\_ ( b, _ ) -> b)
+                |> Dict.toList
+                |> List.map (\( _, ( _, v ) ) -> v.address)
+                |> List.Extra.uniqueBy addressToString
+                |> accumulateFetches FryBalancesFetched
+                |> Cmd.batch
+            )
+
         ResponseSent pollId sendResult ->
             case sendResult of
                 Ok _ ->
                     ( model
-                    , refreshPollVotesCmd model <| Just pollId
+                    , refreshPollVotesCmd <| Just pollId
                     )
 
                 Err httpErr ->
@@ -1142,9 +1123,9 @@ update msg model =
 
                         Just polls ->
                             let
-                                newMaybeValidResponses =
+                                newPossiblyValidResponses =
                                     Dict.union
-                                        model.maybeValidResponses
+                                        model.possiblyValidResponses
                                         (decodedLoggedSignedResponses
                                             |> Dict.map
                                                 (\_ signedResponse ->
@@ -1153,7 +1134,7 @@ update msg model =
                                         )
 
                                 responsesToValidate =
-                                    newMaybeValidResponses
+                                    newPossiblyValidResponses
                                         |> Dict.Extra.filterMap
                                             (\_ ( isValidated, signedResponse ) ->
                                                 if not isValidated then
@@ -1167,14 +1148,14 @@ update msg model =
                                         |> Maybe.Extra.values
                             in
                             ( { model
-                                | maybeValidResponses = newMaybeValidResponses
+                                | possiblyValidResponses = newPossiblyValidResponses
                               }
                             , validateSignedResponsesCmd responsesToValidate
                             )
 
-                Err decodeErr ->
+                Err _ ->
                     ( model
-                        |> (unexpectedError "error decoding responses from server"
+                        |> (unexpectedError "error decoding signed responses from outsystems server"
                                 |> addUserNotice
                            )
                     , Cmd.none
@@ -1184,31 +1165,14 @@ update msg model =
             case fetchResult of
                 Ok newFryBalances ->
                     ( { model
-                        | fryBalances =
-                            AddressDict.union
-                                (newFryBalances
-                                    |> AddressDict.map (always Just)
-                                )
-                                model.fryBalances
+                        | fryBalances = updateTokenBalanceDict newFryBalances model.fryBalances
+                        , unifiedBalances = unifyFryBalances model.fryBalances
                       }
                     , Cmd.none
                     )
 
                 Err httpErr ->
-                    let
-                        chain =
-                            model.wallet
-                                |> Wallet.getChainDefaultEth
-                    in
-                    ( case chain of
-                        Eth ->
-                            model
-                                |> (web3FetchError "fetch polls" httpErr
-                                        |> addUserNotice
-                                   )
-
-                        _ ->
-                            model
+                    ( model |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
                     , Cmd.none
                     )
 
@@ -1463,15 +1427,15 @@ update msg model =
 
         FetchUserEthBalance ->
             ( model
-            , Maybe.map fetchEthBalance
-                (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+            , (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+                |> Maybe.map (fetchEthBalance (Config.nodeUrl Config.ethChainId model.chainConfigs))
                 |> Maybe.withDefault Cmd.none
             )
 
         FetchUserDerivedEthBalance ->
             ( model
-            , Maybe.map fetchDerivedEthBalance
-                (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+            , (model.wallet |> Wallet.userInfo |> Maybe.map .address)
+                |> Maybe.map (fetchDerivedEthBalance (Config.nodeUrl Config.ethChainId model.chainConfigs))
                 |> Maybe.withDefault Cmd.none
             )
 
@@ -1689,8 +1653,8 @@ update msg model =
                           }
                         , [ walletConnectedGtagCmd
                           , fetchStakingInfoOrApyCmd (Active info)
-                          , fetchDerivedEthBalance info.address
-                          , fetchEthBalance info.address
+                          , fetchDerivedEthBalance ethNodeUrl info.address
+                          , fetchEthBalance ethNodeUrl info.address
                           , fetchOldStakingBalances info.address
                           ]
                             |> Cmd.batch
@@ -1805,28 +1769,6 @@ update msg model =
                       }
                     , Cmd.none
                     )
-
-        -- IssuedEventReceived event ->
-        --     case event.returnData of
-        --         Ok dethIssuedEventData ->
-        --             ( { model
-        --                 | dethUniqueMints =
-        --                     model.dethUniqueMints
-        --                         |> AddressDict.update
-        --                             dethIssuedEventData.receiver
-        --                             (Maybe.map
-        --                                 (TokenValue.add dethIssuedEventData.protocolFee)
-        --                             )
-        --               }
-        --             , Cmd.none
-        --             )
-
-        --         Err decodeErr ->
-        --             ( model
-        --             , Ports.log <|
-        --                 "Error decoding deth issuance event: "
-        --                     ++ Json.Decode.errorToString decodeErr
-        --             )
 
 
 gotoRoute : Routing.Route -> Model -> ( Model, Cmd Msg )

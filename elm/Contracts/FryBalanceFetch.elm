@@ -1,59 +1,150 @@
 module Contracts.FryBalanceFetch exposing (..)
 
-import AddressDict exposing (AddressDict)
+import AddressDict exposing (..)
+import BigInt exposing (BigInt)
 import Config
 import Contracts.Generated.ERC20BalanceFetchBatch as BulkBalanceFetch
+import Dict
 import Eth
+import Eth.Net exposing (NetworkId(..))
 import Eth.Types exposing (..)
+import Eth.Utils exposing (..)
 import Http
+import List.Extra exposing (..)
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain)
-import Eth.Net exposing (NetworkId(..))
-import Types exposing (Msg)
+import Types exposing (ChainConfigs, TokenBalanceDict)
 
 
 fetch :
-    List Address
-    -> (Result Http.Error (AddressDict TokenValue) -> msg)
+    (Result Http.Error ( HttpProvider, Address, AddressDict TokenValue ) -> msg)
     -> HttpProvider
+    -> Address
     -> Address
     -> List Address
     -> Cmd msg
-fetch addresses msgConstructor ethNode balanceFetcher erc20List =
+fetch msgConstructor httpProvider batchErc20ReaderAddress erc20Address addresses =
+    let
+        translateResult : List BigInt -> ( HttpProvider, Address, AddressDict TokenValue )
+        translateResult result =
+            result
+                |> (List.map TokenValue.tokenValue
+                        >> List.map2 Tuple.pair addresses
+                        >> AddressDict.fromList
+                   )
+                >> (\i -> ( httpProvider, erc20Address, i ))
+    in
     Eth.call
-        ethNode
-        (BulkBalanceFetch.balances 
-            balanceFetcher
+        httpProvider
+        (BulkBalanceFetch.balances batchErc20ReaderAddress
             addresses
-            erc20List
+            [ erc20Address ]
         )
-    |> Task.attempt
-        (Result.map
-            (List.map TokenValue.tokenValue
-                >> List.map2 Tuple.pair addresses
-                >> AddressDict.fromList
+        |> Task.attempt
+            (Result.map
+                translateResult
+                >> msgConstructor
             )
-            >> msgConstructor
-        )
 
-fetchMultiChainMultiWallet :
-    List Address
-    -> (Result Http.Error (AddressDict TokenValue) -> msg)
-    -> List (HttpProvider, Address, List Address)
-    -> List (Cmd msg)
-fetchMultiChainMultiWallet addresses msgConstructor balanceQueryTuples =
-    balanceQueryTuples 
-    |> List.map (\(httpProvider, addressChecker, erc20List) -> fetch addresses msgConstructor httpProvider addressChecker erc20List) 
 
-quickFetch :
-    List Address
-    -> (Result Http.Error (AddressDict TokenValue) -> msg)
+accumulateFetches :
+    (Result Http.Error ( HttpProvider, Address, AddressDict TokenValue ) -> msg)
+    -> List Address
     -> List (Cmd msg)
-quickFetch addresses msgConstructor =
-    fetchMultiChainMultiWallet 
-        addresses 
+accumulateFetches msgConstructor addresses =
+    [ fetch
         msgConstructor
-        [ (Config.ethereumProviderUrl, Config.ethErc20BalanceFetchBatchContractAddress, [Config.ethereumFryContractAddress]) 
-        , (Config.arbitrumProviderUls, Config.arbiErc20BalanceFetchBatchContractAddress, [Config.arbitrumOneFryContractAddress, Config.arbitrumOneGFryContractAddress])
-        ]
+        Config.ethereumProviderUrl
+        Config.ethErc20BalanceFetchBatchContractAddress
+        Config.ethereumFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.arbitrumProviderUrl
+        Config.arbErc20BalanceFetchBatchContractAddress
+        Config.arbitrumOneFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.arbitrumProviderUrl
+        Config.arbErc20BalanceFetchBatchContractAddress
+        Config.arbitrumOneGFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.polygonProviderUrl
+        Config.polyErc20BalanceFetchBatchContractAddress
+        Config.polyFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.polygonProviderUrl
+        Config.polyErc20BalanceFetchBatchContractAddress
+        Config.polyGFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.polygonProviderUrl
+        Config.polyErc20BalanceFetchBatchContractAddress
+        Config.polyFryContractAddress
+        addresses
+    ]
+
+
+updateTokenBalanceDict :
+    ( HttpProvider, Address, AddressDict TokenValue )
+    -> TokenBalanceDict
+    -> TokenBalanceDict
+updateTokenBalanceDict newBalances dict =
+    let
+        ( _, erc20Address, newTokenValues ) =
+            newBalances
+
+        existingTokenValues =
+            dict |> AddressDict.get erc20Address
+
+        resultingUnion =
+            case existingTokenValues of
+                Nothing ->
+                    newTokenValues |> AddressDict.map (\_ i -> Just i)
+
+                Just a ->
+                    a
+                        |> AddressDict.union (newTokenValues |> AddressDict.map (\_ i -> Just i))
+    in
+    dict
+        |> AddressDict.insert erc20Address resultingUnion
+
+
+unifyFryBalances :
+    TokenBalanceDict
+    -> AddressDict (Maybe TokenValue)
+unifyFryBalances fryBalances =
+    let
+        addMaybe : Maybe TokenValue -> Maybe TokenValue -> Maybe TokenValue
+        addMaybe a b =
+            case a of
+                Nothing ->
+                    b
+
+                Just aVal ->
+                    case b of
+                        Nothing ->
+                            Just aVal
+
+                        Just bVal ->
+                            Just (aVal |> TokenValue.add bVal)
+
+        mergeTwo a b =
+            AddressDict.merge
+                AddressDict.insert
+                (\k v1 v2 -> AddressDict.insert k (v1 |> addMaybe v2))
+                AddressDict.insert
+                a
+                b
+                AddressDict.empty
+    in
+    fryBalances
+        |> AddressDict.toList
+        |> List.map (\( _, v ) -> v)
+        |> List.foldl mergeTwo AddressDict.empty

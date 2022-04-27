@@ -21,7 +21,7 @@ import Misc exposing (calcAvailableRewards, calcTimeLeft, loadingText, userInfo,
 import Theme exposing (almostWhite, blueButton, lightGray)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (AmountUXModel, Chain(..), DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
+import Types exposing (AmountUXModel, ChainId, DepositOrWithdraw(..), DepositOrWithdrawUXModel, JurisdictionCheckStatus, Model, Msg(..), UserInfo, UserStakingInfo, Wallet)
 import View.Attrs exposing (hover)
 import View.Common exposing (web3ConnectButton)
 import View.Img
@@ -34,25 +34,24 @@ view model =
         dProfile =
             model.dProfile
 
-        chain =
+        chainId =
             model.wallet
                 |> Wallet.getChainDefaultEth
     in
-    (case chain of
-        Eth ->
-            [ titleEl dProfile "Farming for Fryers!"
-            , subTitleEl dProfile model.now model.farmingPeriodEnds
+    (if chainId == 1 then
+        [ titleEl dProfile "Farming for Fryers!"
+        , subTitleEl dProfile model.now model.farmingPeriodEnds
 
-            -- , farmVideoEl dProfile
-            , if model.chainSwitchInProgress then
-                loadingText |> text |> el [ Font.color almostWhite ]
+        -- , farmVideoEl dProfile
+        , if model.chainSwitchInProgress then
+            loadingText |> text |> el [ Font.color almostWhite ]
 
-              else
-                bodyEl model
-            ]
+          else
+            bodyEl model
+        ]
 
-        _ ->
-            [ titleEl dProfile "Farming currently only available on mainnet." ]
+     else
+        [ titleEl dProfile "Farming currently only available on mainnet." ]
     )
         |> column
             [ centerX

@@ -1,24 +1,24 @@
 module Contracts.ERC20Wrapper exposing (..)
 
-import Config exposing (httpProviderUrl)
+import Config exposing (nodeUrl)
 import Contracts.Generated.ERC20 as ERC20
 import Eth
 import Eth.Types exposing (..)
 import Http
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain)
+import Types exposing (ChainConfigs, ChainId)
 
 
 getBalanceCmd :
-    Chain
+    String
     -> Address
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getBalanceCmd chain tokenAddress owner msgConstructor =
+getBalanceCmd nodeUrl tokenAddress owner msgConstructor =
     Eth.call
-        (httpProviderUrl chain)
+        nodeUrl
         (ERC20.balanceOf
             tokenAddress
             owner
@@ -28,13 +28,13 @@ getBalanceCmd chain tokenAddress owner msgConstructor =
 
 
 getTotalSupply :
-    Chain
+    String
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getTotalSupply chain tokenAddress msgConstructor =
+getTotalSupply nodeUrl tokenAddress msgConstructor =
     Eth.call
-        (httpProviderUrl chain)
+        nodeUrl
         (ERC20.totalSupply
             tokenAddress
         )
@@ -43,13 +43,13 @@ getTotalSupply chain tokenAddress msgConstructor =
 
 
 getEthBalance :
-    Chain
+    String
     -> Address
     -> (Result Http.Error TokenValue -> msg)
     -> Cmd msg
-getEthBalance chain address msgConstructor =
+getEthBalance nodeUrl address msgConstructor =
     Eth.getBalance
-        (httpProviderUrl chain)
+        nodeUrl
         address
         |> Task.attempt
             (Result.map TokenValue.tokenValue >> msgConstructor)

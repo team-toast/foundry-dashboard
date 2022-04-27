@@ -1,5 +1,7 @@
 module View.Common exposing (..)
 
+import Config exposing (..)
+import Dict exposing (Dict)
 import Element exposing (Attribute, Color, Element, el, row, spacing, text)
 import Element.Background
 import Element.Border
@@ -294,30 +296,19 @@ daiAmountInput dProfile attributes currentInput onChange =
         }
 
 
-viewChain : Types.Chain -> Element msg
-viewChain c =
+viewChain : Types.ChainId -> Types.ChainConfigs -> Dict Int (Element msg) -> Element msg
+viewChain chainId chainConfigs chainImgs =
     let
         txt =
-            case c of
-                Types.XDai ->
-                    "xDai"
-
-                Types.Eth ->
-                    "Ethereum"
-
-                Types.BSC ->
-                    "BSC"
+            chainConfigs
+                |> Dict.get chainId
+                |> Maybe.map .name
+                |> Maybe.withDefault "Unknown"
 
         img =
-            case c of
-                Types.XDai ->
-                    View.Img.xDai 20
-
-                Types.Eth ->
-                    View.Img.eth 20 <| Element.rgb 0.5 0.5 1
-
-                Types.BSC ->
-                    View.Img.bsc 20
+            chainImgs
+                |> Dict.get chainId
+                |> Maybe.withDefault (View.Img.eth 20 (Element.rgb 0.5 0.5 1))
     in
     [ img, text txt ]
         |> row

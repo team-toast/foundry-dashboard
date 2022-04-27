@@ -1,6 +1,7 @@
 module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl)
 
 import Config
+import Dict exposing (Dict)
 import Element exposing (Color)
 import Eth.Decode
 import Eth.Net
@@ -10,85 +11,55 @@ import Helpers.Eth
 import Json.Decode as Decode exposing (Decoder)
 import Result.Extra
 import Theme
-import Types exposing (Chain(..), ChainConfig, Config, Flags)
+import Types exposing (ChainConfig, ChainConfigs, ChainId, Flags)
 
 
-getProviderUrl : Chain -> Config -> String
-getProviderUrl chain =
-    case chain of
-        Eth ->
-            .ethereum >> .providerUrl
-
-        XDai ->
-            .xDai >> .providerUrl
-
-        BSC ->
-            .bsc >> .providerUrl
+getProviderUrl : ChainId -> ChainConfigs -> Maybe String
+getProviderUrl chainId chainConfigs =
+    chainConfigs
+        |> Dict.get chainId
+        |> Maybe.map .nodeUrl
 
 
-getConfig : Chain -> Config -> ChainConfig
-getConfig chain =
-    case chain of
-        Eth ->
-            .ethereum
-
-        XDai ->
-            .xDai
-
-        BSC ->
-            .bsc
+getConfig : ChainId -> ChainConfigs -> Maybe ChainConfig
+getConfig chainId chainConfigs =
+    chainConfigs
+        |> Dict.get chainId
 
 
-txUrl : Chain -> TxHash -> String
-txUrl chain hash =
-    case chain of
-        Eth ->
-            Helpers.Eth.etherscanTxUrl hash
-
-        XDai ->
-            "https://blockscout.com/poa/xdai/tx/"
-                ++ Eth.Utils.txHashToString hash
-
-        BSC ->
-            "https://bscscan.com/tx/"
-                ++ Eth.Utils.txHashToString hash
+txUrl : ChainId -> ChainConfigs -> TxHash -> Maybe String
+txUrl chainId chainConfigs hash =
+    chainConfigs
+        |> Dict.get chainId
+        |> Maybe.map .explorerUrl
+        |> Maybe.map (\i -> i ++ Eth.Utils.txHashToString hash)
 
 
-getColor : Chain -> Color
-getColor chain =
-    case chain of
-        XDai ->
-            Theme.xDai
-
-        Eth ->
-            Theme.ethereum
-
-        BSC ->
-            Theme.bsc
+getColor : ChainId -> Dict ChainId Color -> Color
+getColor chainId chainColors =
+    chainColors
+        |> Dict.get chainId
+        |> Maybe.withDefault Theme.xDai
 
 
-getName : Chain -> String
-getName chain =
-    case chain of
-        Eth ->
-            "Eth"
-
-        XDai ->
-            "xDai"
-
-        BSC ->
-            "BSC"
+getName : ChainId -> ChainConfigs -> Maybe String
+getName chainId chainConfigs =
+    chainConfigs
+        |> Dict.get chainId
+        |> Maybe.map .name
 
 
 chainDecoder : Flags -> Decoder (List Types.ChainConfig)
 chainDecoder flags =
     Decode.map
-        (\chain ->
-            { chain = chain
-            , providerUrl = Config.httpProviderUrl chain
+        (\networkId ->
+            { name = "Ethereum"
+            , networkId = 1
+            , nodeUrl = Config.ethereumProviderUrl
+            , explorerUrl = "https://etherscan.io/"
             }
         )
-        (Decode.field "network" decodeChain
+        (Decode.field "networkId" decodeChain
             |> Decode.andThen
                 (Result.Extra.unpack
                     (always (Decode.fail "bad network"))
@@ -98,30 +69,10 @@ chainDecoder flags =
         |> Decode.list
 
 
-decodeChain : Decoder (Result Types.WalletConnectErr Types.Chain)
+decodeChain : Decoder (Result Types.WalletConnectErr ChainId)
 decodeChain =
     Eth.Net.networkIdDecoder
         |> Decode.map
             (\network ->
-                case network of
-                    Eth.Net.Mainnet ->
-                        Types.Eth
-                            |> Ok
-
-                    Eth.Net.Private 100 ->
-                        Types.XDai
-                            |> Ok
-
-                    Eth.Net.Private 56 ->
-                        Types.BSC
-                            |> Ok
-
-                    -- Hardhat server
-                    Eth.Net.Private 31337 ->
-                        Types.Eth
-                            |> Ok
-
-                    _ ->
-                        Types.NetworkNotSupported
-                            |> Err
+                Ok (Eth.Net.networkIdToInt network)
             )

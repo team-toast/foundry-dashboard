@@ -23,9 +23,9 @@ import ElementHelpers as EH
 import Eth
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, HttpProvider)
 import Eth.Utils
-import GTag 
+import GTag
 import Graphql.Http
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Helpers.Eth as EthHelpers
@@ -54,7 +54,7 @@ emptyModel key now basePath cookieConsent =
             TxSentry.init
                 ( txOut, txIn )
                 Types.TxSentryMsg
-                (Config.httpProviderUrl Eth)
+                (Config.nodeUrl Config.ethChainId Dict.empty)
 
         ( wallet, walletNotices ) =
             ( Types.Connecting
@@ -67,14 +67,7 @@ emptyModel key now basePath cookieConsent =
     , wallet = wallet
     , now = now
     , dProfile = EH.Desktop
-    , sentries =
-        { xDai =
-            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
-        , ethereum =
-            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
-        , bsc =
-            Eth.Sentry.Event.init (always Types.NoOp) "" |> Tuple.first
-        }
+    , sentries = Dict.empty
     , txSentry = txSentry
     , showAddressId = Nothing
     , userNotices = walletNotices
@@ -110,9 +103,10 @@ emptyModel key now basePath cookieConsent =
     , depositAmountInput = ""
     , withdrawalAmountInput = ""
     , polls = Nothing
-    , maybeValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
+    , possiblyValidResponses = Dict.empty -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses = Dict.empty
     , fryBalances = AddressDict.empty
+    , unifiedBalances = AddressDict.empty
     , mouseoverState = Types.None
     , userStakingInfo = Nothing
     , oldUserStakingBalances =
@@ -120,7 +114,7 @@ emptyModel key now basePath cookieConsent =
             |> List.map (\addr -> Tuple.pair addr Nothing)
     , apy = Nothing
     , depositWithdrawUXModel = Nothing
-    , config = emptyConfig
+    , chainConfigs = Dict.empty
     , chainSwitchInProgress = False
     , gtagHistory = GTag.emptyGtagHistory
     , farmingPeriodEnds = 0
@@ -192,48 +186,48 @@ fetchFryPrice =
         |> Graphql.Http.send Types.FetchedFryPrice
 
 
-fetchTeamTokenBalance : Address -> Address -> Int -> Cmd Msg
-fetchTeamTokenBalance tokenAddress owner index =
+fetchTeamTokenBalance : String -> Address -> Address -> Int -> Cmd Msg
+fetchTeamTokenBalance nodeUrl tokenAddress owner index =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         tokenAddress
         owner
         (Types.FetchedTeamTokens index)
 
 
-fetchPermaFrostLockedTokenBalance : Cmd Msg
-fetchPermaFrostLockedTokenBalance =
+fetchPermaFrostLockedTokenBalance : String -> Cmd Msg
+fetchPermaFrostLockedTokenBalance nodeUrl =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         Config.balancerPermafrostPool
         Config.burnAddress
         Types.FetchedPermaFrostBalanceLocked
 
 
-fetchPermaFrostTotalSupply : Cmd Msg
-fetchPermaFrostTotalSupply =
+fetchPermaFrostTotalSupply : String -> Cmd Msg
+fetchPermaFrostTotalSupply nodeUrl =
     ERC20.getTotalSupply
-        Eth
+        nodeUrl
         Config.balancerPermafrostPool
         Types.FetchedPermaFrostTotalSupply
 
 
-fetchBalancerPoolFryBalance : Cmd Msg
-fetchBalancerPoolFryBalance =
+fetchBalancerPoolFryBalance : String -> Cmd Msg
+fetchBalancerPoolFryBalance nodeUrl =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         Config.ethereumFryContractAddress
         Config.balancerPermafrostPool
         Types.FetchedBalancerFryBalance
 
 
-fetchTreasuryBalances : Cmd Msg
-fetchTreasuryBalances =
+fetchTreasuryBalances : String -> Cmd Msg
+fetchTreasuryBalances nodeUrl =
     Config.treasuryAddresses
         |> List.indexedMap
             (\id addr ->
                 ERC20.getBalanceCmd
-                    Eth
+                    nodeUrl
                     Config.ethereumDaiContractAddress
                     addr
                     (Types.FetchedTreasuryBalance id)
@@ -396,10 +390,10 @@ maybeFloatMultiply val1 val2 =
             Nothing
 
 
-fetchTotalValueEnteredCmd : Int -> Cmd Msg
-fetchTotalValueEnteredCmd bucketId =
+fetchTotalValueEnteredCmd : String -> Int -> Cmd Msg
+fetchTotalValueEnteredCmd nodeUrl bucketId =
     getTotalValueEnteredForBucket
-        Eth
+        nodeUrl
         bucketId
         (Just bucketId
             |> Types.BucketValueEnteredFetched
@@ -819,11 +813,15 @@ validateSigResultDecoder =
         )
 
 
-fetchFryBalancesCmd : List Address -> List (Cmd Msg)
-fetchFryBalancesCmd addresses =
-    Contracts.FryBalanceFetch.quickFetch
-        addresses
-        Types.FryBalancesFetched
+fetchFryBalancesCmd : Model -> Cmd Msg
+fetchFryBalancesCmd model =
+    model.possiblyValidResponses
+        |> Dict.filter (\_ ( b, _ ) -> b)
+        |> Dict.toList
+        |> List.map (\( _, ( _, v ) ) -> v.address)
+        |> List.Extra.uniqueBy Eth.Utils.addressToString
+        |> Contracts.FryBalanceFetch.accumulateFetches FryBalancesFetched
+        |> Cmd.batch
 
 
 validateSignedResponsesCmd : List ResponseToValidate -> Cmd Msg
@@ -853,38 +851,33 @@ sendSignedResponseCmd signedResponse =
         }
 
 
-refreshPollVotesCmd : Model -> Maybe Int -> Cmd Msg
-refreshPollVotesCmd model maybePollId =
-    case model.route of
-        Sentiment ->
-            let
-                url =
-                    Url.Builder.custom
-                        (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
-                        [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
-                        (case maybePollId of
-                            Just pollId ->
-                                [ Url.Builder.int "FromPollId" pollId
-                                , Url.Builder.int "Count" 1
-                                ]
+refreshPollVotesCmd : Maybe Int -> Cmd Msg
+refreshPollVotesCmd maybePollId =
+    let
+        url =
+            Url.Builder.custom
+                (Url.Builder.CrossOrigin "https://personal-rxyx.outsystemscloud.com")
+                [ "QuantumObserver", "rest", "VotingResults", "GetPollVotes" ]
+                (case maybePollId of
+                    Just pollId ->
+                        [ Url.Builder.int "FromPollId" pollId
+                        , Url.Builder.int "Count" 1
+                        ]
 
-                            Nothing ->
-                                [ Url.Builder.int "FromPollId" 0
-                                , Url.Builder.int "Count" 0
-                                ]
-                        )
-                        Nothing
-            in
-            Http.get
-                { url = url
-                , expect =
-                    Http.expectJson
-                        Types.SignedResponsesFetched
-                        signedResponsesDictFromServerDecoder
-                }
-
-        _ ->
-            Cmd.none
+                    Nothing ->
+                        [ Url.Builder.int "FromPollId" 0
+                        , Url.Builder.int "Count" 0
+                        ]
+                )
+                Nothing
+    in
+    Http.get
+        { url = url
+        , expect =
+            Http.expectJson
+                Types.SignedResponsesFetched
+                signedResponsesDictFromServerDecoder
+        }
 
 
 signedResponsesDictFromServerDecoder : Decoder.Decoder (Dict Int SignedResponse)
@@ -920,18 +913,18 @@ encodeSignedResponseForServer signedResponse =
         ]
 
 
-fetchEthBalance : Address -> Cmd Msg
-fetchEthBalance address =
+fetchEthBalance : String -> Address -> Cmd Msg
+fetchEthBalance nodeUrl address =
     ERC20.getEthBalance
-        Eth
+        nodeUrl
         address
         Types.UserEthBalanceFetched
 
 
-fetchDerivedEthBalance : Address -> Cmd Msg
-fetchDerivedEthBalance address =
+fetchDerivedEthBalance : String -> Address -> Cmd Msg
+fetchDerivedEthBalance nodeUrl address =
     ERC20.getBalanceCmd
-        Eth
+        nodeUrl
         Config.dethContractAddress
         address
         Types.UserDerivedEthBalanceFetched
@@ -1111,30 +1104,9 @@ addTrackedTx userTx notifiers tracker =
     )
 
 
-emptyConfig : Types.Config
-emptyConfig =
-    { xDai =
-        { chain = Types.XDai
-
-        -- , contract = emptyAddress
-        -- , startScanBlock = 0
-        , providerUrl = ""
-        }
-    , ethereum =
-        { chain = Types.Eth
-
-        -- , contract = emptyAddress
-        -- , startScanBlock = 0
-        , providerUrl = ""
-        }
-    , bsc =
-        { chain = Types.BSC
-
-        -- , contract = emptyAddress
-        -- , startScanBlock = 0
-        , providerUrl = ""
-        }
-    }
+emptyChainConfig : Types.ChainConfigs
+emptyChainConfig =
+    Dict.empty
 
 
 emptyAddress : Address
@@ -1165,14 +1137,14 @@ fetchDethSupplyCmd =
         DethSupplyFetched
 
 
-refreshCmds : Wallet -> Bool -> String -> Maybe Int -> List (Cmd Msg)
-refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucketId =
+refreshCmds : String -> Wallet -> Bool -> String -> Maybe Int -> List (Cmd Msg)
+refreshCmds nodeUrl wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucketId =
     let
         possiblyWalletCmds =
             case wallet |> Wallet.userInfo |> Maybe.map .address of
                 Just userAddress ->
-                    [ fetchDerivedEthBalance userAddress
-                    , fetchEthBalance userAddress
+                    [ fetchDerivedEthBalance nodeUrl userAddress
+                    , fetchEthBalance nodeUrl userAddress
                     , if fetchOldFarmBalances then
                         fetchOldStakingBalances userAddress
 
@@ -1184,18 +1156,18 @@ refreshCmds wallet fetchOldFarmBalances withdrawalAmountInput maybeCurrentBucket
                     []
     in
     possiblyWalletCmds
-        ++ [ Maybe.map fetchTotalValueEnteredCmd maybeCurrentBucketId
+        ++ [ Maybe.map (fetchTotalValueEnteredCmd nodeUrl) maybeCurrentBucketId
                 |> Maybe.withDefault Cmd.none
            , fetchEthPrice
            , fetchDaiPrice
            , fetchFryPrice
-           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress1 0
-           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress2 1
-           , fetchTeamTokenBalance Config.ethereumFryContractAddress Config.teamToastAddress3 2
-           , fetchPermaFrostLockedTokenBalance
-           , fetchPermaFrostTotalSupply
-           , fetchBalancerPoolFryBalance
-           , fetchTreasuryBalances
+           , fetchTeamTokenBalance nodeUrl Config.ethereumFryContractAddress Config.teamToastAddress1 0
+           , fetchTeamTokenBalance nodeUrl Config.ethereumFryContractAddress Config.teamToastAddress2 1
+           , fetchTeamTokenBalance nodeUrl Config.ethereumFryContractAddress Config.teamToastAddress3 2
+           , fetchPermaFrostLockedTokenBalance nodeUrl
+           , fetchPermaFrostTotalSupply nodeUrl
+           , fetchBalancerPoolFryBalance nodeUrl
+           , fetchTreasuryBalances nodeUrl
            , fetchFarmEndTime
            , fetchApyCmd
            , fetchDethProfitCmd

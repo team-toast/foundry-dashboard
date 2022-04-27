@@ -2,6 +2,7 @@ module View.Sentiment exposing (view)
 
 import AddressDict exposing (AddressDict)
 import Chain
+import Contracts.FryBalanceFetch exposing (..)
 import Dict exposing (Dict)
 import Element exposing (Element)
 import Element.Background
@@ -23,7 +24,7 @@ import Phace
 import Result.Extra
 import Theme
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), Model, MouseoverState, Msg, Poll, PollOption, UserInfo, ValidatedResponse, ValidatedResponseTracker, VoteBarBlock)
+import Types exposing (ChainId, Model, MouseoverState, Msg, Poll, PollOption, UserInfo, ValidatedResponse, ValidatedResponseTracker, VoteBarBlock)
 import View.Common exposing (..)
 import View.Farm exposing (commonImageAttributes)
 import Wallet
@@ -61,21 +62,15 @@ view model =
                             50
                             15
                     ]
-                    (case chain of
-                        Eth ->
-                            [ titleText dProfile "Foundry Polls"
-                            , viewPolls
-                                dProfile
-                                (userInfo model.wallet)
-                                polls
-                                model.validatedResponses
-                                model.fryBalances
-                                model.mouseoverState
-                            ]
-
-                        _ ->
-                            [ titleText dProfile "Foundry Polls only available on mainnet" ]
-                    )
+                    [ titleText dProfile "Foundry Polls"
+                    , viewPolls
+                        dProfile
+                        (userInfo model.wallet)
+                        polls
+                        model.validatedResponses
+                        (model.fryBalances |> unifyFryBalances)
+                        model.mouseoverState
+                    ]
 
 
 titleText : DisplayProfile -> String -> Element Msg

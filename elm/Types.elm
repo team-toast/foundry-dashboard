@@ -12,8 +12,8 @@ import Eth
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
-import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt, Event)
-import GTag
+import Eth.Types exposing (Address, Event, Hex, HttpProvider, Tx, TxHash, TxReceipt)
+import GTag exposing (..)
 import Graphql.Http
 import Http
 import Json.Decode exposing (Value)
@@ -32,12 +32,12 @@ type alias Flags =
     , nowInMillis : Int
     , cookieConsent : Bool
     , chains : Value
-
-    -- , ethProviderUrl : String
-    -- , xDaiProviderUrl : String
-    -- , bscProviderUrl : String
     , hasWallet : Bool
     }
+
+
+type alias TokenBalanceDict =
+    AddressDict (AddressDict (Maybe TokenValue))
 
 
 type alias Model =
@@ -47,11 +47,7 @@ type alias Model =
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
-    , sentries :
-        { xDai : EventSentry Msg
-        , ethereum : EventSentry Msg
-        , bsc : EventSentry Msg
-        }
+    , sentries : Dict ChainId (EventSentry Msg)
     , txSentry : TxSentry Msg
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -84,17 +80,18 @@ type alias Model =
     , depositAmountInput : String
     , withdrawalAmountInput : String
     , polls : Maybe (List Poll)
-    , maybeValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
+    , possiblyValidResponses : Dict Int ( Bool, SignedResponse ) -- bool represents whether the validation test has been ATTEMPTED, not whether it PASSED
     , validatedResponses : ValidatedResponseTracker
-    , fryBalances : AddressDict (Maybe TokenValue)
+    , fryBalances : TokenBalanceDict
+    , unifiedBalances : AddressDict (Maybe TokenValue)
     , mouseoverState : MouseoverState
     , userStakingInfo : Maybe UserStakingInfo
     , oldUserStakingBalances : List ( Address, Maybe TokenValue )
     , apy : Maybe Float
     , depositWithdrawUXModel : DepositOrWithdrawUXModel
-    , config : Config
+    , chainConfigs : ChainConfigs
     , chainSwitchInProgress : Bool
-    , gtagHistory : GTag.GTagHistory
+    , gtagHistory : GTagHistory
     , farmingPeriodEnds : Int
     , initiatedOldFarmExit : Bool
     , dethGlobalSupply : Maybe TokenValue
@@ -111,7 +108,7 @@ type Msg
     | Resize Int Int
     | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
-    | EventSentryMsg Chain EventSentry.Msg
+    | EventSentryMsg ChainId EventSentry.Msg
     | DismissNotice Int
     | ClickHappened
     | ShowExpandedTrackedTxs Bool
@@ -151,7 +148,8 @@ type Msg
     | Web3ValidateSigResultValue Json.Decode.Value
     | ResponseSent Int (Result Http.Error ())
     | SignedResponsesFetched (Result Http.Error (Dict Int SignedResponse))
-    | FryBalancesFetched (Result Http.Error (AddressDict TokenValue))
+    | FetchFryBalances
+    | FryBalancesFetched (Result Http.Error ( HttpProvider, Address, AddressDict TokenValue ))
     | SetMouseoverState MouseoverState
     | UpdateNow Time.Posix
     | AmountInputChanged String
@@ -178,7 +176,10 @@ type Msg
     | DethProfitFetched (Result Http.Error TokenValue)
     | DethTVLFetched (Result Http.Error TokenValue)
     | DethSupplyFetched (Result Http.Error TokenValue)
-    -- | IssuedEventReceived (Event (Result Json.Decode.Error DethIssuedEventData))
+
+
+
+-- | IssuedEventReceived (Event (Result Json.Decode.Error DethIssuedEventData))
 
 
 type DethMode
@@ -198,7 +199,7 @@ type alias PriceValue =
 type alias UserInfo =
     { address : Address
     , balance : TokenValue
-    , chain : Chain
+    , chainId : ChainId
     , xDaiStatus : XDaiStatus
     }
 
@@ -367,26 +368,20 @@ type InputValidationError
     | InputInvalid
 
 
-type Chain
-    = XDai
-    | Eth
-    | BSC
-
-
 type alias ChainConfig =
-    { chain : Chain
-
-    -- , contract : Address
-    -- , startScanBlock : Int
-    , providerUrl : String
+    { networkId : ChainId
+    , name : String
+    , nodeUrl : String
+    , explorerUrl : String
     }
 
 
-type alias Config =
-    { xDai : ChainConfig
-    , ethereum : ChainConfig
-    , bsc : ChainConfig
-    }
+type alias ChainId =
+    Int
+
+
+type alias ChainConfigs =
+    Dict ChainId ChainConfig
 
 
 type WalletConnectErr

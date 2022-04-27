@@ -16,7 +16,7 @@ import Misc exposing (calcEffectivePricePerToken, calcPermaFrostedTokens, calcPe
 import Theme
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..), Model, Msg)
+import Types exposing (ChainConfigs, ChainId, Model, Msg)
 import View.Common exposing (..)
 import Wallet
 
@@ -24,7 +24,7 @@ import Wallet
 view : Model -> Element Msg
 view model =
     let
-        chain =
+        chainId =
             model.wallet
                 |> Wallet.getChainDefaultEth
     in
@@ -45,7 +45,7 @@ view model =
             , centerX
             ]
             [ statsEl model
-            , viewAddresses chain model.dProfile
+            , viewAddresses chainId model.chainConfigs model.dProfile
             ]
         ]
 
@@ -83,29 +83,28 @@ weeksRemainingEl now =
 
 
 viewAddresses :
-    Chain
+    ChainId
+    -> ChainConfigs
     -> DisplayProfile
     -> Element Msg
-viewAddresses chain dProfile =
+viewAddresses chainId chainConfigs dProfile =
     [ text "Foundry Addresses"
         |> el
             [ Element.Font.size 30
             , Element.Font.color EH.white
             ]
-    , viewAddressAndLabel dProfile chain "FRY token" Config.ethereumFryContractAddress
-    , case chain of
-        Eth ->
-            viewAddressAndLabel dProfile chain "Treasury" Config.mainTreasuryAddress
+    , viewAddressAndLabel dProfile chainId chainConfigs "FRY token" Config.ethereumFryContractAddress
+    , if chainId == 1 then
+        viewAddressAndLabel dProfile chainId chainConfigs "Treasury" Config.mainTreasuryAddress
 
-        _ ->
-            Element.none
-    , case chain of
-        Eth ->
-            viewAddressAndLabel dProfile chain "Bucket sale" Config.bucketSaleAddress
+      else
+        Element.none
+    , if chainId == 1 then
+        viewAddressAndLabel dProfile chainId chainConfigs "Bucket sale" Config.bucketSaleAddress
 
-        _ ->
-            Element.none
-    , viewAddressAndLabel dProfile chain "Multisig" Config.teamToastMultiSigAddress
+      else
+        Element.none
+    , viewAddressAndLabel dProfile chainId chainConfigs "Multisig" Config.teamToastMultiSigAddress
     ]
         |> column
             ([ width fill
@@ -120,11 +119,12 @@ viewAddresses chain dProfile =
 
 viewAddressAndLabel :
     DisplayProfile
-    -> Chain
+    -> ChainId
+    -> ChainConfigs
     -> String
     -> Address
     -> Element Msg
-viewAddressAndLabel dProfile chain label address =
+viewAddressAndLabel dProfile chainId chainConfigs label address =
     [ label
         ++ ": "
         |> text
@@ -137,10 +137,9 @@ viewAddressAndLabel dProfile chain label address =
                     20
             ]
     , { url =
-            Config.blockExplorerUrl chain
-                ++ (address
-                        |> Eth.Utils.addressToString
-                   )
+            Config.blockExplorerUrl chainId chainConfigs
+                |> Maybe.map ((++) (Eth.Utils.addressToString address))
+                |> Maybe.withDefault ""
       , label =
             text
                 (address
@@ -302,10 +301,11 @@ statsEl model =
                     "TVL"
                     dethTVLString
                     False
-                -- , statsRowItem dProfile
-                --     "Num"
-                --     (String.fromInt dethNumUniqueMints)
-                --     False
+
+                 -- , statsRowItem dProfile
+                 --     "Num"
+                 --     (String.fromInt dethNumUniqueMints)
+                 --     False
                  ]
                     |> statsRow
                 )

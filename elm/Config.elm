@@ -1,12 +1,23 @@
 module Config exposing (..)
 
-import BigInt exposing (BigInt)
+import BigInt exposing (..)
+import Dict exposing (..)
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Chain(..))
+import Types exposing (ChainConfigs, ChainId)
+
+
+ethChainId : ChainId
+ethChainId =
+    1
+
+
+bscChainId : ChainId
+bscChainId =
+    56
 
 
 testMode =
@@ -20,38 +31,44 @@ displayProfileBreakpoint =
 
 ethereumProviderUrl : String
 ethereumProviderUrl =
-    "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+    "https://23eb406fad764a70987ba5e619459917.eth.rpc.rivet.cloud/"
 
-arbitrumProviderUls : String
-arbitrumProviderUls =
+
+
+-- "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+
+
+arbitrumProviderUrl : String
+arbitrumProviderUrl =
     "https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
-httpProviderUrl : Chain -> String
-httpProviderUrl chain =
-    mainnetHttpProviderUrl chain
+polygonProviderUrl : String
+polygonProviderUrl =
+    "https://polygon-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
-mainnetHttpProviderUrl : Chain -> String
-mainnetHttpProviderUrl chain =
-    case chain of
-        Eth ->
-            if testMode then
-                testModeHttpProviderUrl
+nodeUrl : ChainId -> ChainConfigs -> String
+nodeUrl chainId chainConfigs =
+    if testMode then
+        testModeHttpProviderUrl
 
-            else
+    else
+        case chainConfigs |> Dict.toList of
+            [] ->
                 ethereumProviderUrl
 
-        BSC ->
-            "https://bsc-dataseed1.binance.org/"
-
-        XDai ->
-            "https://xdai-archive.blockscout.com"
+            _ ->
+                chainConfigs
+                    |> Dict.get chainId
+                    |> Maybe.map
+                        .nodeUrl
+                    |> Maybe.withDefault ethereumProviderUrl
 
 
 testModeHttpProviderUrl : String
 testModeHttpProviderUrl =
-    "http://localhost:8545"
+    "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
 ethereumDaiContractAddress : Address
@@ -59,30 +76,35 @@ ethereumDaiContractAddress =
     Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
 
-daiContractAddress : Chain -> Maybe Address
-daiContractAddress chain =
-    case chain of
-        Eth ->
-            if testMode then
-                Just <| Eth.Utils.unsafeToAddress "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
+daiContractAddress : ChainId -> Maybe Address
+daiContractAddress chainId =
+    if chainId == ethChainId then
+        if testMode then
+            Just <| Eth.Utils.unsafeToAddress "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
 
-            else
-                Just ethereumDaiContractAddress
+        else
+            Just ethereumDaiContractAddress
 
-        BSC ->
-            Just <| Eth.Utils.unsafeToAddress "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3"
+    else if chainId == bscChainId then
+        Just <| Eth.Utils.unsafeToAddress "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3"
 
-        XDai ->
-            Nothing
+    else
+        Nothing
 
 
 ethErc20BalanceFetchBatchContractAddress : Address
 ethErc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
 
-arbiErc20BalanceFetchBatchContractAddress : Address
-arbiErc20BalanceFetchBatchContractAddress =
+
+arbErc20BalanceFetchBatchContractAddress : Address
+arbErc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0x6b88B564EfC6fcE6515E73B0b1DAb5c4f10a1054"
+
+
+polyErc20BalanceFetchBatchContractAddress : Address
+polyErc20BalanceFetchBatchContractAddress =
+    Eth.Utils.unsafeToAddress "0xe698841cd03a580e28611281739392a27b42b848"
 
 
 ethereumFryContractAddress : Address
@@ -92,38 +114,34 @@ ethereumFryContractAddress =
 
 arbitrumOneFryContractAddress : Address
 arbitrumOneFryContractAddress =
-    Eth.Utils.unsafeToAddress "0x633a3d2091dc7982597a0f635d23ba5eb1223f48"
+    Eth.Utils.unsafeToAddress "0x633A3d2091dc7982597A0f635d23Ba5EB1223f48"
 
 
 arbitrumOneGFryContractAddress : Address
 arbitrumOneGFryContractAddress =
-    Eth.Utils.unsafeToAddress "0x365db53eeb009b447b0e5a95e2523596e074d2fe"
+    Eth.Utils.unsafeToAddress "0x365Db53EEB009b447b0E5A95e2523596E074d2FE"
 
 
-fryContractAddressForChain : Chain -> Maybe Address
-fryContractAddressForChain chain =
-    case chain of
-        Eth ->
-            Just ethereumFryContractAddress
-
-        BSC ->
-            Just <| Eth.Utils.unsafeToAddress "0xc04e039ae8587e71f8024b36d630f841cc2106cc"
-
-        XDai ->
-            Nothing
+polyFryContractAddress : Address
+polyFryContractAddress =
+    Eth.Utils.unsafeToAddress "0xc9BAA8cfdDe8E328787E29b4B078abf2DaDc2055"
 
 
-blockExplorerUrl : Chain -> String
-blockExplorerUrl chain =
-    case chain of
-        Eth ->
-            "https://etherscan.io/address/"
+polyFryPosContractAddress : Address
+polyFryPosContractAddress =
+    Eth.Utils.unsafeToAddress "0x48d3a72230e65380f63a05ee41a7be31773c44b4"
 
-        BSC ->
-            "https://bscscan.com/address/"
 
-        XDai ->
-            "https://blockscout.com/xdai/mainnet/"
+polyGFryContractAddress : Address
+polyGFryContractAddress =
+    Eth.Utils.unsafeToAddress "0xC86c63E5681254Dd8DF64e69fB29eAD5a23dA461"
+
+
+blockExplorerUrl : ChainId -> ChainConfigs -> Maybe String
+blockExplorerUrl chainId chainConfigs =
+    chainConfigs
+        |> Dict.get chainId
+        |> Maybe.map .explorerUrl
 
 
 teamToastMultiSigAddress : Address

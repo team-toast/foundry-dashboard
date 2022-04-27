@@ -1,6 +1,7 @@
-module Wallet exposing (balanceDecoder, chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder, getChainDefaultEth)
+module Wallet exposing (balanceDecoder, chainSwitchDecoder, getChainDefaultEth, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder)
 
 import Chain
+import Config exposing (ethChainId)
 import Eth.Decode
 import Eth.Types exposing (TxHash)
 import Json.Decode as Decode exposing (Value)
@@ -78,10 +79,10 @@ walletInfoDecoder =
                         (\addr bal ->
                             networkRes
                                 |> Result.map
-                                    (\chain ->
+                                    (\chainId ->
                                         { address = addr
                                         , balance = bal
-                                        , chain = chain
+                                        , chainId = chainId
                                         , xDaiStatus = Types.XDaiStandby
                                         }
                                     )
@@ -135,8 +136,8 @@ isActive walletState =
             False
 
 
-getChainDefaultEth : Wallet -> Types.Chain
+getChainDefaultEth : Wallet -> Types.ChainId
 getChainDefaultEth =
     userInfo
-        >> Maybe.map .chain
-        >> Maybe.withDefault Types.Eth
+        >> Maybe.map .chainId
+        >> Maybe.withDefault ethChainId
