@@ -4,6 +4,7 @@ import AddressDict exposing (..)
 import BigInt exposing (BigInt)
 import Config
 import Contracts.Generated.ERC20BalanceFetchBatch as BulkBalanceFetch
+import Dict
 import Eth
 import Eth.Net exposing (NetworkId(..))
 import Eth.Types exposing (..)
@@ -12,7 +13,7 @@ import Http
 import List.Extra exposing (..)
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (TokenBalanceDict)
+import Types exposing (ChainConfigs, TokenBalanceDict)
 
 
 fetch :
@@ -51,42 +52,42 @@ accumulateFetches :
     -> List Address
     -> List (Cmd msg)
 accumulateFetches msgConstructor addresses =
-    [ addresses
-        |> fetch
-            msgConstructor
-            Config.ethereumProviderUrl
-            Config.ethErc20BalanceFetchBatchContractAddress
-            Config.ethereumFryContractAddress
-    , addresses
-        |> fetch
-            msgConstructor
-            Config.arbitrumProviderUrl
-            Config.arbErc20BalanceFetchBatchContractAddress
-            Config.arbitrumOneFryContractAddress
-    , addresses
-        |> fetch
-            msgConstructor
-            Config.arbitrumProviderUrl
-            Config.arbErc20BalanceFetchBatchContractAddress
-            Config.arbitrumOneGFryContractAddress
-    , addresses
-        |> fetch
-            msgConstructor
-            Config.polygonProviderUrl
-            Config.polyErc20BalanceFetchBatchContractAddress
-            Config.polyFryContractAddress
-    , addresses
-        |> fetch
-            msgConstructor
-            Config.polygonProviderUrl
-            Config.polyErc20BalanceFetchBatchContractAddress
-            Config.polyGFryContractAddress
-    , addresses
-        |> fetch
-            msgConstructor
-            Config.polygonProviderUrl
-            Config.polyErc20BalanceFetchBatchContractAddress
-            Config.polyFryContractAddress
+    [ fetch
+        msgConstructor
+        Config.ethereumProviderUrl
+        Config.ethErc20BalanceFetchBatchContractAddress
+        Config.ethereumFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.arbitrumProviderUrl
+        Config.arbErc20BalanceFetchBatchContractAddress
+        Config.arbitrumOneFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.arbitrumProviderUrl
+        Config.arbErc20BalanceFetchBatchContractAddress
+        Config.arbitrumOneGFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.polygonProviderUrl
+        Config.polyErc20BalanceFetchBatchContractAddress
+        Config.polyFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.polygonProviderUrl
+        Config.polyErc20BalanceFetchBatchContractAddress
+        Config.polyGFryContractAddress
+        addresses
+    , fetch
+        msgConstructor
+        Config.polygonProviderUrl
+        Config.polyErc20BalanceFetchBatchContractAddress
+        Config.polyFryContractAddress
+        addresses
     ]
 
 

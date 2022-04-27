@@ -369,7 +369,7 @@ type InputValidationError
 
 
 type alias ChainConfig =
-    { chainId : ChainId
+    { networkId : ChainId
     , name : String
     , nodeUrl : String
     , explorerUrl : String

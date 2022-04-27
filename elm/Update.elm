@@ -934,7 +934,16 @@ update msg model =
                     ( model
                     , Cmd.batch
                         [ refreshPollVotesCmd Nothing
-                        , fetchFryBalancesCmd (model.fryBalances |> AddressDict.keys)
+                        , model.possiblyValidResponses
+                            |> Dict.filter (\_ ( b, _ ) -> b)
+                            |> Dict.toList
+                            |> List.map (\( _, ( _, v ) ) -> v.address)
+                            |> List.Extra.uniqueBy addressToString
+                            |> accumulateFetches FryBalancesFetched
+                            |> Cmd.batch
+
+                        -- fetchFryBalancesCmd
+                        -- (model.fryBalances |> AddressDict.keys)
                         ]
                     )
                 )

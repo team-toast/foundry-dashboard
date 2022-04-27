@@ -813,14 +813,15 @@ validateSigResultDecoder =
         )
 
 
-fetchFryBalancesCmd : List Address -> Cmd Msg
-fetchFryBalancesCmd addresses =
-    Contracts.FryBalanceFetch.fetch
-        Types.FryBalancesFetched
-        Config.ethereumProviderUrl
-        Config.ethErc20BalanceFetchBatchContractAddress
-        Config.ethereumFryContractAddress
-        addresses
+fetchFryBalancesCmd : Model -> Cmd Msg
+fetchFryBalancesCmd model =
+    model.possiblyValidResponses
+        |> Dict.filter (\_ ( b, _ ) -> b)
+        |> Dict.toList
+        |> List.map (\( _, ( _, v ) ) -> v.address)
+        |> List.Extra.uniqueBy Eth.Utils.addressToString
+        |> Contracts.FryBalanceFetch.accumulateFetches FryBalancesFetched
+        |> Cmd.batch
 
 
 validateSignedResponsesCmd : List ResponseToValidate -> Cmd Msg

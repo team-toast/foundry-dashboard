@@ -5921,7 +5921,6 @@ var $elm$core$Basics$always = F2(
 	function (a, _v0) {
 		return a;
 	});
-var $author$project$Types$NetworkNotSupported = {$: 'NetworkNotSupported'};
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $cmditch$elm_ethereum$Eth$Net$ETCMain = {$: 'ETCMain'};
 var $cmditch$elm_ethereum$Eth$Net$ETCTest = {$: 'ETCTest'};
@@ -6012,15 +6011,36 @@ var $cmditch$elm_ethereum$Eth$Net$stringyIdDecoder = $cmditch$elm_ethereum$Eth$D
 var $cmditch$elm_ethereum$Eth$Net$networkIdDecoder = $elm$json$Json$Decode$oneOf(
 	_List_fromArray(
 		[$cmditch$elm_ethereum$Eth$Net$stringyIdDecoder, $cmditch$elm_ethereum$Eth$Net$intyIdDecoder]));
+var $cmditch$elm_ethereum$Eth$Net$networkIdToInt = function (networkId) {
+	switch (networkId.$) {
+		case 'Mainnet':
+			return 1;
+		case 'Expanse':
+			return 2;
+		case 'Ropsten':
+			return 3;
+		case 'Rinkeby':
+			return 4;
+		case 'RskMain':
+			return 30;
+		case 'RskTest':
+			return 31;
+		case 'Kovan':
+			return 42;
+		case 'ETCMain':
+			return 41;
+		case 'ETCTest':
+			return 62;
+		default:
+			var id = networkId.a;
+			return id;
+	}
+};
 var $author$project$Chain$decodeChain = A2(
 	$elm$json$Json$Decode$map,
 	function (network) {
-		if (network.$ === 'Private') {
-			var i = network.a;
-			return $elm$core$Result$Ok(i);
-		} else {
-			return $elm$core$Result$Err($author$project$Types$NetworkNotSupported);
-		}
+		return $elm$core$Result$Ok(
+			$cmditch$elm_ethereum$Eth$Net$networkIdToInt(network));
 	},
 	$cmditch$elm_ethereum$Eth$Net$networkIdDecoder);
 var $elm$json$Json$Decode$list = _Json_decodeList;
@@ -6038,8 +6058,8 @@ var $author$project$Chain$chainDecoder = function (flags) {
 	return $elm$json$Json$Decode$list(
 		A2(
 			$elm$json$Json$Decode$map,
-			function (chainId) {
-				return {chainId: chainId, explorerUrl: '', name: '', nodeUrl: ''};
+			function (networkId) {
+				return {explorerUrl: 'https://etherscan.io/', name: 'Ethereum', networkId: 1, nodeUrl: 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702'};
 			},
 			A2(
 				$elm$json$Json$Decode$andThen,
@@ -6048,7 +6068,7 @@ var $author$project$Chain$chainDecoder = function (flags) {
 					$elm$core$Basics$always(
 						$elm$json$Json$Decode$fail('bad network')),
 					$elm$json$Json$Decode$succeed),
-				A2($elm$json$Json$Decode$field, 'chainId', $author$project$Chain$decodeChain))));
+				A2($elm$json$Json$Decode$field, 'networkId', $author$project$Chain$decodeChain))));
 };
 var $elm$json$Json$Decode$decodeValue = _Json_run;
 var $author$project$Config$displayProfileBreakpoint = 1150;
@@ -6282,6 +6302,19 @@ var $author$project$Misc$emptyModel = F4(
 			withdrawalAmountInput: ''
 		};
 	});
+var $elm$core$Debug$log = _Debug_log;
+var $author$project$App$errorPassthrough = function (r) {
+	if (r.$ === 'Err') {
+		var err = r.a;
+		return A3(
+			$elm$core$Debug$log,
+			$elm$json$Json$Decode$errorToString(err),
+			$elm$core$Result$Err,
+			err);
+	} else {
+		return r;
+	}
+};
 var $author$project$Types$PollsFetched = function (a) {
 	return {$: 'PollsFetched', a: a};
 };
@@ -11867,7 +11900,7 @@ var $author$project$App$startSentry = function (config) {
 	var dethMintEventFilter = $author$project$Contracts$DEthWrapper$squanderEventFilter;
 	var _v0 = A2(
 		$cmditch$elm_ethereum$Eth$Sentry$Event$init,
-		$author$project$Types$EventSentryMsg(config.chainId),
+		$author$project$Types$EventSentryMsg(config.networkId),
 		config.nodeUrl);
 	var initEventSentry = _v0.a;
 	var initEventSentryCmd = _v0.b;
@@ -12221,7 +12254,7 @@ var $author$project$App$init = F3(
 						A2(
 							$elm$core$List$map,
 							function (i) {
-								return _Utils_Tuple2(i.chainId, i);
+								return _Utils_Tuple2(i.networkId, i);
 							},
 							chainConfigs)));
 				var _v0 = $elm$core$List$unzip(
@@ -12274,15 +12307,15 @@ var $author$project$App$init = F3(
 								]))));
 			},
 			$elm$core$Result$toMaybe(
-				A2(
-					$elm$json$Json$Decode$decodeValue,
-					$author$project$Chain$chainDecoder(flags),
-					flags.chains)));
+				$author$project$App$errorPassthrough(
+					A2(
+						$elm$json$Json$Decode$decodeValue,
+						$author$project$Chain$chainDecoder(flags),
+						flags.chains))));
 	});
 var $author$project$Types$ChainSwitchResponse = function (a) {
 	return {$: 'ChainSwitchResponse', a: a};
 };
-var $author$project$Types$FetchFryBalances = {$: 'FetchFryBalances'};
 var $author$project$Types$RefetchStakingInfoOrApy = {$: 'RefetchStakingInfoOrApy'};
 var $author$project$Types$RefreshAll = {$: 'RefreshAll'};
 var $author$project$Types$Resize = F2(
@@ -13856,20 +13889,16 @@ var $author$project$App$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
-				A2($elm$time$Time$every, 1000 * 0.5, $author$project$Types$UpdateNow),
-				A2(
-				$elm$time$Time$every,
-				1000 * 5,
-				$elm$core$Basics$always($author$project$Types$RefreshAll)),
-				A2(
-				$elm$time$Time$every,
-				1000 * 15,
-				$elm$core$Basics$always($author$project$Types$RefetchStakingInfoOrApy)),
-				A2($elm$time$Time$every, 1000 * 15, $author$project$Types$Tick),
+				A2($elm$time$Time$every, 1000 * 1, $author$project$Types$UpdateNow),
 				A2(
 				$elm$time$Time$every,
 				1000 * 10,
-				$elm$core$Basics$always($author$project$Types$FetchFryBalances)),
+				$elm$core$Basics$always($author$project$Types$RefreshAll)),
+				A2(
+				$elm$time$Time$every,
+				1000 * 150,
+				$elm$core$Basics$always($author$project$Types$RefetchStakingInfoOrApy)),
+				A2($elm$time$Time$every, 1000 * 15, $author$project$Types$Tick),
 				$author$project$Ports$web3SignResult($author$project$Types$Web3SignResultValue),
 				$author$project$Ports$web3ValidateSigResult($author$project$Types$Web3ValidateSigResultValue),
 				$author$project$Ports$walletResponse(
@@ -14437,9 +14466,6 @@ var $author$project$Contracts$Generated$StakingRewards$exit = function (contract
 		value: $elm$core$Maybe$Nothing
 	};
 };
-var $author$project$Misc$fetchFryBalancesCmd = function (addresses) {
-	return A5($author$project$Contracts$FryBalanceFetch$fetch, $author$project$Types$FryBalancesFetched, $author$project$Config$ethereumProviderUrl, $author$project$Config$ethErc20BalanceFetchBatchContractAddress, $author$project$Config$ethereumFryContractAddress, addresses);
-};
 var $author$project$Types$DerivedEthIssuanceDetailFetched = function (a) {
 	return {$: 'DerivedEthIssuanceDetailFetched', a: a};
 };
@@ -14744,14 +14770,6 @@ var $author$project$Misc$insertValidatedResponse = F2(
 			},
 			validatedResponseTracker);
 	});
-var $author$project$AddressDict$deterministicStringToAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress;
-var $author$project$AddressDict$keys = function (addressDict_) {
-	var addressDict = addressDict_.a;
-	return A2(
-		$elm$core$List$map,
-		$author$project$AddressDict$deterministicStringToAddress,
-		$elm$core$Dict$keys(addressDict));
-};
 var $elm$browser$Browser$Navigation$load = _Browser_load;
 var $author$project$Ports$log = _Platform_outgoingPort('log', $elm$json$Json$Encode$string);
 var $author$project$Misc$encodeSignableResponse = F2(
@@ -15300,6 +15318,7 @@ var $author$project$TokenValue$add = F2(
 				$author$project$TokenValue$getEvmValue(t1),
 				$author$project$TokenValue$getEvmValue(t2)));
 	});
+var $author$project$AddressDict$deterministicStringToAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress;
 var $author$project$AddressDict$translate = F2(
 	function (fn, address) {
 		return fn(
@@ -17488,8 +17507,29 @@ var $author$project$Update$update = F2(
 								_List_fromArray(
 									[
 										$author$project$Misc$refreshPollVotesCmd($elm$core$Maybe$Nothing),
-										$author$project$Misc$fetchFryBalancesCmd(
-										$author$project$AddressDict$keys(model.fryBalances))
+										$elm$core$Platform$Cmd$batch(
+										A2(
+											$author$project$Contracts$FryBalanceFetch$accumulateFetches,
+											$author$project$Types$FryBalancesFetched,
+											A2(
+												$elm_community$list_extra$List$Extra$uniqueBy,
+												$cmditch$elm_ethereum$Eth$Utils$addressToString,
+												A2(
+													$elm$core$List$map,
+													function (_v37) {
+														var _v38 = _v37.b;
+														var v = _v38.b;
+														return v.address;
+													},
+													$elm$core$Dict$toList(
+														A2(
+															$elm$core$Dict$filter,
+															F2(
+																function (_v35, _v36) {
+																	var b = _v36.a;
+																	return b;
+																}),
+															model.possiblyValidResponses))))))
 									])));
 					});
 			case 'PollsFetched':
@@ -17542,10 +17582,10 @@ var $author$project$Update$update = F2(
 				var jsonVal = msg.a;
 				var decodedSignResult = A2($elm$json$Json$Decode$decodeValue, $author$project$Misc$validateSigResultDecoder, jsonVal);
 				if (decodedSignResult.$ === 'Ok') {
-					var _v39 = decodedSignResult.a;
-					var responseId = _v39.a;
-					var validateResult = _v39.b;
-					var _v40 = function () {
+					var _v43 = decodedSignResult.a;
+					var responseId = _v43.a;
+					var validateResult = _v43.b;
+					var _v44 = function () {
 						if (validateResult.$ === 'Valid') {
 							var maybeSignedResponse = A2(
 								$elm$core$Maybe$map,
@@ -17571,9 +17611,9 @@ var $author$project$Update$update = F2(
 							return _Utils_Tuple3(model.validatedResponses, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
 						}
 					}();
-					var newValidatedResponses = _v40.a;
-					var maybeRespondingAddress = _v40.b;
-					var maybeUserNotice = _v40.c;
+					var newValidatedResponses = _v44.a;
+					var maybeRespondingAddress = _v44.b;
+					var maybeUserNotice = _v44.c;
 					var newBalancesDict = function () {
 						if (maybeRespondingAddress.$ === 'Nothing') {
 							return model.fryBalances;
@@ -17630,17 +17670,17 @@ var $author$project$Update$update = F2(
 								$cmditch$elm_ethereum$Eth$Utils$addressToString,
 								A2(
 									$elm$core$List$map,
-									function (_v47) {
-										var _v48 = _v47.b;
-										var v = _v48.b;
+									function (_v51) {
+										var _v52 = _v51.b;
+										var v = _v52.b;
 										return v.address;
 									},
 									$elm$core$Dict$toList(
 										A2(
 											$elm$core$Dict$filter,
 											F2(
-												function (_v45, _v46) {
-													var b = _v46.a;
+												function (_v49, _v50) {
+													var b = _v50.a;
 													return b;
 												}),
 											model.possiblyValidResponses)))))));
@@ -17666,8 +17706,8 @@ var $author$project$Update$update = F2(
 				var responsesFetchedResult = msg.a;
 				if (responsesFetchedResult.$ === 'Ok') {
 					var decodedLoggedSignedResponses = responsesFetchedResult.a;
-					var _v51 = model.polls;
-					if (_v51.$ === 'Nothing') {
+					var _v55 = model.polls;
+					if (_v55.$ === 'Nothing') {
 						return _Utils_Tuple2(
 							A3(
 								$elm$core$Basics$apR,
@@ -17676,14 +17716,14 @@ var $author$project$Update$update = F2(
 								model),
 							$elm$core$Platform$Cmd$none);
 					} else {
-						var polls = _v51.a;
+						var polls = _v55.a;
 						var newPossiblyValidResponses = A2(
 							$elm$core$Dict$union,
 							model.possiblyValidResponses,
 							A2(
 								$elm$core$Dict$map,
 								F2(
-									function (_v54, signedResponse) {
+									function (_v58, signedResponse) {
 										return _Utils_Tuple2(false, signedResponse);
 									}),
 								decodedLoggedSignedResponses));
@@ -17695,9 +17735,9 @@ var $author$project$Update$update = F2(
 									A2(
 										$elm_community$dict_extra$Dict$Extra$filterMap,
 										F2(
-											function (_v52, _v53) {
-												var isValidated = _v53.a;
-												var signedResponse = _v53.b;
+											function (_v56, _v57) {
+												var isValidated = _v57.a;
+												var signedResponse = _v57.b;
 												return (!isValidated) ? $elm$core$Maybe$Just(signedResponse) : $elm$core$Maybe$Nothing;
 											}),
 										newPossiblyValidResponses))));
@@ -17778,11 +17818,11 @@ var $author$project$Update$update = F2(
 					$elm$core$Platform$Cmd$batch(
 						_Utils_ap(
 							function () {
-								var _v56 = $author$project$Misc$userInfo(model.wallet);
-								if (_v56.$ === 'Nothing') {
+								var _v60 = $author$project$Misc$userInfo(model.wallet);
+								if (_v60.$ === 'Nothing') {
 									return _List_Nil;
 								} else {
-									var uInfo = _v56.a;
+									var uInfo = _v60.a;
 									return _List_fromArray(
 										[
 											function () {
@@ -17814,11 +17854,11 @@ var $author$project$Update$update = F2(
 				return _Utils_Tuple2(
 					model,
 					function () {
-						var _v57 = $author$project$Misc$userInfo(model.wallet);
-						if (_v57.$ === 'Nothing') {
+						var _v61 = $author$project$Misc$userInfo(model.wallet);
+						if (_v61.$ === 'Nothing') {
 							return $elm$core$Platform$Cmd$none;
 						} else {
-							var uInfo = _v57.a;
+							var uInfo = _v61.a;
 							var txParams = $cmditch$elm_ethereum$Eth$encodeSend(
 								A2(
 									$author$project$Helpers$Eth$addFrom,
@@ -17839,13 +17879,13 @@ var $author$project$Update$update = F2(
 							{
 								dEthUserInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v59 = model.dEthUserInfo;
-										if (_v59.$ === 'Nothing') {
+										var _v63 = model.dEthUserInfo;
+										if (_v63.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthUserInfo,
 												{ethBalance: tokenValue});
 										} else {
-											var oldUserDerivedEthInfoModel = _v59.a;
+											var oldUserDerivedEthInfoModel = _v63.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{ethBalance: tokenValue});
@@ -17866,13 +17906,13 @@ var $author$project$Update$update = F2(
 							{
 								dEthUserInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v61 = model.dEthUserInfo;
-										if (_v61.$ === 'Nothing') {
+										var _v65 = model.dEthUserInfo;
+										if (_v65.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthUserInfo,
 												{dEthBalance: tokenValue});
 										} else {
-											var oldUserDerivedEthInfoModel = _v61.a;
+											var oldUserDerivedEthInfoModel = _v65.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{dEthBalance: tokenValue});
@@ -17897,8 +17937,8 @@ var $author$project$Update$update = F2(
 							{
 								dEthWithdrawInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v63 = model.dEthWithdrawInfo;
-										if (_v63.$ === 'Nothing') {
+										var _v67 = model.dEthWithdrawInfo;
+										if (_v67.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthWithdrawInfo,
 												{
@@ -17907,7 +17947,7 @@ var $author$project$Update$update = F2(
 													totalCollateralRedeemed: $author$project$TokenValue$tokenValue(data.collateralRedeemed)
 												});
 										} else {
-											var oldUserDerivedEthInfoModel = _v63.a;
+											var oldUserDerivedEthInfoModel = _v67.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{
@@ -18089,8 +18129,8 @@ var $author$project$Update$update = F2(
 							{
 								dEthDepositInfo: $elm$core$Maybe$Just(
 									function () {
-										var _v72 = model.dEthDepositInfo;
-										if (_v72.$ === 'Nothing') {
+										var _v76 = model.dEthDepositInfo;
+										if (_v76.$ === 'Nothing') {
 											return _Utils_update(
 												$author$project$Misc$derivedEthDepositInfo,
 												{
@@ -18099,7 +18139,7 @@ var $author$project$Update$update = F2(
 													tokensIssued: $author$project$TokenValue$tokenValue(data.tokensIssued)
 												});
 										} else {
-											var oldUserDerivedEthInfoModel = _v72.a;
+											var oldUserDerivedEthInfoModel = _v76.a;
 											return _Utils_update(
 												oldUserDerivedEthInfoModel,
 												{
@@ -18210,7 +18250,7 @@ var $author$project$Update$update = F2(
 						}
 					},
 					function (info) {
-						var _v74 = A2(
+						var _v78 = A2(
 							$author$project$GTag$gTagOutOnlyOnceForEvent,
 							model.gtagHistory,
 							A4(
@@ -18220,8 +18260,8 @@ var $author$project$Update$update = F2(
 								$elm$core$Maybe$Just(
 									$cmditch$elm_ethereum$Eth$Utils$addressToString(info.address)),
 								$elm$core$Maybe$Nothing));
-						var gtagHistory = _v74.a;
-						var walletConnectedGtagCmd = _v74.b;
+						var gtagHistory = _v78.a;
+						var walletConnectedGtagCmd = _v78.b;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -18262,7 +18302,7 @@ var $author$project$Update$update = F2(
 								$author$project$Ports$log(e));
 						}
 					},
-					function (_v76) {
+					function (_v80) {
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -25303,7 +25343,6 @@ var $coinop_logan$phace$Features$pointToBoundingRect = F2(
 				$coinop_logan$phace$Features$getX(point) + width,
 				$coinop_logan$phace$Features$getY(point) + height));
 	});
-var $elm$core$Debug$log = _Debug_log;
 var $coinop_logan$phace$Phace$Types$squashMaybe = F2(
 	function (_default, maybe) {
 		if (maybe.$ === 'Nothing') {
@@ -36722,6 +36761,13 @@ var $author$project$View$Stats$intTextOrLoadingText = function (dilutedValue) {
 	} else {
 		return $author$project$Misc$loadingText;
 	}
+};
+var $author$project$AddressDict$keys = function (addressDict_) {
+	var addressDict = addressDict_.a;
+	return A2(
+		$elm$core$List$map,
+		$author$project$AddressDict$deterministicStringToAddress,
+		$elm$core$Dict$keys(addressDict));
 };
 var $mdgriffith$elm_ui$Element$spacingXY = F2(
 	function (x, y) {

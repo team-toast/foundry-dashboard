@@ -52,14 +52,14 @@ getName chainId chainConfigs =
 chainDecoder : Flags -> Decoder (List Types.ChainConfig)
 chainDecoder flags =
     Decode.map
-        (\chainId ->
-            { chainId = chainId
-            , name = ""
-            , nodeUrl = ""
-            , explorerUrl = ""
+        (\networkId ->
+            { name = "Ethereum"
+            , networkId = 1
+            , nodeUrl = "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+            , explorerUrl = "https://etherscan.io/"
             }
         )
-        (Decode.field "chainId" decodeChain
+        (Decode.field "networkId" decodeChain
             |> Decode.andThen
                 (Result.Extra.unpack
                     (always (Decode.fail "bad network"))
@@ -74,10 +74,5 @@ decodeChain =
     Eth.Net.networkIdDecoder
         |> Decode.map
             (\network ->
-                case network of
-                    Eth.Net.Private i ->
-                        Ok i
-
-                    _ ->
-                        Err Types.NetworkNotSupported
+                Ok (Eth.Net.networkIdToInt network)
             )

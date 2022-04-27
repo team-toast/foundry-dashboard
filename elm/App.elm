@@ -26,6 +26,16 @@ import View exposing (view)
 import Wallet
 
 
+errorPassthrough : Result Json.Decode.Error b -> Result Json.Decode.Error b
+errorPassthrough r =
+    case r of
+        Err err ->
+            Debug.log (Json.Decode.errorToString err) Err err
+
+        Ok _ ->
+            r
+
+
 main : Program Flags Model Msg
 main =
     Hash.application
@@ -57,6 +67,7 @@ init flags url key =
     flags.chains
         |> Json.Decode.decodeValue
             (Chain.chainDecoder flags)
+        |> errorPassthrough
         |> Result.toMaybe
         |> unwrap
             ( { model
@@ -69,7 +80,7 @@ init flags url key =
                 let
                     config =
                         chainConfigs
-                            |> List.map (\i -> ( i.chainId, i ))
+                            |> List.map (\i -> ( i.networkId, i ))
                             |> Dict.fromList
                             |> Dict.union model.chainConfigs
 
@@ -124,7 +135,7 @@ startSentry config =
 
         ( initEventSentry, initEventSentryCmd ) =
             Eth.Sentry.Event.init
-                (Types.EventSentryMsg config.chainId)
+                (Types.EventSentryMsg config.networkId)
                 config.nodeUrl
 
         ( eventSentry, secondEventSentryCmd ) =
@@ -144,11 +155,10 @@ startSentry config =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    [ Time.every (1000 * 0.5) Types.UpdateNow
-    , Time.every (1000 * 5) (always Types.RefreshAll)
-    , Time.every (1000 * 15) (always Types.RefetchStakingInfoOrApy)
+    [ Time.every (1000 * 1) Types.UpdateNow
+    , Time.every (1000 * 10) (always Types.RefreshAll)
+    , Time.every (1000 * 150) (always Types.RefetchStakingInfoOrApy)
     , Time.every (1000 * 15) Types.Tick
-    , Time.every (1000 * 10) (always Types.FetchFryBalances)
     , Ports.web3SignResult Types.Web3SignResultValue
     , Ports.web3ValidateSigResult Types.Web3ValidateSigResultValue
     , Ports.walletResponse
