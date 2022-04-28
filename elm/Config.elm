@@ -97,6 +97,16 @@ ethErc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
 
 
+ethLPBalanceFetchBatchContractAddress : Address
+ethLPBalanceFetchBatchContractAddress =
+    Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
+
+
+polyLPBalanceFetchBatchContractAddress : Address
+polyLPBalanceFetchBatchContractAddress =
+    Eth.Utils.unsafeToAddress "0xfdb05419a14fa35dd06b5af13e5ae01edc93243b"
+
+
 arbErc20BalanceFetchBatchContractAddress : Address
 arbErc20BalanceFetchBatchContractAddress =
     Eth.Utils.unsafeToAddress "0x6b88B564EfC6fcE6515E73B0b1DAb5c4f10a1054"
@@ -135,6 +145,21 @@ polyFryPosContractAddress =
 polyGFryContractAddress : Address
 polyGFryContractAddress =
     Eth.Utils.unsafeToAddress "0xC86c63E5681254Dd8DF64e69fB29eAD5a23dA461"
+
+
+ethUniswapFryWethContractAddress : Address
+ethUniswapFryWethContractAddress =
+    Eth.Utils.unsafeToAddress "0xcd1d5ff929e2b69bbd351cf31057e9a70ec76291"
+
+
+ethBalancerFryDaiDethContractAddress : Address
+ethBalancerFryDaiDethContractAddress =
+    Eth.Utils.unsafeToAddress "0x04a1f9f9fe8910a27972e15d5da3bf79075fefbb"
+
+
+ethBalancerWstaWethAaveUniYfiFryContractAddress : Address
+ethBalancerWstaWethAaveUniYfiFryContractAddress =
+    Eth.Utils.unsafeToAddress "0xe6cb1c3a212001d02706ef93ea0a87b35b36d016"
 
 
 blockExplorerUrl : ChainId -> ChainConfigs -> Maybe String
