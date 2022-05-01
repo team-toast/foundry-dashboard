@@ -4,6 +4,7 @@ import AddressDict exposing (..)
 import BigInt exposing (BigInt)
 import Config
 import Contracts.Generated.ERC20BalanceFetchBatch as BulkBalanceFetch
+import Contracts.Generated.LPBalancerChecker as LPBalancerChecker
 import Dict
 import Eth
 import Eth.Net exposing (NetworkId(..))
@@ -14,6 +15,42 @@ import List.Extra exposing (..)
 import Task
 import TokenValue exposing (TokenValue)
 import Types exposing (ChainConfigs, TokenBalanceDict)
+
+
+fetchLP :
+    (Result Http.Error ( HttpProvider, Address, AddressDict TokenValue ) -> msg)
+    -> HttpProvider
+    -> Address
+    -> Address
+    -> Address
+    -> Address
+    -> List Address
+    -> Cmd msg
+fetchLP msgConstructor httpProvider batchLPReaderAddress batchCheckerAddress lpAddress tokenAddress addresses =
+    let
+        translateResult : List BigInt -> ( HttpProvider, Address, AddressDict TokenValue )
+        translateResult result =
+            result
+                |> (List.map TokenValue.tokenValue
+                        >> List.map2 Tuple.pair addresses
+                        >> AddressDict.fromList
+                   )
+                >> (\i -> ( httpProvider, lpAddress, i ))
+    in
+    Eth.call
+        httpProvider
+        (LPBalancerChecker.getBalances
+            batchLPReaderAddress
+            batchCheckerAddress
+            lpAddress
+            tokenAddress
+            addresses
+        )
+        |> Task.attempt
+            (Result.map
+                translateResult
+                >> msgConstructor
+            )
 
 
 fetch :
@@ -56,6 +93,30 @@ accumulateFetches msgConstructor addresses =
         msgConstructor
         Config.ethereumProviderUrl
         Config.ethErc20BalanceFetchBatchContractAddress
+        Config.ethereumFryContractAddress
+        addresses
+    , fetchLP
+        msgConstructor
+        Config.ethereumProviderUrl
+        Config.ethLPBalanceFetchBatchContractAddress
+        Config.ethErc20BalanceFetchBatchContractAddress
+        Config.ethBalancerFryDaiDethContractAddress
+        Config.ethereumFryContractAddress
+        addresses
+    , fetchLP
+        msgConstructor
+        Config.ethereumProviderUrl
+        Config.ethLPBalanceFetchBatchContractAddress
+        Config.ethErc20BalanceFetchBatchContractAddress
+        Config.ethBalancerWstaWethAaveUniYfiFryContractAddress
+        Config.ethereumFryContractAddress
+        addresses
+    , fetchLP
+        msgConstructor
+        Config.ethereumProviderUrl
+        Config.ethLPBalanceFetchBatchContractAddress
+        Config.ethErc20BalanceFetchBatchContractAddress
+        Config.ethUniswapFryWethContractAddress
         Config.ethereumFryContractAddress
         addresses
     , fetch
