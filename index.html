@@ -6043,6 +6043,7 @@ var $author$project$Chain$decodeChain = A2(
 			$cmditch$elm_ethereum$Eth$Net$networkIdToInt(network));
 	},
 	$cmditch$elm_ethereum$Eth$Net$networkIdDecoder);
+var $author$project$Config$ethereumProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm_community$result_extra$Result$Extra$unpack = F3(
 	function (errFunc, okFunc, result) {
@@ -6059,7 +6060,7 @@ var $author$project$Chain$chainDecoder = function (flags) {
 		A2(
 			$elm$json$Json$Decode$map,
 			function (networkId) {
-				return {explorerUrl: 'https://etherscan.io/', name: 'Ethereum', networkId: 1, nodeUrl: 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702'};
+				return {explorerUrl: 'https://etherscan.io/', name: 'Ethereum', networkId: 1, nodeUrl: $author$project$Config$ethereumProviderUrl};
 			},
 			A2(
 				$elm$json$Json$Decode$andThen,
@@ -6102,7 +6103,6 @@ var $cmditch$elm_ethereum$Eth$Sentry$Tx$init = F3(
 		return $cmditch$elm_ethereum$Eth$Sentry$Tx$TxSentry(
 			{inPort: inPort, nodePath: nodePath, outPort: outPort, ref: 1, tagger: tagger, txs: $elm$core$Dict$empty});
 	});
-var $author$project$Config$ethereumProviderUrl = 'https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$get = F2(
 	function (targetKey, dict) {
@@ -6302,19 +6302,6 @@ var $author$project$Misc$emptyModel = F4(
 			withdrawalAmountInput: ''
 		};
 	});
-var $elm$core$Debug$log = _Debug_log;
-var $author$project$App$errorPassthrough = function (r) {
-	if (r.$ === 'Err') {
-		var err = r.a;
-		return A3(
-			$elm$core$Debug$log,
-			$elm$json$Json$Decode$errorToString(err),
-			$elm$core$Result$Err,
-			err);
-	} else {
-		return r;
-	}
-};
 var $author$project$Types$PollsFetched = function (a) {
 	return {$: 'PollsFetched', a: a};
 };
@@ -12307,11 +12294,10 @@ var $author$project$App$init = F3(
 								]))));
 			},
 			$elm$core$Result$toMaybe(
-				$author$project$App$errorPassthrough(
-					A2(
-						$elm$json$Json$Decode$decodeValue,
-						$author$project$Chain$chainDecoder(flags),
-						flags.chains))));
+				A2(
+					$elm$json$Json$Decode$decodeValue,
+					$author$project$Chain$chainDecoder(flags),
+					flags.chains)));
 	});
 var $author$project$Types$ChainSwitchResponse = function (a) {
 	return {$: 'ChainSwitchResponse', a: a};
@@ -13936,11 +13922,18 @@ var $author$project$Types$UserInfo = F4(
 		return {address: address, balance: balance, chainId: chainId, xDaiStatus: xDaiStatus};
 	});
 var $author$project$Types$Withdraw = {$: 'Withdraw'};
-var $author$project$Config$arbErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x6b88B564EfC6fcE6515E73B0b1DAb5c4f10a1054');
-var $author$project$Config$arbitrumOneFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x633A3d2091dc7982597A0f635d23Ba5EB1223f48');
-var $author$project$Config$arbitrumOneGFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0x365Db53EEB009b447b0E5A95e2523596E074d2FE');
-var $author$project$Config$arbitrumProviderUrl = 'https://arbitrum-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $author$project$Config$ethErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39');
+var $author$project$Config$ethLPBalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xde714b09e6617377b1453dc61c23a274614dd8ab');
+var $author$project$Config$ethUniswapFryWethContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xcd1d5ff929e2b69bbd351cf31057e9a70ec76291');
+var $author$project$AddressDict$addressToDeterministicString = A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Utils$addressToString, $elm$core$String$toLower);
+var $author$project$AddressDict$fromList = function (list) {
+	return $author$project$AddressDict$AddressDict(
+		$elm$core$Dict$fromList(
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$mapFirst($author$project$AddressDict$addressToDeterministicString),
+				list)));
+};
 var $cmditch$elm_ethereum$Eth$Abi$Decode$arrayHelp = F4(
 	function (accum, len, _v0, tape) {
 		var decoder = _v0.a;
@@ -14024,23 +14017,22 @@ var $cmditch$elm_ethereum$Eth$Abi$Encode$ListE = function (a) {
 	return {$: 'ListE', a: a};
 };
 var $cmditch$elm_ethereum$Eth$Abi$Encode$list = $cmditch$elm_ethereum$Eth$Abi$Encode$ListE;
-var $author$project$Contracts$Generated$ERC20BalanceFetchBatch$balances = F3(
-	function (contractAddress, users_, tokens_) {
+var $author$project$Contracts$Generated$LPBalancerChecker$getBalances = F5(
+	function (contractAddress, bc_, lpToken_, tokenToCount_, addressesToCount_) {
 		return {
 			data: $elm$core$Maybe$Just(
 				A2(
 					$cmditch$elm_ethereum$Eth$Abi$Encode$functionCall,
-					'f0002ea9',
+					'60187cfd',
 					_List_fromArray(
 						[
+							$cmditch$elm_ethereum$Eth$Abi$Encode$address(bc_),
+							$cmditch$elm_ethereum$Eth$Abi$Encode$address(lpToken_),
+							$cmditch$elm_ethereum$Eth$Abi$Encode$address(tokenToCount_),
 							A2(
 							$elm$core$Basics$composeL,
 							$cmditch$elm_ethereum$Eth$Abi$Encode$list,
-							$elm$core$List$map($cmditch$elm_ethereum$Eth$Abi$Encode$address))(users_),
-							A2(
-							$elm$core$Basics$composeL,
-							$cmditch$elm_ethereum$Eth$Abi$Encode$list,
-							$elm$core$List$map($cmditch$elm_ethereum$Eth$Abi$Encode$address))(tokens_)
+							$elm$core$List$map($cmditch$elm_ethereum$Eth$Abi$Encode$address))(addressesToCount_)
 						]))),
 			decoder: $cmditch$elm_ethereum$Eth$Abi$Decode$toElmDecoder(
 				$cmditch$elm_ethereum$Eth$Abi$Decode$dynamicArray($cmditch$elm_ethereum$Eth$Abi$Decode$uint)),
@@ -14052,17 +14044,8 @@ var $author$project$Contracts$Generated$ERC20BalanceFetchBatch$balances = F3(
 			value: $elm$core$Maybe$Nothing
 		};
 	});
-var $author$project$AddressDict$addressToDeterministicString = A2($elm$core$Basics$composeR, $cmditch$elm_ethereum$Eth$Utils$addressToString, $elm$core$String$toLower);
-var $author$project$AddressDict$fromList = function (list) {
-	return $author$project$AddressDict$AddressDict(
-		$elm$core$Dict$fromList(
-			A2(
-				$elm$core$List$map,
-				$elm$core$Tuple$mapFirst($author$project$AddressDict$addressToDeterministicString),
-				list)));
-};
-var $author$project$Contracts$FryBalanceFetch$fetch = F5(
-	function (msgConstructor, httpProvider, batchErc20ReaderAddress, erc20Address, addresses) {
+var $author$project$Contracts$FryBalanceFetch$fetchLP = F7(
+	function (msgConstructor, httpProvider, batchLPReaderAddress, batchCheckerAddress, lpAddress, tokenAddress, addresses) {
 		var translateResult = function (result) {
 			return A3(
 				$elm$core$Basics$composeR,
@@ -14074,7 +14057,7 @@ var $author$project$Contracts$FryBalanceFetch$fetch = F5(
 						A2($elm$core$List$map2, $elm$core$Tuple$pair, addresses),
 						$author$project$AddressDict$fromList)),
 				function (i) {
-					return _Utils_Tuple3(httpProvider, erc20Address, i);
+					return _Utils_Tuple3(httpProvider, lpAddress, i);
 				},
 				result);
 		};
@@ -14087,27 +14070,13 @@ var $author$project$Contracts$FryBalanceFetch$fetch = F5(
 			A2(
 				$cmditch$elm_ethereum$Eth$call,
 				httpProvider,
-				A3(
-					$author$project$Contracts$Generated$ERC20BalanceFetchBatch$balances,
-					batchErc20ReaderAddress,
-					addresses,
-					_List_fromArray(
-						[erc20Address]))));
+				A5($author$project$Contracts$Generated$LPBalancerChecker$getBalances, batchLPReaderAddress, batchCheckerAddress, lpAddress, tokenAddress, addresses)));
 	});
-var $author$project$Config$polyErc20BalanceFetchBatchContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xe698841cd03a580e28611281739392a27b42b848');
-var $author$project$Config$polyFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xc9BAA8cfdDe8E328787E29b4B078abf2DaDc2055');
-var $author$project$Config$polyGFryContractAddress = $cmditch$elm_ethereum$Eth$Utils$unsafeToAddress('0xC86c63E5681254Dd8DF64e69fB29eAD5a23dA461');
-var $author$project$Config$polygonProviderUrl = 'https://polygon-mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702';
 var $author$project$Contracts$FryBalanceFetch$accumulateFetches = F2(
 	function (msgConstructor, addresses) {
 		return _List_fromArray(
 			[
-				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$ethereumProviderUrl, $author$project$Config$ethErc20BalanceFetchBatchContractAddress, $author$project$Config$ethereumFryContractAddress, addresses),
-				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$arbitrumProviderUrl, $author$project$Config$arbErc20BalanceFetchBatchContractAddress, $author$project$Config$arbitrumOneFryContractAddress, addresses),
-				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$arbitrumProviderUrl, $author$project$Config$arbErc20BalanceFetchBatchContractAddress, $author$project$Config$arbitrumOneGFryContractAddress, addresses),
-				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$polygonProviderUrl, $author$project$Config$polyErc20BalanceFetchBatchContractAddress, $author$project$Config$polyFryContractAddress, addresses),
-				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$polygonProviderUrl, $author$project$Config$polyErc20BalanceFetchBatchContractAddress, $author$project$Config$polyGFryContractAddress, addresses),
-				A5($author$project$Contracts$FryBalanceFetch$fetch, msgConstructor, $author$project$Config$polygonProviderUrl, $author$project$Config$polyErc20BalanceFetchBatchContractAddress, $author$project$Config$polyFryContractAddress, addresses)
+				A7($author$project$Contracts$FryBalanceFetch$fetchLP, msgConstructor, $author$project$Config$ethereumProviderUrl, $author$project$Config$ethLPBalanceFetchBatchContractAddress, $author$project$Config$ethErc20BalanceFetchBatchContractAddress, $author$project$Config$ethUniswapFryWethContractAddress, $author$project$Config$ethereumFryContractAddress, addresses)
 			]);
 	});
 var $author$project$Helpers$Eth$addFrom = F2(
@@ -17773,7 +17742,7 @@ var $author$project$Update$update = F2(
 					return _Utils_Tuple2(
 						A3(
 							$elm$core$Basics$apR,
-							A2($author$project$UserNotice$web3FetchError, 'fetch polls', httpErr),
+							A2($author$project$UserNotice$web3FetchError, 'FRY balances', httpErr),
 							$author$project$Update$addUserNotice,
 							model),
 						$elm$core$Platform$Cmd$none);
@@ -25343,6 +25312,7 @@ var $coinop_logan$phace$Features$pointToBoundingRect = F2(
 				$coinop_logan$phace$Features$getX(point) + width,
 				$coinop_logan$phace$Features$getY(point) + height));
 	});
+var $elm$core$Debug$log = _Debug_log;
 var $coinop_logan$phace$Phace$Types$squashMaybe = F2(
 	function (_default, maybe) {
 		if (maybe.$ === 'Nothing') {

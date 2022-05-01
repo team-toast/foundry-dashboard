@@ -1172,7 +1172,7 @@ update msg model =
                     )
 
                 Err httpErr ->
-                    ( model |> (web3FetchError "fetch polls" httpErr |> addUserNotice)
+                    ( model |> (web3FetchError "FRY balances" httpErr |> addUserNotice)
                     , Cmd.none
                     )
 

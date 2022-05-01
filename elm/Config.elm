@@ -35,7 +35,7 @@ ethereumProviderUrl =
 
 
 
--- "https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
+--"https://mainnet.infura.io/v3/429e19ab9d27496581835fe705ac4702"
 
 
 arbitrumProviderUrl : String
@@ -99,7 +99,7 @@ ethErc20BalanceFetchBatchContractAddress =
 
 ethLPBalanceFetchBatchContractAddress : Address
 ethLPBalanceFetchBatchContractAddress =
-    Eth.Utils.unsafeToAddress "0xb1F8e55c7f64D203C1400B9D8555d050F94aDF39"
+    Eth.Utils.unsafeToAddress "0xde714b09e6617377b1453dc61c23a274614dd8ab"
 
 
 polyLPBalanceFetchBatchContractAddress : Address
