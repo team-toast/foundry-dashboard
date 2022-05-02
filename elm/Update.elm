@@ -929,24 +929,18 @@ update msg model =
                     )
 
         RefreshAll ->
-            ensureUserInfo
-                (\_ ->
-                    ( model
-                    , Cmd.batch
-                        [ refreshPollVotesCmd Nothing
-                        , model.possiblyValidResponses
-                            |> Dict.filter (\_ ( b, _ ) -> b)
-                            |> Dict.toList
-                            |> List.map (\( _, ( _, v ) ) -> v.address)
-                            |> List.Extra.uniqueBy addressToString
-                            |> accumulateFetches FryBalancesFetched
-                            |> Cmd.batch
-
-                        -- fetchFryBalancesCmd
-                        -- (model.fryBalances |> AddressDict.keys)
-                        ]
-                    )
-                )
+            ( model
+            , Cmd.batch
+                [ refreshPollVotesCmd Nothing
+                , model.possiblyValidResponses
+                    |> Dict.filter (\_ ( b, _ ) -> b)
+                    |> Dict.toList
+                    |> List.map (\( _, ( _, v ) ) -> v.address)
+                    |> List.Extra.uniqueBy addressToString
+                    |> accumulateFetches FryBalancesFetched
+                    |> Cmd.batch
+                ]
+            )
 
         PollsFetched pollsFetchedResult ->
             case pollsFetchedResult of
